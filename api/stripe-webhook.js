@@ -39,7 +39,9 @@ export default async function handler(req, res) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object
 
-    const email = session.customer_email
+const email =
+  session.customer_details?.email ||
+  session.customer_email
 
     let tier = 'basic'
 
