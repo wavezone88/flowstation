@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flowstation</title>
+
+<style>
+
+body{
+  margin:0;
+  font-family:Arial, Helvetica, sans-serif;
+  background:#0a0a0a;
+  color:white;
+}
+
+header{
+  display:flex;
+  align-items:center;
+  gap:15px;
+  padding:15px 20px;
+  background:#111;
+  border-bottom:1px solid #222;
+}
+
+.logo{
+  font-size:28px;
+  font-weight:bold;
+  letter-spacing:2px;
+}
+
+.live-dot{
+  width:12px;
+  height:12px;
+  background:#ff2b2b;
+  border-radius:50%;
+  box-shadow:0 0 10px #ff2b2b;
+  animation:pulse 1.5s infinite;
+}
+
+@keyframes pulse{
+  0%{box-shadow:0 0 5px #ff2b2b}
+  50%{box-shadow:0 0 20px #ff2b2b}
+  100%{box-shadow:0 0 5px #ff2b2b}
+}
+
+.container{
+  display:flex;
+  height:calc(100vh - 60px);
+}
+
+.sidebar{
+  width:200px;
+  background:#111;
+  border-right:1px solid #222;
+  padding-top:10px;
+}
+
+.tab-button{
+  display:block;
+  width:100%;
+  padding:12px;
+  background:none;
+  border:none;
+  color:white;
+  text-align:left;
+  cursor:pointer;
+}
+
+.tab-button:hover{
+  background:#222;
+}
+
+.main{
+  flex:1;
+  padding:20px;
+}
+
+.tab-panel{
+  display:none;
+}
+
+.tab-panel.active{
+  display:block;
+}
+
+textarea{
+  width:100%;
+  height:200px;
+  background:#111;
+  color:white;
+  border:1px solid #333;
+  padding:10px;
+  font-size:16px;
+}
+
+.counter-bar{
+  margin-top:10px;
+  display:flex;
+  gap:20px;
+}
+
+input[type="number"]{
+  width:80px;
+  background:#111;
+  color:white;
+  border:1px solid #333;
+  padding:5px;
+}
+
+audio{
+  width:100%;
+  margin-top:10px;
+}
+
+.highlight{
+  color:#00ffcc;
+}
+
+</style>
+
+</head>
+<body>
+
+<header>
+<div class="logo">FLOWSTATION</div>
+<div class="live-dot"></div>
+<div>LIVE</div>
+</header>
+
+<div class="container">
+
+<div class="sidebar">
+<button class="tab-button" data-tab="editor">Editor</button>
+<button class="tab-button" data-tab="flow">Flow Starters</button>
+<button class="tab-button" data-tab="hooks">Hooks</button>
+<button class="tab-button" data-tab="bpm">BPM Guide</button>
+<button class="tab-button" data-tab="audio">Audio Player</button>
+</div>
+
+<div class="main">
+
+<div id="editor" class="tab-panel active">
+<h2>Write</h2>
+<textarea id="textInput"></textarea>
+
+<div class="counter-bar">
+<div>Words: <span id="wordCount">0</span></div>
+<div>Syllables: <span id="syllableCount">0</span></div>
+<div>Target: <input type="number" id="syllableTarget" value="10"></div>
+</div>
+
+</div>
+
+<div id="flow" class="tab-panel">
+<h2>Flow Starters</h2>
+<ul>
+<li>I came from nothing now the city know my name</li>
+<li>Pressure on my chest but I still play the game</li>
+<li>Late nights turning dreams into gold</li>
+<li>Young king with a story untold</li>
+</ul>
+</div>
+
+<div id="hooks" class="tab-panel">
+<h2>Hooks</h2>
+<ul>
+<li>We up now never going down</li>
+<li>Shining bright yeah we run the town</li>
+<li>All gas no brakes</li>
+<li>Everything real no fake</li>
+</ul>
+</div>
+
+<div id="bpm" class="tab-panel">
+<h2>BPM Guide</h2>
+<ul>
+<li>60–80 BPM: Slow / emotional</li>
+<li>80–100 BPM: Standard hip hop</li>
+<li>100–130 BPM: Trap / modern rap</li>
+<li>130–160 BPM: Fast / aggressive</li>
+</ul>
+</div>
+
+<div id="audio" class="tab-panel">
+<h2>Audio Player</h2>
+<input type="file" id="audioFile" accept="audio/*">
+<audio id="audioPlayer" controls></audio>
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+// TAB SYSTEM
+
+document.querySelectorAll('.tab-button').forEach(button=>{
+
+button.addEventListener('click',()=>{
+
+const tab=button.dataset.tab;
+
+document.querySelectorAll('.tab-panel').forEach(panel=>{
+panel.classList.remove('active');
+});
+
+const target=document.getElementById(tab);
+if(target) target.classList.add('active');
+
+});
+
+});
+
+// COUNTERS
+
+const textInput=document.getElementById('textInput');
+const wordCount=document.getElementById('wordCount');
+const syllableCount=document.getElementById('syllableCount');
+const syllableTarget=document.getElementById('syllableTarget');
+
+function countSyllables(word){
+word=word.toLowerCase();
+const matches=word.match(/[aeiouy]+/g);
+return matches?matches.length:1;
+}
+
+function updateCounters(){
+
+const text=textInput.value.trim();
+
+if(!text){
+wordCount.textContent=0;
+syllableCount.textContent=0;
+return;
+}
+
+const words=text.split(/\s+/);
+
+wordCount.textContent=words.length;
+
+let syllables=0;
+
+words.forEach(word=>{
+syllables+=countSyllables(word);
+});
+
+syllableCount.textContent=syllables;
+
+const target=parseInt(syllableTarget.value);
+
+if(syllables>=target){
+syllableCount.style.color="#00ff88";
+}else{
+syllableCount.style.color="#ff4444";
+}
+
+}
+
+textInput.addEventListener('input',updateCounters);
+
+// AUDIO PLAYER
+
+const audioFile=document.getElementById('audioFile');
+const audioPlayer=document.getElementById('audioPlayer');
+
+audioFile.addEventListener('change',function(){
+
+const file=this.files[0];
+
+if(file){
+const url=URL.createObjectURL(file);
+audioPlayer.src=url;
+audioPlayer.load();
+}
+
+});
+
+// RHYME HIGHLIGHT (basic detection)
+
+textInput.addEventListener('input',()=>{
+
+const words=textInput.value.split(/\s+/);
+const endings={};
+
+words.forEach(word=>{
+
+const end=word.slice(-2);
+
+if(!endings[end]) endings[end]=0;
+
+endings[end]++;
+
+});
+
+console.log('Rhyme map active',endings);
+
+});
+
+</script>
+
+</body>
+</html>
