@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=League+Gothic&family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <!-- Supabase for real user accounts -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 /* ── RESET ── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -586,6 +586,16 @@ html,body{height:100%;overflow:hidden;background:#060606;color:#f2efe9;font-fami
     </div>
   </section>
 
+  <div style="text-align:center;padding:0 2rem 5rem;">
+    <div style="display:inline-flex;align-items:center;gap:.85rem;background:rgba(240,192,64,.07);border:1px solid rgba(240,192,64,.18);border-radius:14px;padding:.95rem 2rem;">
+      <span style="font-size:1.5rem;">🎟</span>
+      <div style="text-align:left;">
+        <div style="font-family:'League Gothic',sans-serif;font-size:1.1rem;color:#f0c040;letter-spacing:.08em;text-transform:uppercase;">GOT A PROMO CODE?</div>
+        <div style="font-size:.85rem;color:rgba(242,239,233,.4);margin-top:.2rem;">Enter code <strong style="color:#f0c040;letter-spacing:.06em;">FLOW50</strong> at checkout for 50% off your first month.</div>
+      </div>
+    </div>
+  </div>
+
   <section class="gsec" id="gAuth">
     <span class="g-label">YOUR ACCOUNT</span>
     <h2 class="g-h2">SIGN IN OR SIGN UP.</h2>
@@ -819,13 +829,11 @@ let currentTier = 'basic';
 const FLOYD_LIMITS = { basic:0, regular:3, premium:Infinity };
 
 function initSupabase(){
-  if(SUPABASE_URL === 'https://xxjfdboksjngqddlylji.supabase.co'){
-    document.getElementById('setupNotice').style.display='block';
-    console.warn('Supabase not configured. Running in demo mode.');
-    return false;
+  if(SUPABASE_URL === 'YOUR_SUPABASE_URL'){
+    console.warn('Supabase not configured.'); return false;
   }
   try{
-    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    const { createClient } = window.supabase; sb = createClient(SUPABASE_URL, SUPABASE_ANON);
     return true;
   }catch(e){ console.error('Supabase init failed',e); return false; }
 }
@@ -886,7 +894,7 @@ async function authSignin(){
     if(error) throw error;
     await onSignedIn(data.user);
   }catch(e){
-    msg.textContent=e.message||'Sign in failed. Check your email and password.';
+    msg.textContent=e.message||'Sign in failed. Check your email and password.'; console.error('Auth error:',e);
     msg.className='g-auth-msg err';
   }finally{ btn.disabled=false; btn.textContent='SIGN IN →'; }
 }
