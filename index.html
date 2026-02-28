@@ -644,6 +644,24 @@ padding:.26rem .6rem;border-radius:6px;cursor:pointer;transition:all .15s;
 .uex{font-size:.94rem;color:var(--dim);font-style:italic;line-height:1.5;}
 .uvotes{font-size:.58rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-top:.35rem;}
 
+
+/* ── TOOL PANEL RESIZE HANDLE ── */
+.tp-resize{
+width:5px;flex-shrink:0;cursor:col-resize;
+background:transparent;
+position:relative;z-index:50;
+transition:background .15s;
+opacity:0;pointer-events:none;
+}
+.tp-resize.active{opacity:1;pointer-events:auto;}
+.tp-resize:hover,.tp-resize.dragging{background:rgba(240,192,64,.35);}
+.tp-resize::after{
+content:'';position:absolute;
+top:50%;left:50%;
+transform:translate(-50%,-50%);
+width:2px;height:40px;
+background:rgba(255,255,255,.12);border-radius:2px;
+}
 /* ── NOTEPAD ── */
 .notepad-wrap{
 flex:1;display:flex;flex-direction:column;overflow:hidden;
@@ -1267,6 +1285,9 @@ transition:height .28s cubic-bezier(.4,0,.2,1);
 .floyd-panel.open{height:380px;}
 .fmessages{-webkit-overflow-scrolling:touch;}
 
+
+/* ── TOOL PANEL RESIZE HANDLE — mobile: hidden ── */
+.tp-resize{display:none!important;}
 /* ── NOTEPAD ── */
 .notepad-wrap{min-height:50vh;flex:1;}
 .pad{font-size:.94rem;padding:.6rem .75rem;}
@@ -2319,7 +2340,6 @@ text-decoration:none;
 
   <div class="main-area" id="mainArea">
 
-```
 <!-- TOOL PANEL -->
 <div class="tool-panel" id="toolPanel">
   <div class="tp-head">
@@ -2341,7 +2361,7 @@ text-decoration:none;
     <div class="psec" id="ps-rhyme">
       <div class="si-row"><input class="si" id="rhymeQ" placeholder="Find rhymes…" onkeydown="if(event.key==='Enter')lookupRhyme()"><button class="go" onclick="lookupRhyme()">GO</button></div>
       <div style="padding:.4rem .7rem .1rem;font-size:.74rem;font-weight:600;color:rgba(242,239,233,.5);letter-spacing:.04em;text-transform:uppercase;" id="rbWord"></div>
-      <div style="padding:.35rem .6rem;display:flex;flex-wrap:wrap;gap:.32rem;max-height:200px;overflow-y:auto;" id="rbChips"></div>
+      <div style="padding:.35rem .6rem;display:flex;flex-wrap:wrap;gap:.32rem;max-height:260px;overflow-y:auto;" id="rbChips"></div>
       <div class="lres" id="rhymeRes"><div class="sempty">Type in your notepad — rhymes appear automatically.</div></div>
       <div style="padding:.4rem .5rem .2rem;border-top:1px solid rgba(255,255,255,.05);margin-top:.4rem;">
         <button onclick="floydRhymeSuggest()" id="aiRhymeBtn" style="width:100%;background:rgba(240,192,64,.07);border:1px solid rgba(240,192,64,.15);color:var(--gold);font-family:'Saira',sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:.5rem;border-radius:9px;cursor:pointer;transition:all .2s;">🤖 ASK FLOYD FOR RHYME IDEAS</button>
@@ -2449,6 +2469,7 @@ text-decoration:none;
       </div>
     </div>
 <!-- NOTEPAD -->
+<div class="tp-resize" id="tpResize"></div>
 <div class="notepad-wrap">
   <div class="pad-head">
     <span class="pad-title">NOTEPAD</span>
@@ -2719,6 +2740,7 @@ const STRIPE_ELITE  = 'https://buy.stripe.com/4gM00l3W69ra6yC1yyes001';
 
 // ── FLOYD AI — routed through secure Vercel proxy (API key is server-side only) ──
 const FLOYD_ENDPOINT   = '/api/floyd';
+const FLOYD_CLIENT_SECRET = '7icSApMVeM8GQ3qqmKdqHhPLhL8XpMvbk9B2gwjLG1g';
 
 // Pro daily cap (resets at midnight)
 const PRO_DAILY_CAP   = 20;  // Pro: 20 AI messages per day
@@ -4433,11 +4455,15 @@ const chips = document.getElementById('rbChips');
 if (rhymeCache[word]) { renderRhimeBar(rhymeCache[word]); return; }
 chips.innerHTML = '<span class="spin"></span>';
 try {
-const [r1, r2] = await Promise.all([
-fetch(`https://api.datamuse.com/words?rel_rhy=${encodeURIComponent(word)}&max=40`).then(r => r.json()),
-fetch(`https://api.datamuse.com/words?rel_nry=${encodeURIComponent(word)}&max=20`).then(r => r.json())
+const [r1, r2, r3] = await Promise.all([
+fetch(`https://api.datamuse.com/words?rel_rhy=${encodeURIComponent(word)}&max=70`).then(r => r.json()),
+fetch(`https://api.datamuse.com/words?rel_nry=${encodeURIComponent(word)}&max=50`).then(r => r.json()),
+fetch(`https://api.datamuse.com/words?sl=${encodeURIComponent(word)}&max=30`).then(r => r.json())
 ]);
-const res = { p: r1.map(x => x.word), n: r2.map(x => x.word).filter(x => !r1.find(y => y.word === x)) };
+const pSet = new Set(r1.map(x=>x.word));
+const nUniq = r2.filter(x=>!pSet.has(x.word));
+const sUniq = r3.filter(x=>!pSet.has(x.word)&&!nUniq.find(y=>y.word===x.word));
+const res = { p: r1.map(x => x.word), n: nUniq.map(x=>x.word), s: sUniq.map(x=>x.word) };
 rhymeCache[word] = res;
 renderRhimeBar(res);
 } catch {
@@ -4455,12 +4481,16 @@ return;
 }
 let html = '';
 if (res.p.length) {
-html += '<span style="font-size:.58rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);display:block;padding:.25rem .2rem .1rem;">PERFECT</span>';
-html += res.p.slice(0,20).map(w => `<span class="rc" onclick="insertWord('${w}')">${w}</span>`).join('');
+html += '<span style="font-size:.58rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);display:block;padding:.25rem .2rem .1rem;">PERFECT ('+res.p.length+')</span>';
+html += res.p.slice(0,30).map(w => `<span class="rc" onclick="insertWord('${w}')">${w}</span>`).join('');
 }
 if (res.n.length) {
-html += '<span style="font-size:.58rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);display:block;padding:.35rem .2rem .1rem;">NEAR</span>';
-html += res.n.slice(0,12).map(w => `<span class="rc near" onclick="insertWord('${w}')">${w}</span>`).join('');
+html += '<span style="font-size:.58rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);display:block;padding:.35rem .2rem .1rem;">NEAR ('+res.n.length+')</span>';
+html += res.n.slice(0,25).map(w => `<span class="rc near" onclick="insertWord('${w}')">${w}</span>`).join('');
+}
+if (res.s && res.s.length) {
+html += '<span style="font-size:.58rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);display:block;padding:.35rem .2rem .1rem;opacity:.7;">SOUNDS LIKE ('+res.s.length+')</span>';
+html += res.s.slice(0,15).map(w => `<span class="rc" style="opacity:.75;" onclick="insertWord('${w}')">${w}</span>`).join('');
 }
 chips.innerHTML = html;
 }
@@ -4618,7 +4648,7 @@ if(!_checkApiRateLimit()){
 
 const resp = await fetch(FLOYD_ENDPOINT, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 'Content-Type': 'application/json', 'X-Floyd-Token': FLOYD_CLIENT_SECRET },
   body: JSON.stringify({ model: currentTier === 'premium' ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001', max_tokens: currentTier === 'premium' ? 1200 : 600, system: systemWithContext, messages: chatHistory })
 });
 const data = await resp.json();
@@ -5219,18 +5249,27 @@ if(!q) return;
 const res = document.getElementById('rhymeRes');
 res.innerHTML = '<div class="sempty">Finding rhymes for <em>'+q+'</em>…</div>';
 try{
-const [perfect, near] = await Promise.all([
-fetch('https://api.datamuse.com/words?rel_rhy='+encodeURIComponent(q)+'&max=40').then(r=>r.json()),
-fetch('https://api.datamuse.com/words?rel_nry='+encodeURIComponent(q)+'&max=30').then(r=>r.json()),
+const [perfect, near, sounds] = await Promise.all([
+fetch('https://api.datamuse.com/words?rel_rhy='+encodeURIComponent(q)+'&max=70').then(r=>r.json()),
+fetch('https://api.datamuse.com/words?rel_nry='+encodeURIComponent(q)+'&max=50').then(r=>r.json()),
+fetch('https://api.datamuse.com/words?sl='+encodeURIComponent(q)+'&max=30').then(r=>r.json()),
 ]);
+const perfectWords = new Set(perfect.map(w=>w.word));
+const nearUniq = near.filter(w=>!perfectWords.has(w.word));
+const soundWords = new Set([...perfectWords,...nearUniq.map(w=>w.word)]);
+const soundsUniq = sounds.filter(w=>!soundWords.has(w.word));
 let html = '';
 if(perfect.length){
-html += '<div class="lbl">PERFECT RHYMES</div>';
+html += '<div class="lbl">PERFECT RHYMES <span style="font-weight:400;color:var(--dim);font-size:.78em;">('+perfect.length+')</span></div>';
 html += perfect.map(w=>`<div class="ritem" onclick="insertWord('${w.word}')">${w.word}${w.score?'<span style="float:right;font-size:.94rem;color:var(--dim)">'+w.score+'</span>':''}</div>`).join('');
 }
-if(near.length){
-html += '<div class="lbl" style="margin-top:.5rem">NEAR RHYMES</div>';
-html += near.map(w=>`<div class="ritem" onclick="insertWord('${w.word}')">${w.word}</div>`).join('');
+if(nearUniq.length){
+html += '<div class="lbl" style="margin-top:.5rem">NEAR RHYMES <span style="font-weight:400;color:var(--dim);font-size:.78em;">('+nearUniq.length+')</span></div>';
+html += nearUniq.map(w=>`<div class="ritem" onclick="insertWord('${w.word}')">${w.word}</div>`).join('');
+}
+if(soundsUniq.length){
+html += '<div class="lbl" style="margin-top:.5rem">SOUNDS LIKE <span style="font-weight:400;color:var(--dim);font-size:.78em;">('+soundsUniq.length+')</span></div>';
+html += soundsUniq.map(w=>`<div class="ritem" onclick="insertWord('${w.word}')">${w.word}</div>`).join('');
 }
 res.innerHTML = html || '<div class="sempty">No rhymes found.</div>';
 }catch(e){ res.innerHTML='<div class="sempty">Lookup failed. Check your connection.</div>'; }
@@ -5666,7 +5705,7 @@ let out = '<b style="font-size:1.02rem;color:var(--gold);text-transform:uppercas
 if(word){
 // Get rhymes from datamuse then select 5 creative ones
 try{
-const r = await fetch('https://api.datamuse.com/words?rel_rhy='+encodeURIComponent(word)+'&max=30&md=f').then(r=>r.json());
+const r = await fetch('https://api.datamuse.com/words?rel_rhy='+encodeURIComponent(word)+'&max=50&md=f').then(r=>r.json());
 const picked = r.filter(x=>x.word.length>2).slice(0,5);
 if(picked.length){
 out += picked.map(w=>`<span class="rc" onclick="insertWord('${w.word}')">${w.word}</span>`).join(' ');
@@ -5691,7 +5730,7 @@ const prompt = word
 
 const resp = await fetch(FLOYD_ENDPOINT,{
   method:'POST',
-  headers:{'Content-Type':'application/json'},
+  headers:{'Content-Type':'application/json','X-Floyd-Token':FLOYD_CLIENT_SECRET},
   body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,messages:[{role:'user',content:prompt}]})
 });
 const data = await resp.json();
@@ -6032,7 +6071,7 @@ const _airPrompt = `Word to rhyme with: "${lastWord}"\nLine context: "${lastLine
 const _airSystem = 'You are a hip-hop rhyme expert. Given a word and a lyric line, suggest 10 creative rhyming words or multi-syllable rhymes that would work well in a rap or R&B context. Return ONLY a JSON array of strings, no commentary. Example: ["night","ignite","alight","white","sprite","recite","polite","invite","moonlight","appetite"]';
 const resp = await fetch(FLOYD_ENDPOINT,{
 method:'POST',
-headers:{'Content-Type':'application/json'},
+headers:{'Content-Type':'application/json','X-Floyd-Token':FLOYD_CLIENT_SECRET},
 body:JSON.stringify({model:'claude-sonnet-4-6', max_tokens:300, system:_airSystem, messages:[{role:'user',content:_airPrompt}]})
 });
 const data = await resp.json();
@@ -6935,6 +6974,53 @@ draw();
 
 });
 }
+
+
+// ── TOOL PANEL RESIZE ───────────────────────────────────────────────────
+(function(){
+const handle = document.getElementById('tpResize');
+const panel  = document.getElementById('toolPanel');
+if(!handle||!panel) return;
+// Sync handle visibility with panel open state
+new MutationObserver(()=>{
+  const open = panel.classList.contains('open');
+  handle.classList.toggle('active', open);
+  if(!open){ panel.style.width=''; panel.style.minWidth=''; }
+}).observe(panel, {attributes:true, attributeFilter:['class']});
+// Drag logic
+let dragging=false, startX=0, startW=0;
+handle.addEventListener('mousedown', e=>{
+  if(!panel.classList.contains('open')) return;
+  dragging=true; startX=e.clientX; startW=panel.offsetWidth;
+  handle.classList.add('dragging');
+  document.body.style.cursor='col-resize';
+  document.body.style.userSelect='none';
+  e.preventDefault();
+});
+document.addEventListener('mousemove', e=>{
+  if(!dragging) return;
+  const newW = Math.max(200, Math.min(560, startW + (e.clientX - startX)));
+  panel.style.width = newW+'px'; panel.style.minWidth = newW+'px';
+});
+document.addEventListener('mouseup', ()=>{
+  if(!dragging) return;
+  dragging=false;
+  handle.classList.remove('dragging');
+  document.body.style.cursor='';
+  document.body.style.userSelect='';
+});
+// Touch support
+handle.addEventListener('touchstart', e=>{
+  if(!panel.classList.contains('open')) return;
+  dragging=true; startX=e.touches[0].clientX; startW=panel.offsetWidth;
+},{passive:true});
+document.addEventListener('touchmove', e=>{
+  if(!dragging) return;
+  const newW = Math.max(200, Math.min(560, startW + (e.touches[0].clientX - startX)));
+  panel.style.width = newW+'px'; panel.style.minWidth = newW+'px';
+},{passive:true});
+document.addEventListener('touchend', ()=>{ dragging=false; });
+})();
 
 </script>
 
