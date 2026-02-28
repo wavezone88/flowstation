@@ -126,6 +126,14 @@ GATE  -  LANDING PAGE
 .gn-lnk:hover{color:rgba(255,255,255,.82);}
 .gn-cta{font-size:.82rem;font-family:'Saira',sans-serif;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#060606;background:#f2efe9;border:none;border-radius:980px;padding:.42rem 1.15rem;cursor:pointer;transition:all .2s;}
 .gn-cta:hover{background:#fff;transform:scale(1.02);}
+.gn-burger{display:none;background:none;border:none;color:rgba(242,239,233,.6);font-size:1.5rem;cursor:pointer;padding:.3rem;transition:color .2s;}
+.gn-burger:hover{color:#f2efe9;}
+.gn-mobile-menu{display:none;position:absolute;top:100%;right:0;background:rgba(12,12,14,.97);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:0 0 16px 16px;padding:.6rem;min-width:220px;box-shadow:0 16px 48px rgba(0,0,0,.6);z-index:100;}
+.gn-mobile-menu.open{display:flex;flex-direction:column;gap:.15rem;}
+.gn-mm-item{font-family:'Saira',sans-serif;font-size:.82rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(242,239,233,.5);text-decoration:none;padding:.65rem .9rem;border-radius:10px;transition:all .15s;background:none;border:none;cursor:pointer;text-align:left;}
+.gn-mm-item:hover{background:rgba(255,255,255,.06);color:#f2efe9;}
+.gn-mm-cta{font-family:'Saira',sans-serif;font-size:.82rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#060606;background:linear-gradient(135deg,#c8940e,#f0c040);border:none;border-radius:10px;padding:.65rem .9rem;cursor:pointer;text-align:center;margin-top:.2rem;transition:opacity .2s;}
+.gn-mm-cta:hover{opacity:.9;}
 
 /* HERO */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1431,11 +1439,10 @@ border-top:1px solid rgba(255,255,255,.1)!important;
 .stickies-bar{display:none!important;}
 
 /* ── GATE / LANDING PAGE ── */
-.gn{padding:.9rem 1.2rem;}
+.gn{padding:.9rem 1.2rem;position:relative;}
 .gn-logo{height:28px!important;}
-.gn-r{gap:.4rem;}
-.gn-lnk{font-size:.78rem;padding:.3rem .45rem;}
-.gn-cta{font-size:.78rem;padding:.38rem .9rem;}
+.gn-desktop{display:none!important;}
+.gn-burger{display:block!important;}
 
 .gh{padding:7rem 1.2rem 4rem;}
 .gh-logo-wrap{width:min(65vw, 320px);margin-bottom:1.5rem;}
@@ -1804,11 +1811,25 @@ text-decoration:none;
 <div id="gate">
   <nav class="gn">
     <a href="#" onclick="document.getElementById('gate').scrollTo({top:0,behavior:'smooth'});return false;" style="display:flex;align-items:center;text-decoration:none;"><img src="/flowstation-logo.jpg" alt="FlowStation" class="gn-logo"></a>
-    <div class="gn-r">
+    <div class="gn-r gn-desktop">
       <a href="/how-it-works.html" class="gn-page-link">HOW IT WORKS</a>
       <a href="/about.html" class="gn-page-link">ABOUT</a>
+      <a href="/demo.html" class="gn-page-link">DEMO</a>
+      <a href="/promo.html" class="gn-page-link">PROMO</a>
+      <a href="mailto:wavezonemg@gmail.com" class="gn-page-link">CONTACT</a>
       <button class="gn-lnk" onclick="gscroll('gAuth')">SIGN IN</button>
       <button class="gn-cta" onclick="gscroll('gPlans')">GET STARTED</button>
+    </div>
+    <button class="gn-burger" id="gnBurger" onclick="toggleGnMenu()">&#9776;</button>
+    <div class="gn-mobile-menu" id="gnMobileMenu">
+      <a href="/how-it-works.html" class="gn-mm-item">HOW IT WORKS</a>
+      <a href="/about.html" class="gn-mm-item">ABOUT</a>
+      <a href="/demo.html" class="gn-mm-item">WATCH DEMO</a>
+      <a href="/promo.html" class="gn-mm-item">PROMO</a>
+      <a href="mailto:wavezonemg@gmail.com" class="gn-mm-item">CONTACT</a>
+      <div style="height:1px;background:rgba(255,255,255,.07);margin:.3rem 0;"></div>
+      <button class="gn-mm-item" onclick="gscroll('gAuth');toggleGnMenu()">SIGN IN</button>
+      <button class="gn-mm-cta" onclick="gscroll('gPlans');toggleGnMenu()">GET STARTED</button>
     </div>
   </nav>
 
@@ -3011,6 +3032,16 @@ return true;
 }
 
 // ── Gate helpers ──
+function toggleGnMenu(){
+const m=document.getElementById('gnMobileMenu');
+m.classList.toggle('open');
+}
+document.addEventListener('click',function(e){
+const m=document.getElementById('gnMobileMenu');
+const b=document.getElementById('gnBurger');
+if(m&&b&&!m.contains(e.target)&&!b.contains(e.target)) m.classList.remove('open');
+});
+
 function gscroll(id){
 const el   = document.getElementById(id);
 const gate = document.getElementById('gate');
