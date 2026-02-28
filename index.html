@@ -1021,7 +1021,7 @@ z-index:100;
 .acct-name{font-size:.86rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .acct-chev{font-size:.48rem;transition:transform .2s;}
 .acct-btn.open .acct-chev{transform:rotate(180deg);}
-.acct-dd{position:absolute;top:calc(100% + 8px);right:0;background:#1a1a1c;border:1px solid rgba(255,255,255,.1);border-radius:14px;width:240px;z-index:10000;box-shadow:0 20px 60px rgba(0,0,0,.7);display:none;overflow:hidden;}
+.acct-dd{position:fixed;top:60px;right:12px;background:#1a1a1c;border:1px solid rgba(255,255,255,.1);border-radius:14px;width:240px;z-index:10000;box-shadow:0 20px 60px rgba(0,0,0,.7);display:none;overflow:visible;}
 .acct-dd.open{display:block;animation:ddIn .15s ease;}
 @keyframes ddIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 .acct-dd-head{padding:.95rem 1.1rem .82rem;border-bottom:1px solid rgba(255,255,255,.07);}
@@ -2621,23 +2621,23 @@ text-decoration:none;
           <span class="acct-name" id="acctLbl">ACCOUNT</span>
           <span class="acct-chev">▾</span>
         </button>
-        <div class="acct-dd" id="acctDD">
-          <div class="acct-dd-head">
-            <div class="acct-dd-name" id="ddName">FlowStation Member</div>
-            <div class="acct-dd-email" id="ddEmail"></div>
-            <div class="acct-dd-tier basic" id="ddTier">BASIC</div>
-          </div>
-          <div class="acct-dd-items">
-            <div class="acct-dd-item" onclick="showGate();closeAcctDD()">📋 VIEW PLANS &amp; UPGRADE</div>
-            <a class="acct-dd-item" href="/cdn-cgi/l/email-protection#8ffcfaffffe0fdfbcfe2f6e9e3e0f8fcfbeefbe6e0e1a1ece0e2">💬 CONTACT SUPPORT</a>
-            <a class="acct-dd-item" id="ddBilling" href="#" onclick="openBilling();return false;" style="display:none">💳 MANAGE BILLING</a>
-            <div class="acct-dd-sep"></div>
-            <div class="acct-dd-item danger" onclick="authLogout()">🚪 SIGN OUT</div>
-          </div>
-        </div>
       </div>
     </div>
   </header>
+  <div class="acct-dd" id="acctDD">
+    <div class="acct-dd-head">
+      <div class="acct-dd-name" id="ddName">FlowStation Member</div>
+      <div class="acct-dd-email" id="ddEmail"></div>
+      <div class="acct-dd-tier basic" id="ddTier">BASIC</div>
+    </div>
+    <div class="acct-dd-items">
+      <div class="acct-dd-item" onclick="showGate();closeAcctDD()">📋 VIEW PLANS &amp; UPGRADE</div>
+      <a class="acct-dd-item" href="/cdn-cgi/l/email-protection#8ffcfaffffe0fdfbcfe2f6e9e3e0f8fcfbeefbe6e0e1a1ece0e2">💬 CONTACT SUPPORT</a>
+      <a class="acct-dd-item" id="ddBilling" href="#" onclick="openBilling();return false;" style="display:none">💳 MANAGE BILLING</a>
+      <div class="acct-dd-sep"></div>
+      <div class="acct-dd-item danger" onclick="authLogout()">🚪 SIGN OUT</div>
+    </div>
+  </div>
 
   <!-- ICON SIDEBAR -->
 
@@ -3648,7 +3648,7 @@ dd.style.left='auto';
 }
 }
 function closeAcctDD(){document.getElementById('acctBtn').classList.remove('open');document.getElementById('acctDD').classList.remove('open');}
-document.addEventListener('click',e=>{const w=document.getElementById('acctWrap');const dd=document.getElementById('acctDD');if(w&&!w.contains(e.target)&&dd&&!dd.contains(e.target))closeAcctDD();});
+document.addEventListener('click',e=>{const w=document.getElementById('acctWrap');const dd=document.getElementById('acctDD');if(w&&dd&&!w.contains(e.target)&&!dd.contains(e.target))closeAcctDD();});
 function updateAccountUI(tier,email){
 const nm={basic:'Basic',regular:'Artist Pro',premium:'Artist Elite'};
 const cl={basic:'basic',regular:'regular',premium:'premium'};
