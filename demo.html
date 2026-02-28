@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowStation Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Saira:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0a0a0f;--bg2:#111118;--bg3:#16161e;
+  --tx:#f2efe9;--tx2:rgba(242,239,233,.55);--dim:rgba(242,239,233,.35);
+  --gold:#d4a843;--gold2:rgba(240,192,64,.12);
+  --bd:rgba(255,255,255,.06);--bd2:rgba(255,255,255,.08);
+  --accent:#2997ff;
+}
+body{background:var(--bg);color:var(--tx);font-family:'Saira',sans-serif;overflow:hidden;height:100vh;width:100vw;}
+
+.demo-wrap{display:flex;flex-direction:column;height:100vh;width:100vw;}
+
+.demo-topbar{
+  height:48px;display:flex;align-items:center;padding:0 1rem;
+  background:rgba(10,10,15,.95);border-bottom:1px solid var(--bd);
+  gap:.75rem;flex-shrink:0;
+}
+.demo-logo{height:32px;width:32px;border-radius:8px;object-fit:cover;}
+.demo-brand{font-size:.82rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);}
+.demo-badge{
+  margin-left:auto;font-size:.6rem;font-weight:700;letter-spacing:.1em;
+  background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.2);
+  color:var(--gold);padding:.2rem .6rem;border-radius:6px;text-transform:uppercase;
+}
+
+.demo-body{display:flex;flex:1;overflow:hidden;}
+
+.demo-sidebar{
+  width:56px;flex-shrink:0;background:var(--bg2);
+  border-right:1px solid var(--bd);display:flex;flex-direction:column;
+  align-items:center;padding:.6rem 0;gap:.3rem;
+}
+.demo-sbi{
+  width:42px;height:42px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:.56rem;font-weight:700;letter-spacing:.06em;
+  color:var(--dim);cursor:default;transition:all .3s;border:1px solid transparent;
+}
+.demo-sbi.active{background:var(--gold2);border-color:rgba(240,192,64,.2);color:var(--gold);}
+.demo-sbi.highlight{animation:sbiPulse 1s ease infinite;}
+@keyframes sbiPulse{0%,100%{box-shadow:0 0 0 0 rgba(240,192,64,0);}50%{box-shadow:0 0 0 6px rgba(240,192,64,.2);}}
+
+.demo-tool{
+  width:0;overflow:hidden;background:var(--bg2);
+  border-right:1px solid var(--bd);transition:width .35s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;
+}
+.demo-tool.open{width:280px;}
+.demo-tool-head{
+  padding:.5rem .7rem;border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.demo-tool-title{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx2);}
+.demo-tool-body{flex:1;overflow-y:auto;padding:.5rem;}
+
+.rhyme-chip{
+  display:inline-block;padding:.28rem .55rem;margin:.15rem;
+  background:rgba(240,192,64,.06);border:1px solid rgba(240,192,64,.12);
+  border-radius:7px;font-size:.82rem;color:var(--gold);cursor:default;
+  opacity:0;transform:translateY(8px);transition:all .3s;
+}
+.rhyme-chip.show{opacity:1;transform:translateY(0);}
+
+.demo-notepad{flex:1;display:flex;flex-direction:column;background:var(--bg);}
+.demo-pad-head{
+  padding:.45rem .8rem;border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;gap:.6rem;flex-shrink:0;
+}
+.demo-pad-title{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx2);}
+.demo-pad-tag{
+  font-size:.56rem;font-weight:600;letter-spacing:.08em;
+  background:rgba(41,151,255,.08);border:1px solid rgba(41,151,255,.15);
+  color:var(--accent);padding:.15rem .45rem;border-radius:5px;text-transform:uppercase;
+}
+
+.demo-pad-body{flex:1;display:flex;overflow:hidden;}
+.demo-gutter{
+  width:56px;flex-shrink:0;padding:.6rem .2rem;
+  display:flex;flex-direction:column;gap:0;
+  border-right:1px solid var(--bd);
+}
+.demo-gutter-line{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 .3rem;height:1.65rem;font-size:.7rem;
+}
+.demo-ln{color:var(--dim);font-weight:500;width:18px;text-align:right;}
+.demo-syl{color:var(--gold);font-weight:700;font-size:.68rem;opacity:0;transition:opacity .3s;}
+.demo-syl.show{opacity:1;}
+
+.demo-lines{flex:1;padding:.6rem .8rem;display:flex;flex-direction:column;gap:0;}
+.demo-line{
+  font-size:.94rem;font-weight:400;line-height:1.65rem;
+  color:var(--tx);min-height:1.65rem;position:relative;
+}
+.demo-cursor{
+  display:inline-block;width:2px;height:1.1em;background:var(--gold);
+  vertical-align:text-bottom;animation:blink 1s step-end infinite;
+}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+
+.demo-floyd{
+  width:0;overflow:hidden;background:var(--bg2);
+  border-left:1px solid var(--bd);transition:width .35s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;
+}
+.demo-floyd.open{width:300px;}
+.demo-floyd-head{
+  padding:.5rem .7rem;border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;gap:.5rem;flex-shrink:0;
+}
+.demo-floyd-title{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);}
+.demo-floyd-body{flex:1;overflow-y:auto;padding:.6rem;}
+.demo-floyd-msg{
+  padding:.55rem .7rem;border-radius:12px;font-size:.84rem;line-height:1.55;
+  margin-bottom:.5rem;opacity:0;transform:translateY(10px);transition:all .4s;
+  max-width:90%;
+}
+.demo-floyd-msg.show{opacity:1;transform:translateY(0);}
+.demo-floyd-msg.ai{
+  background:rgba(240,192,64,.06);border:1px solid rgba(240,192,64,.1);color:var(--tx);
+}
+.demo-floyd-msg.user{
+  background:rgba(41,151,255,.08);border:1px solid rgba(41,151,255,.12);
+  color:var(--tx);margin-left:auto;
+}
+
+.demo-audiobar{
+  height:0;overflow:hidden;background:var(--bg2);
+  border-top:1px solid var(--bd);transition:height .3s;
+  display:flex;align-items:center;padding:0 1rem;gap:1rem;
+}
+.demo-audiobar.open{height:52px;}
+.demo-play-btn{
+  width:36px;height:36px;border-radius:50%;background:var(--gold);
+  display:flex;align-items:center;justify-content:center;border:none;cursor:default;
+}
+.demo-play-btn svg{fill:#0a0a0f;}
+.demo-track-name{font-size:.78rem;font-weight:600;color:var(--tx2);}
+.demo-waveform{flex:1;height:24px;display:flex;align-items:flex-end;gap:2px;}
+.demo-wave-bar{
+  width:3px;border-radius:2px;background:var(--gold);opacity:.4;
+  transition:height .15s;
+}
+
+.demo-overlay{
+  position:fixed;inset:0;z-index:1000;display:flex;align-items:center;
+  justify-content:center;background:rgba(6,6,10,.85);backdrop-filter:blur(12px);
+  opacity:1;transition:opacity .5s;pointer-events:none;
+}
+.demo-overlay.hidden{opacity:0;}
+.demo-overlay-text{
+  text-align:center;max-width:600px;padding:2rem;
+}
+.demo-overlay-title{
+  font-size:2.2rem;font-weight:800;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--tx);margin-bottom:.6rem;
+}
+.demo-overlay-sub{font-size:1rem;color:var(--tx2);line-height:1.6;}
+.demo-overlay-sub strong{color:var(--gold);}
+
+.demo-spotlight{
+  position:fixed;z-index:500;border:2px solid var(--gold);border-radius:12px;
+  box-shadow:0 0 0 9999px rgba(6,6,10,.7),0 0 30px rgba(240,192,64,.15);
+  pointer-events:none;transition:all .5s cubic-bezier(.4,0,.2,1);
+  opacity:0;
+}
+.demo-spotlight.show{opacity:1;}
+
+.demo-caption{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  z-index:600;background:rgba(10,10,15,.92);border:1px solid rgba(240,192,64,.2);
+  border-radius:14px;padding:.7rem 1.4rem;
+  font-size:.88rem;font-weight:600;color:var(--tx);letter-spacing:.03em;
+  text-align:center;max-width:500px;
+  opacity:0;transform:translateX(-50%) translateY(10px);
+  transition:all .4s;backdrop-filter:blur(12px);
+}
+.demo-caption.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.demo-caption strong{color:var(--gold);}
+
+.demo-restart{
+  position:fixed;bottom:20px;right:20px;z-index:700;
+  background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.25);
+  color:var(--gold);font-family:'Saira',sans-serif;font-size:.72rem;
+  font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  padding:.5rem 1rem;border-radius:8px;cursor:pointer;
+  opacity:0;transition:opacity .4s;
+}
+.demo-restart.show{opacity:1;}
+
+.demo-progress{
+  position:fixed;top:0;left:0;height:3px;background:var(--gold);
+  z-index:800;transition:width .5s;width:0;
+}
+
+@media(max-width:768px){
+  .demo-sidebar{width:42px;}
+  .demo-sbi{width:34px;height:34px;font-size:.48rem;}
+  .demo-tool.open{width:100%;position:absolute;z-index:10;left:42px;right:0;}
+  .demo-floyd.open{width:100%;position:absolute;z-index:10;left:0;}
+  .demo-gutter{width:44px;}
+  .demo-overlay-title{font-size:1.4rem;}
+  .demo-caption{max-width:85vw;font-size:.78rem;bottom:60px;}
+}
+</style>
+</head>
+<body>
+<div class="demo-progress" id="demoProgress"></div>
+
+<div class="demo-wrap">
+  <div class="demo-topbar">
+    <img src="/flowstation-logo.jpg" class="demo-logo" alt="FlowStation">
+    <span class="demo-brand">FlowStation</span>
+    <span class="demo-badge">Artist Elite</span>
+  </div>
+
+  <div class="demo-body">
+    <div class="demo-sidebar" id="demoSidebar">
+      <div class="demo-sbi" id="dsbi-dict" data-label="DICT">DICT</div>
+      <div class="demo-sbi" id="dsbi-rhyme" data-label="RHYME">RHYME</div>
+      <div class="demo-sbi" id="dsbi-start" data-label="START">START</div>
+      <div class="demo-sbi" id="dsbi-hooks" data-label="HOOKS">HOOKS</div>
+      <div class="demo-sbi" id="dsbi-bpm" data-label="BPM">BPM</div>
+      <div class="demo-sbi" id="dsbi-beats" data-label="BEATS">BEATS</div>
+      <div class="demo-sbi" id="dsbi-urban" data-label="URBAN">URBAN</div>
+      <div style="flex:1;"></div>
+      <div class="demo-sbi" id="dsbi-floyd" data-label="FLOYD" style="color:var(--gold);font-size:.5rem;">FLOYD</div>
+    </div>
+
+    <div class="demo-tool" id="demoTool">
+      <div class="demo-tool-head">
+        <span class="demo-tool-title" id="demoToolTitle">RHYME DICTIONARY</span>
+      </div>
+      <div class="demo-tool-body" id="demoToolBody"></div>
+    </div>
+
+    <div class="demo-notepad">
+      <div class="demo-pad-head">
+        <span class="demo-pad-title">UNTITLED</span>
+        <span class="demo-pad-tag">Auto-saved</span>
+        <span style="margin-left:auto;font-size:.62rem;font-weight:700;letter-spacing:.08em;color:var(--dim);text-transform:uppercase;" id="demoWordCount">0 WORDS</span>
+      </div>
+      <div class="demo-pad-body">
+        <div class="demo-gutter" id="demoGutter"></div>
+        <div class="demo-lines" id="demoLines"></div>
+      </div>
+    </div>
+
+    <div class="demo-floyd" id="demoFloyd">
+      <div class="demo-floyd-head">
+        <span style="font-size:1.1rem;">🤖</span>
+        <span class="demo-floyd-title">FLOYD AI COACH</span>
+      </div>
+      <div class="demo-floyd-body" id="demoFloydBody"></div>
+    </div>
+  </div>
+
+  <div class="demo-audiobar" id="demoAudio">
+    <div class="demo-play-btn">
+      <svg width="14" height="16" viewBox="0 0 14 16"><path d="M0 0l14 8-14 8z"/></svg>
+    </div>
+    <span class="demo-track-name">Midnight Trap Beat - 140 BPM</span>
+    <div class="demo-waveform" id="demoWaveform"></div>
+  </div>
+</div>
+
+<div class="demo-overlay" id="demoOverlay">
+  <div class="demo-overlay-text">
+    <div class="demo-overlay-title" id="overlayTitle">FlowStation</div>
+    <div class="demo-overlay-sub" id="overlaySub">The <strong>AI-powered songwriting suite</strong> built for independent artists.</div>
+  </div>
+</div>
+
+<div class="demo-spotlight" id="demoSpot"></div>
+<div class="demo-caption" id="demoCap"></div>
+<button class="demo-restart" id="demoRestart" onclick="location.reload()">REPLAY DEMO</button>
+
+<script>
+var lines = [];
+var lineEls = [];
+var gutterEls = [];
+var sylEls = [];
+var totalSteps = 14;
+var currentStep = 0;
+
+function updateProgress(){
+  currentStep++;
+  document.getElementById('demoProgress').style.width = (currentStep/totalSteps*100)+'%';
+}
+
+function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+function countSyl(word){
+  word = word.toLowerCase().replace(/[^a-z]/g,'');
+  if(!word) return 0;
+  if(word.length<=3) return 1;
+  word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/,'');
+  word = word.replace(/^y/,'');
+  var m = word.match(/[aeiouy]{1,2}/g);
+  return m ? m.length : 1;
+}
+
+function lineSylCount(text){
+  var words = text.trim().split(/\s+/);
+  var total = 0;
+  for(var i=0;i<words.length;i++) total += countSyl(words[i]);
+  return total;
+}
+
+function renderGutter(){
+  var gut = document.getElementById('demoGutter');
+  gut.innerHTML = '';
+  for(var i=0;i<lines.length;i++){
+    var el = document.createElement('div');
+    el.className = 'demo-gutter-line';
+    var ln = document.createElement('span');
+    ln.className = 'demo-ln';
+    ln.textContent = (i+1);
+    var sy = document.createElement('span');
+    sy.className = 'demo-syl';
+    sy.id = 'dsyl-'+i;
+    var sc = lineSylCount(lines[i]);
+    sy.textContent = sc > 0 ? sc : '';
+    el.appendChild(ln);
+    el.appendChild(sy);
+    gut.appendChild(el);
+    gutterEls[i] = el;
+    sylEls[i] = sy;
+  }
+}
+
+function renderLines(){
+  var container = document.getElementById('demoLines');
+  container.innerHTML = '';
+  lineEls = [];
+  for(var i=0;i<lines.length;i++){
+    var el = document.createElement('div');
+    el.className = 'demo-line';
+    el.textContent = lines[i];
+    container.appendChild(el);
+    lineEls[i] = el;
+  }
+}
+
+function updateWordCount(){
+  var all = lines.join(' ').trim().split(/\s+/).filter(function(w){return w.length>0;});
+  document.getElementById('demoWordCount').textContent = all.length + ' WORDS';
+}
+
+async function typeText(lineIdx, text, speed){
+  speed = speed || 45;
+  if(!lines[lineIdx]) lines[lineIdx] = '';
+  for(var i=0;i<text.length;i++){
+    lines[lineIdx] += text[i];
+    renderLines();
+    renderGutter();
+    updateWordCount();
+    if(lineEls[lineIdx]){
+      var cursor = document.createElement('span');
+      cursor.className = 'demo-cursor';
+      lineEls[lineIdx].appendChild(cursor);
+    }
+    await wait(speed + Math.random()*30);
+  }
+  if(lineEls[lineIdx]){
+    var c = lineEls[lineIdx].querySelector('.demo-cursor');
+    if(c) c.remove();
+  }
+}
+
+async function showSylCounts(){
+  for(var i=0;i<sylEls.length;i++){
+    if(sylEls[i]){
+      sylEls[i].classList.add('show');
+      await wait(120);
+    }
+  }
+}
+
+function showCaption(text, dur){
+  var cap = document.getElementById('demoCap');
+  cap.innerHTML = text;
+  cap.classList.add('show');
+  if(dur){
+    return wait(dur).then(function(){ cap.classList.remove('show'); return wait(400); });
+  }
+  return wait(100);
+}
+
+function hideCaption(){
+  document.getElementById('demoCap').classList.remove('show');
+  return wait(300);
+}
+
+function spotlight(elId, padding){
+  padding = padding || 8;
+  var el = document.getElementById(elId);
+  if(!el) return;
+  var r = el.getBoundingClientRect();
+  var spot = document.getElementById('demoSpot');
+  spot.style.left = (r.left - padding) + 'px';
+  spot.style.top = (r.top - padding) + 'px';
+  spot.style.width = (r.width + padding*2) + 'px';
+  spot.style.height = (r.height + padding*2) + 'px';
+  spot.classList.add('show');
+}
+
+function hideSpotlight(){
+  document.getElementById('demoSpot').classList.remove('show');
+}
+
+async function showOverlay(title, sub, dur){
+  var ov = document.getElementById('demoOverlay');
+  document.getElementById('overlayTitle').textContent = title;
+  document.getElementById('overlaySub').innerHTML = sub;
+  ov.classList.remove('hidden');
+  await wait(dur || 2500);
+  ov.classList.add('hidden');
+  await wait(600);
+}
+
+async function openTool(name, sbiId){
+  var allSbi = document.querySelectorAll('.demo-sbi');
+  for(var i=0;i<allSbi.length;i++) allSbi[i].classList.remove('active');
+  if(sbiId) document.getElementById(sbiId).classList.add('active');
+  document.getElementById('demoToolTitle').textContent = name;
+  document.getElementById('demoTool').classList.add('open');
+  await wait(400);
+}
+
+function closeTool(){
+  document.getElementById('demoTool').classList.remove('open');
+  var allSbi = document.querySelectorAll('.demo-sbi');
+  for(var i=0;i<allSbi.length;i++) allSbi[i].classList.remove('active');
+  return wait(400);
+}
+
+async function showRhymes(wordLabel, rhymeWords){
+  var body = document.getElementById('demoToolBody');
+  body.innerHTML = '<div style="font-size:.62rem;font-weight:700;letter-spacing:.1em;color:var(--tx2);text-transform:uppercase;margin-bottom:.4rem;">RHYMES FOR: '+wordLabel+'</div><div id="rhymeChipArea"></div>';
+  var area = document.getElementById('rhymeChipArea');
+  for(var i=0;i<rhymeWords.length;i++){
+    var chip = document.createElement('span');
+    chip.className = 'rhyme-chip';
+    chip.textContent = rhymeWords[i];
+    area.appendChild(chip);
+  }
+  await wait(200);
+  var chips = area.querySelectorAll('.rhyme-chip');
+  for(var i=0;i<chips.length;i++){
+    chips[i].classList.add('show');
+    await wait(80);
+  }
+}
+
+async function showStarters(starters){
+  var body = document.getElementById('demoToolBody');
+  body.innerHTML = '<div style="font-size:.62rem;font-weight:700;letter-spacing:.1em;color:var(--tx2);text-transform:uppercase;margin-bottom:.5rem;">FLOW STARTERS</div><div id="starterArea"></div>';
+  var area = document.getElementById('starterArea');
+  for(var i=0;i<starters.length;i++){
+    var item = document.createElement('div');
+    item.className = 'rhyme-chip';
+    item.textContent = starters[i];
+    item.style.display = 'block';
+    item.style.margin = '.3rem 0';
+    item.style.background = 'rgba(41,151,255,.06)';
+    item.style.borderColor = 'rgba(41,151,255,.12)';
+    item.style.color = 'var(--accent)';
+    area.appendChild(item);
+  }
+  await wait(200);
+  var items = area.querySelectorAll('.rhyme-chip');
+  for(var i=0;i<items.length;i++){
+    items[i].classList.add('show');
+    await wait(100);
+  }
+}
+
+async function openFloyd(){
+  document.getElementById('dsbi-floyd').classList.add('active');
+  document.getElementById('demoFloyd').classList.add('open');
+  await wait(400);
+}
+
+function closeFloyd(){
+  document.getElementById('demoFloyd').classList.remove('open');
+  document.getElementById('dsbi-floyd').classList.remove('active');
+  return wait(400);
+}
+
+async function floydMsg(text, type, typeEffect){
+  var body = document.getElementById('demoFloydBody');
+  var msg = document.createElement('div');
+  msg.className = 'demo-floyd-msg ' + type;
+  body.appendChild(msg);
+  await wait(100);
+  msg.classList.add('show');
+  if(typeEffect){
+    for(var i=0;i<text.length;i++){
+      msg.textContent += text[i];
+      await wait(18);
+    }
+  } else {
+    msg.innerHTML = text;
+  }
+  body.scrollTop = body.scrollHeight;
+  await wait(300);
+}
+
+function initWaveform(){
+  var wf = document.getElementById('demoWaveform');
+  for(var i=0;i<60;i++){
+    var bar = document.createElement('div');
+    bar.className = 'demo-wave-bar';
+    bar.style.height = (Math.random()*16+4)+'px';
+    wf.appendChild(bar);
+  }
+}
+
+function animateWaveform(){
+  var bars = document.querySelectorAll('.demo-wave-bar');
+  setInterval(function(){
+    for(var i=0;i<bars.length;i++){
+      bars[i].style.height = (Math.random()*20+4)+'px';
+      bars[i].style.opacity = (Math.random()*0.4+0.2);
+    }
+  }, 200);
+}
+
+async function runDemo(){
+  initWaveform();
+  lines = ['','','','','','','',''];
+  renderLines();
+  renderGutter();
+
+  await wait(800);
+  await showOverlay('FlowStation', 'The <strong>AI-powered songwriting suite</strong> built for independent artists.', 3000);
+  updateProgress();
+
+  await showCaption('<strong>Start writing.</strong> The notepad is your canvas.', 2000);
+  updateProgress();
+
+  await typeText(0, "I been grinding in the dark, no light to guide me", 40);
+  await wait(300);
+  await typeText(1, "But every scar I earned is like a badge beside me", 40);
+  await wait(300);
+  await typeText(2, "They say the top is cold, well I was born in winter", 40);
+  await wait(300);
+  await typeText(3, "Every bar I write is proof I'm not a quitter", 42);
+  updateProgress();
+
+  await showCaption('<strong>Syllable counter</strong> tracks every line in real time.', 1500);
+  await showSylCounts();
+  await wait(1500);
+  await hideCaption();
+  updateProgress();
+
+  await showCaption('<strong>Rhyme Dictionary</strong> finds matches as you write.', 1200);
+  await openTool('RHYME DICTIONARY', 'dsbi-rhyme');
+  await showRhymes('QUITTER', ['hitter','bitter','glitter','litter','sitter','twitter','winner','spitter','deliver','consider','figure','thriller','killer','filler']);
+  await wait(2500);
+  await hideCaption();
+  updateProgress();
+
+  await showCaption('Tap any rhyme to <strong>drop it right into your bars.</strong>');
+  await wait(1800);
+  await hideCaption();
+  await closeTool();
+  updateProgress();
+
+  await typeText(4, "");
+  await typeText(5, "Cold nights, hot pen, the ink don't ever freeze", 38);
+  await wait(200);
+  await typeText(6, "I stack these lines like bricks, building memories", 38);
+  await wait(200);
+  await typeText(7, "From the bottom to the ledge, I'm climbing histories", 40);
+  updateProgress();
+
+  await showCaption('Need inspiration? <strong>1,000+ Flow Starters</strong> to spark ideas.', 1200);
+  await openTool('FLOW STARTERS', 'dsbi-start');
+  await showStarters([
+    "Back when I was...",
+    "They don't know about the...",
+    "I remember when the...",
+    "Picture this —",
+    "If these walls could talk...",
+    "Late nights, I was...",
+    "Nobody saw the..."
+  ]);
+  await wait(2500);
+  await hideCaption();
+  await closeTool();
+  updateProgress();
+
+  await showCaption('<strong>Floyd AI Coach</strong> — your personal writing partner.', 1200);
+  await openFloyd();
+  await wait(400);
+  await floydMsg("Rate these bars and tell me what hits hardest.", 'user', false);
+  await wait(800);
+  await floydMsg("Your rhyme density is strong \u2014 'guide me / beside me' and 'winter / quitter' create solid end-rhyme pairs. That third line hits hardest: 'born in winter' is a vivid metaphor. Try adding an internal rhyme in line 4 to match the energy. Something like: 'Every scar, every bar \u2014 proof I'm not a quitter.'", 'ai', true);
+  await wait(2000);
+  await hideCaption();
+  updateProgress();
+
+  await showCaption('Floyd gives <strong>real feedback</strong> \u2014 rewrites, flow scores, and critiques.');
+  await wait(2500);
+  await hideCaption();
+  await closeFloyd();
+  updateProgress();
+
+  await showCaption('<strong>Beat Search</strong> \u2014 find the perfect instrumental.', 1200);
+  document.getElementById('demoAudio').classList.add('open');
+  animateWaveform();
+  await wait(2500);
+  await hideCaption();
+  updateProgress();
+
+  await showOverlay('Write Harder. Flow Better.', '<strong>FlowStation</strong> \u2014 everything you need to finish records.<br><br><span style="color:var(--gold);font-weight:700;">myflowstation.com</span>', 4000);
+  updateProgress();
+
+  document.getElementById('demoRestart').classList.add('show');
+}
+
+runDemo();
+</script>
+</body>
+</html>

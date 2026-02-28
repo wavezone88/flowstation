@@ -1810,6 +1810,7 @@ text-decoration:none;
 
 <div class="gh-actions">
   <button class="btn-gold" onclick="gscroll('gPlans')">START FOR FREE →</button>
+  <a href="/demo.html" target="_blank" class="btn-ghost" style="text-decoration:none;display:inline-flex;align-items:center;gap:.4rem;">WATCH DEMO ▶</a>
   <button class="btn-ghost" onclick="gscroll('gAuth')">ALREADY SUBSCRIBED? SIGN IN</button>
 </div>
 
@@ -2595,6 +2596,7 @@ text-decoration:none;
     <span class="pstat" id="pstat">0 WORDS · 0 LINES</span>
     <span style="display:none" id="sl"></span>
     <span style="display:none" id="ss"></span>
+    <button id="tourBtn" onclick="startTour()" style="margin-left:auto;background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.18);color:#d4a843;font-family:'Saira',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.3rem .7rem;border-radius:6px;cursor:pointer;white-space:nowrap;transition:all .2s;min-height:28px;">TAKE A TOUR</button>
   </div>
   <div id="basicWelcome" style="display:none;margin:.5rem .75rem .3rem;background:linear-gradient(135deg,rgba(240,192,64,.06),rgba(138,79,255,.04));border:1px solid rgba(240,192,64,.18);border-radius:12px;padding:.85rem 2.5rem .85rem 1rem;font-family:'Saira',sans-serif;font-size:.9rem;color:rgba(242,239,233,.55);line-height:1.5;position:relative;flex-shrink:0;">
     <button onclick="this.parentElement.style.display='none'" style="position:absolute;top:.5rem;right:.6rem;background:none;border:none;color:rgba(255,255,255,.25);cursor:pointer;font-size:.9rem;padding:.2rem;">✕</button>
@@ -7318,6 +7320,132 @@ document.addEventListener('touchend', ()=>{ dragging=false; panel.style.transiti
     }
   }catch(e){}
 })();
+</script>
+<style>
+.tour-overlay{position:fixed;inset:0;z-index:99990;pointer-events:none;transition:opacity .3s;}
+.tour-overlay.active{pointer-events:auto;}
+.tour-spot{
+  position:fixed;z-index:99991;border:2px solid #d4a843;border-radius:12px;
+  box-shadow:0 0 0 9999px rgba(6,6,10,.75),0 0 24px rgba(240,192,64,.12);
+  pointer-events:none;transition:all .45s cubic-bezier(.4,0,.2,1);
+  opacity:0;
+}
+.tour-spot.show{opacity:1;}
+.tour-tooltip{
+  position:fixed;z-index:99992;background:rgba(10,10,15,.96);
+  border:1px solid rgba(240,192,64,.25);border-radius:14px;
+  padding:1rem 1.2rem;max-width:320px;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  opacity:0;transform:translateY(8px);transition:all .35s;
+  pointer-events:auto;
+}
+.tour-tooltip.show{opacity:1;transform:translateY(0);}
+.tour-tooltip-title{font-family:'Saira',sans-serif;font-size:.74rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#d4a843;margin-bottom:.4rem;}
+.tour-tooltip-body{font-family:'Saira',sans-serif;font-size:.86rem;color:rgba(242,239,233,.75);line-height:1.55;}
+.tour-tooltip-nav{display:flex;justify-content:space-between;align-items:center;margin-top:.7rem;gap:.5rem;}
+.tour-tooltip-step{font-family:'Saira',sans-serif;font-size:.6rem;font-weight:600;letter-spacing:.08em;color:rgba(242,239,233,.3);text-transform:uppercase;}
+.tour-nav-btn{
+  background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.2);
+  color:#d4a843;font-family:'Saira',sans-serif;font-size:.68rem;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;padding:.4rem .8rem;
+  border-radius:7px;cursor:pointer;min-height:36px;min-width:36px;transition:all .2s;
+}
+.tour-nav-btn:hover{background:rgba(240,192,64,.18);}
+.tour-skip{
+  background:none;border:none;color:rgba(242,239,233,.3);font-family:'Saira',sans-serif;
+  font-size:.62rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  cursor:pointer;padding:.3rem;
+}
+</style>
+<div class="tour-overlay" id="tourOverlay">
+  <div class="tour-spot" id="tourSpot"></div>
+  <div class="tour-tooltip" id="tourTip">
+    <div class="tour-tooltip-title" id="tourTipTitle"></div>
+    <div class="tour-tooltip-body" id="tourTipBody"></div>
+    <div class="tour-tooltip-nav">
+      <button class="tour-skip" id="tourSkip" onclick="endTour()">SKIP</button>
+      <span class="tour-tooltip-step" id="tourStep"></span>
+      <button class="tour-nav-btn" id="tourNext" onclick="nextTourStep()">NEXT</button>
+    </div>
+  </div>
+</div>
+<script>
+var tourSteps = [
+  {el:'pad', title:'THE NOTEPAD', body:'This is your canvas. Write your bars here. Syllable counts appear on the left as you type, and everything auto-saves.', pos:'left'},
+  {el:'appSidebar', title:'TOOL SIDEBAR', body:'Every tool you need is one tap away. Dictionary, rhymes, flow starters, beat search, and more.', pos:'right'},
+  {el:'sbi-rhyme', title:'RHYME DICTIONARY', body:'Rhymes update live as you write. Double-click any word for instant rhyme suggestions.', pos:'right', action:function(){toggleTool('rhyme');}},
+  {el:'sbi-starters', title:'1,000+ FLOW STARTERS', body:'Stuck on a line? Browse flow starters by mood and category. Tap any to drop it right into your notepad.', pos:'right', action:function(){toggleTool('starters');}},
+  {el:'sbi-beats', title:'BEAT SEARCH', body:'Search YouTube for instrumentals and play them while you write. Set your BPM and stay in the pocket.', pos:'right', action:function(){closeTool();}},
+  {el:'sbi-floyd', title:'FLOYD AI COACH', body:'Your AI writing partner. Floyd critiques your bars, suggests rewrites, rates your flow density, and pushes your lyrics further.', pos:'left', action:function(){if(typeof toggleFloyd==='function')toggleFloyd();}},
+  {el:'sylGut', title:'SYLLABLE COUNTER', body:'See exactly how many syllables per line. Set a target and the counter highlights lines that are over or under.', pos:'right', action:function(){if(typeof toggleFloyd==='function'){var fp=document.getElementById('floydPanel');if(fp&&fp.classList.contains('open'))toggleFloyd();}}},
+  {el:'tourBtn', title:'YOU\'RE ALL SET!', body:'Start writing and explore the tools. Every feature is designed to help you finish more records.', pos:'below', last:true}
+];
+var tourIdx = 0;
+var tourActive = false;
+
+function startTour(){
+  tourIdx = 0;
+  tourActive = true;
+  document.getElementById('tourOverlay').classList.add('active');
+  showTourStep();
+}
+
+function endTour(){
+  tourActive = false;
+  document.getElementById('tourOverlay').classList.remove('active');
+  document.getElementById('tourSpot').classList.remove('show');
+  document.getElementById('tourTip').classList.remove('show');
+  if(typeof closeTool === 'function') closeTool();
+}
+
+function nextTourStep(){
+  tourIdx++;
+  if(tourIdx >= tourSteps.length){ endTour(); return; }
+  showTourStep();
+}
+
+function showTourStep(){
+  var step = tourSteps[tourIdx];
+  if(step.action) step.action();
+  setTimeout(function(){
+    var el = document.getElementById(step.el);
+    if(!el){ nextTourStep(); return; }
+    var r = el.getBoundingClientRect();
+    var pad = 8;
+    var spot = document.getElementById('tourSpot');
+    spot.style.left = (r.left - pad) + 'px';
+    spot.style.top = (r.top - pad) + 'px';
+    spot.style.width = (r.width + pad*2) + 'px';
+    spot.style.height = (r.height + pad*2) + 'px';
+    spot.classList.add('show');
+    var tip = document.getElementById('tourTip');
+    document.getElementById('tourTipTitle').textContent = step.title;
+    document.getElementById('tourTipBody').textContent = step.body;
+    document.getElementById('tourStep').textContent = (tourIdx+1) + ' / ' + tourSteps.length;
+    document.getElementById('tourNext').textContent = step.last ? 'DONE' : 'NEXT';
+    var tw = 320;
+    var th = 200;
+    var tx, ty;
+    if(step.pos === 'right'){
+      tx = r.right + pad + 12;
+      ty = r.top;
+    } else if(step.pos === 'left'){
+      tx = r.left - pad - tw - 12;
+      ty = r.top;
+    } else {
+      tx = r.left;
+      ty = r.bottom + pad + 12;
+    }
+    if(tx < 10) tx = 10;
+    if(tx + tw > window.innerWidth - 10) tx = window.innerWidth - tw - 10;
+    if(ty < 10) ty = 10;
+    if(ty + th > window.innerHeight - 10) ty = window.innerHeight - th - 10;
+    tip.style.left = tx + 'px';
+    tip.style.top = ty + 'px';
+    tip.classList.remove('show');
+    setTimeout(function(){ tip.classList.add('show'); }, 100);
+  }, 350);
+}
 </script>
 </body>
 </html>
