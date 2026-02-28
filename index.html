@@ -6507,6 +6507,16 @@ function goCheckoutElite(){ openCheckoutModal('elite'); }
 
 function openCheckoutModal(plan){
 _checkoutPlan = plan;
+
+var _coUser = currentUser || window.currentUser;
+if(_coUser){
+var stripeUrl = plan === 'elite' ? STRIPE_ELITE : STRIPE_PRO;
+var email = _coUser.email || '';
+showToast('Heading to checkout...');
+setTimeout(function(){ window.location.href = stripeUrl + '?prefilled_email=' + encodeURIComponent(email); }, 400);
+return;
+}
+
 const ex = document.getElementById('checkoutModal');
 if(ex) ex.remove();
 
