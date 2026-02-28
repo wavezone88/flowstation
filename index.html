@@ -840,6 +840,18 @@ background:rgba(255,255,255,.03);
 }
 .pad-title{font-family:'Saira',sans-serif;font-size:.88rem;text-transform:uppercase;letter-spacing:.14em;color:var(--dim);font-weight:600;}
 .pstat{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);}
+#flowBadge{display:none;align-items:center;gap:.45rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.25rem .65rem .25rem .55rem;transition:all .4s ease;cursor:default;}
+#flowBadge.on{display:flex;}
+#flowBadge .fb-icon{font-size:.72rem;flex-shrink:0;}
+#flowBadge .fb-lbl{font-size:.56rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);line-height:1;}
+#flowBadge .fb-score{font-family:'Saira',sans-serif;font-size:1.2rem;font-weight:800;letter-spacing:-.02em;line-height:1;transition:color .3s;}
+#flowBadge .fb-ring{width:28px;height:28px;flex-shrink:0;position:relative;}
+#flowBadge .fb-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+#flowBadge .fb-ring-track{fill:none;stroke:rgba(255,255,255,.06);stroke-width:3;}
+#flowBadge .fb-ring-fill{fill:none;stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset .5s ease,stroke .3s;}
+#flowBadge.elite{border-color:rgba(48,209,88,.25);background:rgba(48,209,88,.06);}
+#flowBadge.solid{border-color:rgba(240,192,64,.25);background:rgba(240,192,64,.06);}
+#flowBadge.work{border-color:rgba(255,69,58,.2);background:rgba(255,69,58,.04);}
 .pad-body{display:flex;flex:1;overflow:hidden;}
 .lnum-col{width:32px;padding:.7rem 0;display:flex;flex-direction:column;align-items:flex-end;background:rgba(210,200,180,.06);border-right:1px solid rgba(180,160,120,.15);overflow:hidden;flex-shrink:0;}
 .lnum{font-family:'Saira',monospace;font-size:.82rem;color:rgba(160,145,110,.4);padding:.05rem .4rem;}
@@ -2774,6 +2786,18 @@ text-decoration:none;
     <span class="pstat" id="pstat">0 WORDS · 0 LINES</span>
     <span style="display:none" id="sl"></span>
     <span style="display:none" id="ss"></span>
+    <div id="flowBadge" title="Flow Score measures how consistent your syllable cadence is across bars">
+      <div class="fb-ring">
+        <svg viewBox="0 0 36 36">
+          <circle class="fb-ring-track" cx="18" cy="18" r="15.5"/>
+          <circle class="fb-ring-fill" id="fbRingFill" cx="18" cy="18" r="15.5" stroke-dasharray="97.4" stroke-dashoffset="97.4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="fb-lbl">FLOW</div>
+        <div class="fb-score" id="fbScoreNum">--</div>
+      </div>
+    </div>
     <button id="tourBtn" onclick="startTour()" style="margin-left:auto;background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.18);color:#d4a843;font-family:'Saira',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.3rem .7rem;border-radius:6px;cursor:pointer;white-space:nowrap;transition:all .2s;min-height:28px;">TAKE A TOUR</button>
   </div>
   <div id="basicWelcome" style="display:none;margin:.5rem .75rem .3rem;background:linear-gradient(135deg,rgba(240,192,64,.06),rgba(138,79,255,.04));border:1px solid rgba(240,192,64,.18);border-radius:12px;padding:.85rem 2.5rem .85rem 1rem;font-family:'Saira',sans-serif;font-size:.9rem;color:rgba(242,239,233,.55);line-height:1.5;position:relative;flex-shrink:0;">
@@ -4668,6 +4692,41 @@ const ss = document.getElementById('ss'); if(ss) ss.textContent = totalSyl;
 const ps = document.getElementById('pstat');
 if(ps) ps.textContent = words + ' WORDS · ' + ne.length + ' LINES · ' + totalSyl + ' SYL';
 renderGutters(lines);
+updateFlowBadge(ne);
+}
+
+function updateFlowBadge(filledLines){
+var badge = document.getElementById('flowBadge');
+var scoreEl = document.getElementById('fbScoreNum');
+var ringEl = document.getElementById('fbRingFill');
+if(!badge||!scoreEl||!ringEl) return;
+if(!filledLines) filledLines = getLines().filter(function(l){return l.trim();});
+if(filledLines.length < 2){ badge.classList.remove('on','elite','solid','work'); return; }
+badge.classList.add('on');
+var sylCounts = filledLines.map(function(l){return lineSyl(l);});
+var avg = sylCounts.reduce(function(a,b){return a+b;},0) / sylCounts.length;
+var variance = 0;
+for(var i=0;i<sylCounts.length;i++){var d=sylCounts[i]-avg;variance+=d*d;}
+variance = Math.sqrt(variance/sylCounts.length);
+var score = Math.max(0, Math.min(100, Math.round(100 - variance * 8)));
+scoreEl.textContent = score;
+var circumference = 97.4;
+var offset = circumference - (score / 100) * circumference;
+ringEl.style.strokeDashoffset = offset;
+badge.classList.remove('elite','solid','work');
+if(score >= 80){
+badge.classList.add('elite');
+scoreEl.style.color = '#30d158';
+ringEl.style.stroke = '#30d158';
+} else if(score >= 55){
+badge.classList.add('solid');
+scoreEl.style.color = '#f0c040';
+ringEl.style.stroke = '#f0c040';
+} else {
+badge.classList.add('work');
+scoreEl.style.color = '#ff453a';
+ringEl.style.stroke = '#ff453a';
+}
 }
 
 function renderGutters(lines) {
