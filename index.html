@@ -3338,6 +3338,7 @@ else { msg.textContent='✓ Password reset email sent!';msg.className='g-auth-ms
 
 // ── SET NEW PASSWORD (after reset link click) ──
 function showResetPasswordForm(){
+if(document.getElementById('pwResetOverlay')) return;
 var overlay = document.createElement('div');
 overlay.className = 'pw-reset-overlay';
 overlay.id = 'pwResetOverlay';
@@ -3369,7 +3370,7 @@ var result = await sb.auth.updateUser({password: pw});
 if(result.error) throw result.error;
 msg.textContent = 'Password updated! Redirecting...';
 msg.className = 'g-auth-msg ok';
-setTimeout(function(){ var o = document.getElementById('pwResetOverlay'); if(o) o.remove(); location.reload(); }, 1500);
+setTimeout(function(){ var o = document.getElementById('pwResetOverlay'); if(o) o.remove(); window.location.hash=''; window.location.href=window.location.origin+window.location.pathname; }, 1500);
 }catch(e){
 msg.textContent = e.message || 'Failed to update password. Please try again.';
 msg.className = 'g-auth-msg err';
