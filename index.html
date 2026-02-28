@@ -1284,6 +1284,13 @@ padding:.25rem .4rem;order:2;flex-shrink:0;
 scrollbar-width:none;-webkit-overflow-scrolling:touch;
 }
 .sidebar::-webkit-scrollbar{display:none;}
+.sidebar{position:relative;}
+.sidebar::after{
+content:'';position:sticky;right:0;top:0;bottom:0;
+width:28px;flex-shrink:0;
+background:linear-gradient(90deg,transparent,var(--bg2) 80%);
+pointer-events:none;z-index:5;
+}
 .sbi{width:54px;height:38px;flex-shrink:0;border-radius:8px;}
 .sbi-icon{font-size:1.08rem;}
 .sbi-label{font-size:.44rem;letter-spacing:.06em;}
@@ -1300,7 +1307,7 @@ overflow:hidden;
 transition:height .28s cubic-bezier(.4,0,.2,1),max-height .28s;
 border-right:none;border-bottom:1px solid var(--bd2);
 }
-.tool-panel.open{height:360px;min-height:360px;max-height:360px;}
+.tool-panel.open{height:min(360px,50vh);min-height:min(360px,50vh);max-height:min(360px,50vh);}
 .psec{height:100%;display:none;flex-direction:column;}
 .psec.on{display:flex;}
 .lres{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
@@ -1312,7 +1319,7 @@ height:0;min-height:0;
 border-left:none;border-top:1px solid var(--bd2);
 transition:height .28s cubic-bezier(.4,0,.2,1);
 }
-.floyd-panel.open{height:380px;}
+.floyd-panel.open{height:min(380px,55vh);}
 .fmessages{-webkit-overflow-scrolling:touch;}
 
 
@@ -1440,6 +1447,24 @@ width:auto;
 .tbtn{min-height:36px;}
 .modal-box{width:95vw!important;max-height:90vh;overflow-y:auto;margin:auto;}
 .pc-cta{min-height:48px;}
+
+/* ── Mobile project entries ── */
+.proj-entry{padding:.65rem .75rem;margin-bottom:.4rem;}
+.proj-load{min-height:40px;font-size:.84rem;display:flex;align-items:center;justify-content:center;}
+.proj-del{min-height:40px;padding:.3rem .65rem;}
+.proj-preview{font-size:1.02rem;}
+
+/* ── Mobile tool panel: swipe hint on header ── */
+.tp-head::after{
+content:'';display:block;position:absolute;left:50%;bottom:4px;
+transform:translateX(-50%);width:32px;height:3px;
+background:rgba(255,255,255,.12);border-radius:2px;
+}
+.tp-head{position:relative;}
+
+/* ── Search inputs bigger on mobile ── */
+.si{min-height:42px;font-size:1.08rem!important;}
+.rc{padding:.35rem .55rem;font-size:.94rem;}
 }
 
 /* ── VERY SMALL SCREENS (iPhone SE etc) ── */
@@ -7101,6 +7126,58 @@ function deleteSave(id){
   showToast('Save deleted.');
 }
 
+
+// ── MOBILE: tap notepad to close tool panel ──
+if(window.innerWidth <= 768){
+  const nw = document.querySelector('.notepad-wrap');
+  const tp = document.getElementById('toolPanel');
+  if(nw && tp){
+    nw.addEventListener('click', function(e){
+      if(tp.classList.contains('open') && window.innerWidth <= 768){
+        closeTool();
+      }
+    }, {capture:true, once:false});
+  }
+}
+
+// ── MOBILE: swipe down on tool panel header to close it ──
+(function(){
+  const tpHead = document.querySelector('.tp-head');
+  if(!tpHead) return;
+  let touchStartY = 0;
+  tpHead.addEventListener('touchstart', e=>{
+    touchStartY = e.touches[0].clientY;
+  }, {passive:true});
+  tpHead.addEventListener('touchend', e=>{
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if(dy > 40 && window.innerWidth <= 768) closeTool();
+  }, {passive:true});
+})();
+
+// ── MOBILE: swipe down on Floyd panel to close it ──
+(function(){
+  const fHead = document.querySelector('.floyd-head');
+  if(!fHead) return;
+  let touchStartY = 0;
+  fHead.addEventListener('touchstart', e=>{
+    touchStartY = e.touches[0].clientY;
+  }, {passive:true});
+  fHead.addEventListener('touchend', e=>{
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if(dy > 40 && window.innerWidth <= 768) toggleFloyd();
+  }, {passive:true});
+})();
+
+
+// ── MOBILE: handle soft keyboard — adjust notepad height ──
+if('visualViewport' in window && window.innerWidth <= 768){
+  const padWrap = document.querySelector('.pad-wrap');
+  window.visualViewport.addEventListener('resize', ()=>{
+    const kbHeight = window.innerHeight - window.visualViewport.height;
+    if(padWrap) padWrap.style.paddingBottom = kbHeight > 50 ? kbHeight+'px' : '';
+  });
+}
+
 // ── TOOL PANEL RESIZE ───────────────────────────────────────────────────
 (function(){
 const handle = document.getElementById('tpResize');
@@ -7157,8 +7234,8 @@ document.addEventListener('touchend', ()=>{ dragging=false; panel.style.transiti
 <div class="mobile-notice" id="mobileBanner">
   <div class="mobile-notice-icon">💻</div>
   <div class="mobile-notice-body">
-    <div class="mobile-notice-title">Best on Desktop</div>
-    <div class="mobile-notice-text">Full experience on laptop — you can still write here.</div>
+    <div class="mobile-notice-title">Mobile Mode</div>
+    <div class="mobile-notice-text">Write anywhere. Swipe tools above, tap notepad to close panels. Full suite on desktop.</div>
   </div>
   <button class="mobile-notice-close" onclick="dismissMobileBanner()">GOT IT</button>
 </div>
