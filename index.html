@@ -108,7 +108,16 @@ html,body{
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 #gate{position:fixed;inset:0;z-index:99999;background:#060606;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
 @media(max-width:768px){#gate{padding-bottom:60px;}}
-#gate.off{display:none;}
+#gate{
+  transition:opacity .35s ease;
+}
+
+#gate.off{
+  opacity:0;
+  pointer-events:none;
+  visibility:hidden;
+  display:block; /* keep layout stable during fade */
+}#gate.off{display:none;}
 
 /* NAV */
 .gn{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:0 4rem;height:64px;background:rgba(6,6,6,.88);backdrop-filter:blur(28px) saturate(200%);-webkit-backdrop-filter:blur(28px) saturate(200%);border-bottom:1px solid rgba(255,255,255,.06);}
