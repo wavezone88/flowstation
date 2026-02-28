@@ -69,7 +69,7 @@
       "price": "14.99",
       "priceCurrency": "USD",
       "billingIncrement": "monthly",
-      "description": "Floyd AI coach, beat search, audio player, rewrite engine, live rhyme map"
+      "description": "Floyd AI coach, beat search, audio player, studio recorder, rewrite engine, live rhyme map"
     }
   ],
   "featureList": [
@@ -83,6 +83,7 @@
     "Hook Formulas",
     "Urban Dictionary Slang Panel",
     "PDF Export",
+    "Studio Recorder",
     "Live Rhyme Map Visualizer"
   ],
   "screenshot": "https://flowstation.vercel.app/og-image.jpg",
@@ -1985,7 +1986,7 @@ text-decoration:none;
       <li style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(242,239,233,.6);display:flex;gap:.7rem;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;">🔥</span>Urban Dictionary Slang Panel</li>
       <li style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(242,239,233,.6);display:flex;gap:.7rem;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;">💡</span>Hover Word Popup (RHY/SYN/DEF)</li>
       <li style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(242,239,233,.6);display:flex;gap:.7rem;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;">📄</span>PDF Export + Profile Saves</li>
-      <li style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(242,239,233,.3);display:flex;gap:.7rem;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;opacity:.3;">🔒</span>Floyd AI &amp; Beat Studio</li>
+      <li style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(242,239,233,.3);display:flex;gap:.7rem;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;opacity:.3;">🔒</span>Floyd AI, Beat Studio &amp; Recorder</li>
     </ul>
 
     <button onclick="openCheckoutModal('pro')" style="display:block;width:100%;box-sizing:border-box;background:linear-gradient(135deg,#c8940e,#f0c040);border:none;color:#060606;font-family:'Saira',sans-serif;font-size:.96rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.88rem;border-radius:12px;cursor:pointer;text-align:center;transition:opacity .2s;" onmouseenter="this.style.opacity='.9'" onmouseleave="this.style.opacity='1'">GET ARTIST PRO →</button>
@@ -2067,6 +2068,7 @@ text-decoration:none;
       <li style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(200,140,255,.9);display:flex;gap:.7rem;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;">✍️</span>Floyd Rewrite Engine</li>
       <li style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(200,140,255,.9);display:flex;gap:.7rem;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;">🎧</span>Beat Search  -  YouTube Library</li>
       <li style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(200,140,255,.9);display:flex;gap:.7rem;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;">🎶</span>Audio Player + Upload Your Track</li>
+      <li style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(200,140,255,.9);display:flex;gap:.7rem;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;">🎙️</span>Studio Recorder  -  Rap Over Beats</li>
       <li style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(200,140,255,.9);display:flex;gap:.7rem;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;">🗺️</span>Live Rhyme Map Visualizer</li>
     </ul>
 
@@ -2945,6 +2947,7 @@ tools:        ['dict','thes'],
 sylGutter:    false,
 rhymeMap:     'blur',   // visible but blurred
 audio:        false,
+recorder:     false,
 saves:        'local',  // localStorage only, no profile sync
 export:       'txt',    // txt only
 pdfExport:    false,
@@ -2965,6 +2968,7 @@ tools:        ['dict','thes','rhyme','starters','hooks','bpm','urban'],
 sylGutter:    true,
 rhymeMap:     'blur',   // rhyme map is Elite only
 audio:        false,    // audio player is Elite only
+recorder:     false,    // recorder is Elite only
 saves:        'profile',
 export:       'txt',
 pdfExport:    true,
@@ -2985,6 +2989,7 @@ tools:        ['dict','thes','rhyme','starters','hooks','bpm','urban','beats'],
 sylGutter:    true,
 rhymeMap:     'full',
 audio:        true,
+recorder:     true,
 saves:        'profile',
 export:       'txt',
 pdfExport:    true,
@@ -3256,13 +3261,14 @@ rhyme_ai: { icon:'✨', name:'AI RHYME SUGGESTIONS', teaser:"Type a word. Floyd 
 beats:    { icon:'🎧', name:'BEAT SEARCH', teaser:"Find beats by BPM, vibe, and genre  -  pulled from YouTube, playable right here while you write.", need:'elite' },
 bpm:      { icon:'🥁', name:'BPM GUIDE + METRONOME', teaser:"Write to the actual tempo. Know exactly how many syllables fit your bar before you record.", need:'pro' },
 audio:    { icon:'🎶', name:'BEAT PLAYER', teaser:"Play beats while you write. Upload your own track and write directly to it in real time.", need:'elite' },
+recorder: { icon:'🎙️', name:'STUDIO RECORDER', teaser:"Record your vocals over any beat right in FlowStation. Mix mic + beat, play it back, download the file. Your pocket studio.", need:'elite' },
 floyd:    { icon:'🤖', name:'FLOYD AI COACH', teaser:"Ask Floyd to critique your bars, suggest rewrites, rate your flow density, and push your lyrics further. This is the reason people upgrade.", need:'elite' },
 urban:    { icon:'🗣️', name:'URBAN SLANG PANEL', teaser:"Stay current. The full Urban Dictionary integration surfaces the language actually being used in the culture right now.", need:'pro' },
 sylcnt:   { icon:'🎵', name:'SYLLABLE COUNTER', teaser:"See exactly how many syllables are in every line as you type. Stop guessing if your bars fit the beat.", need:'pro' },
 saves:    { icon:'📁', name:'PROFILE SAVES', teaser:"Your best work, saved to your account. Access anywhere, never lose a session. Unlimited projects.", need:'pro' },
 export:   { icon:'📄', name:'PDF EXPORT', teaser:"Export your lyrics as a clean formatted PDF. Ready to share, print, or submit anywhere.", need:'pro' },
 rewrite:  { icon:'✍️', name:'FLOYD REWRITE ENGINE', teaser:"Paste a bar. Floyd rewrites it  -  harder, softer, more dense, different scheme. Keep what works.", need:'elite' },
-elite_all:{ icon:'👑', name:'ARTIST ELITE', teaser:"The full suite. Floyd AI, beat search, audio player, rewrite engine, rhyme map. Everything unleashed.", need:'elite' },
+elite_all:{ icon:'👑', name:'ARTIST ELITE', teaser:"The full suite. Floyd AI, beat search, audio player, studio recorder, rewrite engine, rhyme map. Everything unleashed.", need:'elite' },
 };
 const info = items[item] || { icon:'🔓', name:(item||'THIS FEATURE').toUpperCase(), teaser:'Unlock the full FlowStation suite and write at a professional level.', need:'pro' };
 const goElite = info.need === 'elite';
@@ -5040,6 +5046,7 @@ let _recStartTime = 0;
 let _recPlayEl = null;
 
 async function toggleRec(){
+  if(!tc().recorder){ showUpgradeModal('recorder'); return; }
   if(_isRec) return stopRec();
   try {
     _recStream = await navigator.mediaDevices.getUserMedia({audio:true});
@@ -5389,6 +5396,20 @@ ab.appendChild(lo);
 }
 } else {
 oldLo?.remove();
+}
+}
+
+// ── 4b. RECORDER BUTTON ──
+const recBtn = document.getElementById('recBtn');
+if(recBtn){
+if(!cfg.recorder){
+recBtn.innerHTML = '&#128274; REC';
+recBtn.style.opacity = '.5';
+recBtn.title = 'Studio Recorder - Artist Elite only';
+} else {
+recBtn.innerHTML = '&#9679; REC';
+recBtn.style.opacity = '';
+recBtn.title = 'Record over beat';
 }
 }
 
