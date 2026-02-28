@@ -2833,14 +2833,13 @@ text-decoration:none;
 
 function dismissMobileBanner(){
   const b = document.getElementById('mobileBanner');
-  if(b){ b.style.display = 'none'; }
-  try{ sessionStorage.setItem('fs_mobile_dismissed','1'); }catch(e){}
+  if(b){ b.style.transition='opacity .2s'; b.style.opacity='0'; setTimeout(()=>{ b.style.display='none'; },220); }
+  try{ localStorage.setItem('fs_mobile_dismissed','1'); }catch(e){}
 }
-// Auto-dismiss if already seen this session
 (function(){
   try{
-    if(sessionStorage.getItem('fs_mobile_dismissed')){
-      const b = document.getElementById('mobileBanner');
+    if(localStorage.getItem('fs_mobile_dismissed')){
+      var b = document.getElementById('mobileBanner');
       if(b) b.style.display = 'none';
     }
   }catch(e){}
@@ -7221,12 +7220,27 @@ if(window.innerWidth <= 768){
 })();
 
 
-// ── MOBILE: handle soft keyboard — adjust notepad height ──
+// ── MOBILE: handle soft keyboard — collapse panels + adjust notepad ──
 if('visualViewport' in window && window.innerWidth <= 768){
   const padWrap = document.querySelector('.pad-wrap');
+  const toolP = document.getElementById('toolPanel');
+  const floydP = document.getElementById('floydPanel');
+  let panelWasOpen = null;
   window.visualViewport.addEventListener('resize', ()=>{
     const kbHeight = window.innerHeight - window.visualViewport.height;
-    if(padWrap) padWrap.style.paddingBottom = kbHeight > 50 ? kbHeight+'px' : '';
+    const kbOpen = kbHeight > 80;
+    if(kbOpen){
+      if(toolP && toolP.classList.contains('open')){
+        panelWasOpen = 'tool';
+        toolP.classList.remove('open');
+      } else if(floydP && floydP.classList.contains('open')){
+        panelWasOpen = 'floyd';
+        floydP.classList.remove('open');
+      }
+    } else {
+      panelWasOpen = null;
+    }
+    if(padWrap) padWrap.style.paddingBottom = kbOpen ? kbHeight+'px' : '';
   });
 }
 
@@ -7289,7 +7303,22 @@ document.addEventListener('touchend', ()=>{ dragging=false; panel.style.transiti
     <div class="mobile-notice-title">Mobile Mode</div>
     <div class="mobile-notice-text">Write anywhere. Swipe tools above, tap notepad to close panels. Full suite on desktop.</div>
   </div>
-  <button class="mobile-notice-close" onclick="dismissMobileBanner()">GOT IT</button>
+  <button class="mobile-notice-close" id="mobileBannerBtn">GOT IT</button>
 </div>
+<script>
+(function(){
+  var btn = document.getElementById('mobileBannerBtn');
+  if(btn){
+    btn.addEventListener('touchend', function(e){ e.preventDefault(); e.stopPropagation(); dismissMobileBanner(); }, {passive:false});
+    btn.addEventListener('click', function(e){ e.stopPropagation(); dismissMobileBanner(); });
+  }
+  try{
+    if(localStorage.getItem('fs_mobile_dismissed')){
+      var b = document.getElementById('mobileBanner');
+      if(b) b.style.display = 'none';
+    }
+  }catch(e){}
+})();
+</script>
 </body>
 </html>
