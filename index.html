@@ -7300,10 +7300,16 @@ document.addEventListener('touchend', ()=>{ dragging=false; panel.style.transiti
 </div>
 <script>
 (function(){
+  function hideBanner(){
+    var b = document.getElementById('mobileBanner');
+    if(b){ b.style.display='none'; }
+    try{ localStorage.setItem('fs_mobile_dismissed','1'); }catch(e){}
+  }
   var btn = document.getElementById('mobileBannerBtn');
   if(btn){
-    btn.addEventListener('touchend', function(e){ e.preventDefault(); e.stopPropagation(); dismissMobileBanner(); }, {passive:false});
-    btn.addEventListener('click', function(e){ e.stopPropagation(); dismissMobileBanner(); });
+    btn.addEventListener('pointerdown', function(e){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); hideBanner(); }, true);
+    btn.addEventListener('touchstart', function(e){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); hideBanner(); }, {capture:true, passive:false});
+    btn.addEventListener('click', function(e){ e.stopPropagation(); hideBanner(); }, true);
   }
   try{
     if(localStorage.getItem('fs_mobile_dismissed')){
