@@ -227,6 +227,17 @@ padding:6rem 2rem 3rem;
 text-align:center;
 pointer-events:auto;
 }
+.gh-hero-video{
+position:absolute;
+top:50%;left:50%;
+transform:translate(-50%,-50%);
+min-width:100%;min-height:100%;
+width:auto;height:auto;
+object-fit:cover;
+z-index:0;
+opacity:.18;
+pointer-events:none;
+}
 /* Grain texture overlay */
 .gh::before{
 content:'';position:absolute;inset:0;
@@ -1948,6 +1959,9 @@ text-decoration:none;
   </nav>
 
   <section class="gh">
+    <video class="gh-hero-video" autoplay muted loop playsinline>
+      <source src="/flowstation-hero.mp4" type="video/mp4">
+    </video>
     <div class="gh-glow"></div>
     <canvas id="heroCanvas"></canvas>
 
@@ -2062,6 +2076,21 @@ text-decoration:none;
   </div>
 </div>
 
+  </section>
+
+  <!-- DEMO VIDEO SECTION -->
+  <section class="gh-demo-section" style="padding:4rem 1.5rem 5rem;background:#060606;text-align:center;position:relative;overflow:hidden;">
+    <div style="position:absolute;inset:0;pointer-events:none;">
+      <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:600px;height:300px;background:radial-gradient(ellipse,rgba(240,192,64,.06) 0%,transparent 70%);border-radius:50%;"></div>
+    </div>
+    <div style="font-family:'Saira',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:rgba(240,192,64,.6);margin-bottom:.8rem;position:relative;z-index:2;">SEE IT IN ACTION</div>
+    <h2 style="font-family:'Saira',sans-serif;font-size:clamp(1.8rem,5vw,2.8rem);font-weight:800;color:rgba(242,239,233,.92);margin:0 0 1.2rem;position:relative;z-index:2;letter-spacing:.02em;">Your Studio. Your Flow. <em style="color:#d4a843;font-style:normal;">Your Way.</em></h2>
+    <p style="font-family:'Saira',sans-serif;font-size:1.05rem;color:rgba(242,239,233,.4);max-width:520px;margin:0 auto 2.5rem;line-height:1.6;position:relative;z-index:2;">Watch FlowStation in action. Write bars, search beats, get AI coaching &mdash; all in one place.</p>
+    <div style="max-width:780px;margin:0 auto;position:relative;z-index:2;border-radius:16px;overflow:hidden;border:1px solid rgba(240,192,64,.12);box-shadow:0 20px 80px rgba(0,0,0,.6),0 0 0 1px rgba(240,192,64,.05);">
+      <video controls playsinline preload="metadata" poster="/flowstation-gold.png" style="width:100%;display:block;background:#000;border-radius:16px;">
+        <source src="/flowstation-hero.mp4" type="video/mp4">
+      </video>
+    </div>
   </section>
 
   <!-- FEATURES SHOWCASE -->
