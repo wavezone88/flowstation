@@ -2635,6 +2635,20 @@ text-decoration:none;
           <span class="acct-name" id="acctLbl">ACCOUNT</span>
           <span class="acct-chev">▾</span>
         </button>
+        <div class="acct-dd" id="acctDD">
+          <div class="acct-dd-head">
+            <div class="acct-dd-name" id="ddName">FlowStation Member</div>
+            <div class="acct-dd-email" id="ddEmail"></div>
+            <div class="acct-dd-tier basic" id="ddTier">BASIC</div>
+          </div>
+          <div class="acct-dd-items">
+            <div class="acct-dd-item" onclick="showGate();closeAcctDD()">📋 VIEW PLANS &amp; UPGRADE</div>
+            <a class="acct-dd-item" href="/cdn-cgi/l/email-protection#8ffcfaffffe0fdfbcfe2f6e9e3e0f8fcfbeefbe6e0e1a1ece0e2">💬 CONTACT SUPPORT</a>
+            <a class="acct-dd-item" id="ddBilling" href="#" onclick="openBilling();return false;" style="display:none">💳 MANAGE BILLING</a>
+            <div class="acct-dd-sep"></div>
+            <div class="acct-dd-item danger" onclick="authLogout()">🚪 SIGN OUT</div>
+          </div>
+        </div>
       </div>
     </div>
   </header>
@@ -2642,20 +2656,6 @@ text-decoration:none;
     <span class="a2hs-icon">📲</span>
     <span class="a2hs-text">TAP TO INSTALL MOBILE APP</span>
     <span class="a2hs-x" onclick="event.stopPropagation();dismissA2HS();">&#10005;</span>
-  </div>
-  <div class="acct-dd" id="acctDD">
-    <div class="acct-dd-head">
-      <div class="acct-dd-name" id="ddName">FlowStation Member</div>
-      <div class="acct-dd-email" id="ddEmail"></div>
-      <div class="acct-dd-tier basic" id="ddTier">BASIC</div>
-    </div>
-    <div class="acct-dd-items">
-      <div class="acct-dd-item" onclick="showGate();closeAcctDD()">📋 VIEW PLANS &amp; UPGRADE</div>
-      <a class="acct-dd-item" href="/cdn-cgi/l/email-protection#8ffcfaffffe0fdfbcfe2f6e9e3e0f8fcfbeefbe6e0e1a1ece0e2">💬 CONTACT SUPPORT</a>
-      <a class="acct-dd-item" id="ddBilling" href="#" onclick="openBilling();return false;" style="display:none">💳 MANAGE BILLING</a>
-      <div class="acct-dd-sep"></div>
-      <div class="acct-dd-item danger" onclick="authLogout()">🚪 SIGN OUT</div>
-    </div>
   </div>
 
   <!-- ICON SIDEBAR -->
