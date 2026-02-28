@@ -1328,7 +1328,7 @@ html,body{overflow:auto!important;height:auto!important;}
 
 /* ── APP LAYOUT ── */
 .app{display:flex;flex-direction:column;height:auto!important;min-height:100dvh;}
-.topbar{position:sticky;top:0;z-index:200;order:1;padding:0 .6rem;max-width:100vw;box-sizing:border-box;overflow-x:auto;overflow-y:visible;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.topbar{position:sticky;top:0;z-index:200;order:1;padding:0 .6rem;max-width:100vw;box-sizing:border-box;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
 .topbar::-webkit-scrollbar{display:none;}
 .acct-dd{position:fixed!important;top:52px!important;right:4px!important;left:auto!important;width:260px;z-index:10000!important;}
 .topbar-left{gap:.3rem;}
@@ -2410,23 +2410,23 @@ text-decoration:none;
           <span class="acct-name" id="acctLbl">ACCOUNT</span>
           <span class="acct-chev">▾</span>
         </button>
-        <div class="acct-dd" id="acctDD">
-          <div class="acct-dd-head">
-            <div class="acct-dd-name" id="ddName">FlowStation Member</div>
-            <div class="acct-dd-email" id="ddEmail"></div>
-            <div class="acct-dd-tier basic" id="ddTier">BASIC</div>
-          </div>
-          <div class="acct-dd-items">
-            <div class="acct-dd-item" onclick="showGate();closeAcctDD()">📋 VIEW PLANS &amp; UPGRADE</div>
-            <a class="acct-dd-item" href="/cdn-cgi/l/email-protection#8ffcfaffffe0fdfbcfe2f6e9e3e0f8fcfbeefbe6e0e1a1ece0e2">💬 CONTACT SUPPORT</a>
-            <a class="acct-dd-item" id="ddBilling" href="#" onclick="openBilling();return false;" style="display:none">💳 MANAGE BILLING</a>
-            <div class="acct-dd-sep"></div>
-            <div class="acct-dd-item danger" onclick="authLogout()">🚪 SIGN OUT</div>
-          </div>
-        </div>
       </div>
     </div>
   </header>
+  <div class="acct-dd" id="acctDD">
+    <div class="acct-dd-head">
+      <div class="acct-dd-name" id="ddName">FlowStation Member</div>
+      <div class="acct-dd-email" id="ddEmail"></div>
+      <div class="acct-dd-tier basic" id="ddTier">BASIC</div>
+    </div>
+    <div class="acct-dd-items">
+      <div class="acct-dd-item" onclick="showGate();closeAcctDD()">📋 VIEW PLANS &amp; UPGRADE</div>
+      <a class="acct-dd-item" href="/cdn-cgi/l/email-protection#8ffcfaffffe0fdfbcfe2f6e9e3e0f8fcfbeefbe6e0e1a1ece0e2">💬 CONTACT SUPPORT</a>
+      <a class="acct-dd-item" id="ddBilling" href="#" onclick="openBilling();return false;" style="display:none">💳 MANAGE BILLING</a>
+      <div class="acct-dd-sep"></div>
+      <div class="acct-dd-item danger" onclick="authLogout()">🚪 SIGN OUT</div>
+    </div>
+  </div>
 
   <!-- ICON SIDEBAR -->
 
@@ -3358,7 +3358,7 @@ if(go) go.disabled = false;
 // Account dropdown
 function toggleAcctDD(){document.getElementById('acctBtn').classList.toggle('open');document.getElementById('acctDD').classList.toggle('open');}
 function closeAcctDD(){document.getElementById('acctBtn').classList.remove('open');document.getElementById('acctDD').classList.remove('open');}
-document.addEventListener('click',e=>{const w=document.getElementById('acctWrap');if(w&&!w.contains(e.target))closeAcctDD();});
+document.addEventListener('click',e=>{const w=document.getElementById('acctWrap');const dd=document.getElementById('acctDD');if(w&&!w.contains(e.target)&&dd&&!dd.contains(e.target))closeAcctDD();});
 function updateAccountUI(tier,email){
 const nm={basic:'Basic',regular:'Artist Pro',premium:'Artist Elite'};
 const cl={basic:'basic',regular:'regular',premium:'premium'};
