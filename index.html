@@ -2853,7 +2853,7 @@ text-decoration:none;
   </div>
   <div id="basicWelcome" style="display:none;margin:.35rem .75rem .2rem;background:rgba(240,192,64,.04);border:1px solid rgba(240,192,64,.12);border-radius:10px;padding:.5rem 2rem .5rem .75rem;font-family:'Saira',sans-serif;font-size:.78rem;color:rgba(242,239,233,.45);line-height:1.4;position:relative;flex-shrink:0;">
     <button onclick="this.parentElement.style.display='none';try{localStorage.setItem('fs_bw_dismissed','1')}catch(e){}" style="position:absolute;top:.35rem;right:.45rem;background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:.8rem;padding:.2rem;min-height:28px;min-width:28px;">✕</button>
-    <span style="color:#f0c040;font-weight:700;">Basic plan</span> -- Start writing below! Some tools are locked. <span onclick="su('elite_all')" style="color:var(--gold);cursor:pointer;text-decoration:underline;">See upgrade options</span>
+    <span style="color:#f0c040;font-weight:700;">Basic plan</span> -- Start writing below! Some tools are locked. <span onclick="goCheckoutPro()" style="color:var(--gold);cursor:pointer;text-decoration:underline;font-weight:600;">Upgrade to Pro →</span>
   </div>
   <div class="pad-body" style="position:relative">
     <div class="lnum-col" id="lnGut"></div>
@@ -3541,6 +3541,8 @@ elite_all:{ icon:'👑', name:'ARTIST ELITE', teaser:"The full suite. Floyd AI, 
 };
 const info = items[item] || { icon:'🔓', name:(item||'THIS FEATURE').toUpperCase(), teaser:'Unlock the full FlowStation suite and write at a professional level.', need:'pro' };
 const goElite = info.need === 'elite';
+const _suUser = currentUser || window.currentUser;
+const isLoggedIn = !!_suUser;
 
 const modal = document.createElement('div');
 modal.id = 'upgradeModal';
@@ -3564,14 +3566,18 @@ const secondaryFn    = goElite ? 'goCheckoutPro()' : 'goCheckoutElite()';
 const box = document.createElement('div');
 box.style.cssText = 'background:#111014;border:1px solid '+borderColor+';border-radius:24px;padding:2.2rem 2rem 1.8rem;max-width:380px;width:100%;text-align:center;box-shadow:0 40px 100px rgba(0,0,0,.9);position:relative;';
 
+var btnLabel = isLoggedIn ? 'UPGRADE TO '+primaryPlan+' →' : primaryPlan+'  -  '+primaryPrice+' →';
+var secLabel = isLoggedIn ? 'Or get '+secondaryPlan+' ('+secondaryPrice+')' : secondaryPlan+'  -  '+secondaryPrice;
+var footNote = isLoggedIn ? 'Cancel anytime · Unlocks instantly · '+primaryPrice : 'Cancel anytime · Unlock instantly';
+
 box.innerHTML =
 '<button onclick="document.getElementById(\'upgradeModal\').remove()" style="position:absolute;top:.9rem;right:.9rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:50%;width:28px;height:28px;color:rgba(255,255,255,.4);font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>'
 + '<div style="font-size:2.6rem;margin-bottom:.6rem;">'+info.icon+'</div>'
 + '<div style="font-family:\'Saira\',sans-serif;font-size:1.6rem;color:'+accentColor+'.9);letter-spacing:.06em;text-transform:uppercase;margin-bottom:.7rem;">'+info.name+'</div>'
 + '<div style="font-family:Saira,sans-serif;font-size:.96rem;color:rgba(242,239,233,.5);line-height:1.75;margin-bottom:1.6rem;max-width:300px;margin-left:auto;margin-right:auto;">'+info.teaser+'</div>'
-+ '<button onclick="'+primaryFn+'" style="background:'+btnGrad+';border:none;color:'+btnTxt+';font-family:Saira,sans-serif;font-size:1rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.9rem 1.4rem;border-radius:12px;cursor:pointer;width:100%;margin-bottom:.6rem;display:block;box-shadow:0 4px 20px '+accentColor+'.25);">'+primaryPlan+'  -  '+primaryPrice+' →</button>'
-+ '<button onclick="'+secondaryFn+'" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);color:rgba(242,239,233,.4);font-family:Saira,sans-serif;font-size:.88rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:.65rem 1.2rem;border-radius:10px;cursor:pointer;width:100%;margin-bottom:.9rem;display:block;">'+secondaryPlan+'  -  '+secondaryPrice+'</button>'
-+ '<div style="font-family:Saira,sans-serif;font-size:.78rem;color:rgba(242,239,233,.2);letter-spacing:.04em;">Cancel anytime · Unlock instantly</div>';
++ '<button onclick="document.getElementById(\'upgradeModal\')?.remove();'+primaryFn+'" style="background:'+btnGrad+';border:none;color:'+btnTxt+';font-family:Saira,sans-serif;font-size:1.1rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:1rem 1.4rem;border-radius:14px;cursor:pointer;width:100%;margin-bottom:.6rem;display:block;box-shadow:0 4px 20px '+accentColor+'.25);min-height:52px;">'+btnLabel+'</button>'
++ '<button onclick="document.getElementById(\'upgradeModal\')?.remove();'+secondaryFn+'" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);color:rgba(242,239,233,.4);font-family:Saira,sans-serif;font-size:.88rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:.65rem 1.2rem;border-radius:10px;cursor:pointer;width:100%;margin-bottom:.9rem;display:block;">'+secLabel+'</button>'
++ '<div style="font-family:Saira,sans-serif;font-size:.78rem;color:rgba(242,239,233,.2);letter-spacing:.04em;">'+footNote+'</div>';
 
 modal.appendChild(box);
 document.body.appendChild(modal);
