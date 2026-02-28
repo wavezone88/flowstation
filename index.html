@@ -613,6 +613,10 @@ font-family:'Saira',sans-serif;
 .g-auth-hint{font-size:.84rem;color:rgba(242,239,233,.24);text-align:center;line-height:1.75;margin-top:.6rem;}
 .g-auth-hint a{color:rgba(41,151,255,.75);text-decoration:none;}
 .g-auth-hint a:hover{color:#2997ff;}
+.pw-reset-overlay{position:fixed;inset:0;background:rgba(6,6,6,.92);backdrop-filter:blur(24px);z-index:12000;display:flex;align-items:center;justify-content:center;padding:1.5rem;}
+.pw-reset-card{background:#111113;border:1px solid rgba(255,255,255,.08);border-radius:28px;padding:2.5rem 2.2rem;max-width:400px;width:100%;position:relative;}
+.pw-reset-card h2{font-family:'Saira',sans-serif;font-size:1.35rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx);text-align:center;margin-bottom:.4rem;}
+.pw-reset-card p{font-size:.92rem;color:rgba(255,255,255,.38);text-align:center;margin-bottom:1.6rem;line-height:1.5;}
 .g-auth-divider{display:flex;align-items:center;gap:.75rem;margin:.3rem 0;}
 .g-auth-divider::before,.g-auth-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.08);}
 .g-auth-divider span{font-size:.94rem;color:rgba(255,255,255,.22);letter-spacing:.1em;text-transform:uppercase;}
@@ -3327,9 +3331,50 @@ const email = document.getElementById('siEmail').value.trim();
 const msg   = document.getElementById('msgSignin');
 if(!email){ msg.textContent='Enter your email above first.';msg.className='g-auth-msg err';return; }
 if(!sb){ msg.textContent='Supabase not configured.';msg.className='g-auth-msg err';return; }
-const {error} = await sb.auth.resetPasswordForEmail(email, {redirectTo: window.location.origin});
+const {error} = await sb.auth.resetPasswordForEmail(email, {redirectTo: 'https://www.myflowstation.com'});
 if(error){ msg.textContent=error.message;msg.className='g-auth-msg err'; }
 else { msg.textContent='✓ Password reset email sent!';msg.className='g-auth-msg ok'; }
+}
+
+// ── SET NEW PASSWORD (after reset link click) ──
+function showResetPasswordForm(){
+var overlay = document.createElement('div');
+overlay.className = 'pw-reset-overlay';
+overlay.id = 'pwResetOverlay';
+overlay.innerHTML = '<div class="pw-reset-card">'
++'<h2>SET NEW PASSWORD</h2>'
++'<p>Enter your new password below.</p>'
++'<div class="g-auth-form">'
++'<div><label class="g-auth-label">NEW PASSWORD</label>'
++'<input class="g-field" id="pwResetNew" type="password" placeholder="New password (min 6 characters)" autocomplete="new-password"></div>'
++'<div><label class="g-auth-label">CONFIRM PASSWORD</label>'
++'<input class="g-field" id="pwResetConfirm" type="password" placeholder="Confirm new password" autocomplete="new-password"></div>'
++'<div class="g-auth-msg" id="msgPwReset"></div>'
++'<button class="g-auth-submit" id="pwResetBtn" onclick="submitNewPassword()">UPDATE PASSWORD</button>'
++'</div></div>';
+document.body.appendChild(overlay);
+setTimeout(function(){ document.getElementById('pwResetNew').focus(); }, 100);
+}
+async function submitNewPassword(){
+var pw = document.getElementById('pwResetNew').value;
+var pw2 = document.getElementById('pwResetConfirm').value;
+var msg = document.getElementById('msgPwReset');
+var btn = document.getElementById('pwResetBtn');
+msg.className = 'g-auth-msg'; msg.textContent = '';
+if(!pw || pw.length < 6){ msg.textContent='Password must be at least 6 characters.'; msg.className='g-auth-msg err'; return; }
+if(pw !== pw2){ msg.textContent='Passwords do not match.'; msg.className='g-auth-msg err'; return; }
+btn.disabled = true; btn.textContent = 'UPDATING...';
+try{
+var result = await sb.auth.updateUser({password: pw});
+if(result.error) throw result.error;
+msg.textContent = 'Password updated! Redirecting...';
+msg.className = 'g-auth-msg ok';
+setTimeout(function(){ var o = document.getElementById('pwResetOverlay'); if(o) o.remove(); location.reload(); }, 1500);
+}catch(e){
+msg.textContent = e.message || 'Failed to update password. Please try again.';
+msg.className = 'g-auth-msg err';
+btn.disabled = false; btn.textContent = 'UPDATE PASSWORD';
+}
 }
 
 // ── SIGN OUT ──
@@ -3441,8 +3486,11 @@ try{ localStorage.setItem('fs_pending_tier', plan); }catch(e){}
 
 // CRITICAL: Listen for auth state changes  -  catches Google OAuth hash callback
 sb.auth.onAuthStateChange(async (event, session) => {
+if(event === 'PASSWORD_RECOVERY'){
+showResetPasswordForm();
+return;
+}
 if((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session){
-// Check for pending Stripe tier
 const pending = localStorage.getItem('fs_pending_tier');
 if(pending){
 const tier = pending==='elite'?'premium':'regular';
