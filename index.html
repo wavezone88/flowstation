@@ -134,6 +134,12 @@ GATE  -  LANDING PAGE
 .gn-mm-item:hover{background:rgba(255,255,255,.06);color:#f2efe9;}
 .gn-mm-cta{font-family:'Saira',sans-serif;font-size:.82rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#060606;background:linear-gradient(135deg,#c8940e,#f0c040);border:none;border-radius:10px;padding:.65rem .9rem;cursor:pointer;text-align:center;margin-top:.2rem;transition:opacity .2s;}
 .gn-mm-cta:hover{opacity:.9;}
+.share-btn{font-family:'Saira',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.18);color:#d4a843;padding:.32rem .7rem;border-radius:7px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.share-btn:hover{background:rgba(240,192,64,.15);}
+.share-menu{position:absolute;bottom:100%;right:0;background:rgba(12,12,14,.97);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:.5rem;min-width:200px;box-shadow:0 -8px 36px rgba(0,0,0,.5);z-index:300;display:flex;flex-direction:column;gap:.15rem;margin-bottom:.4rem;}
+.share-menu-item{display:flex;align-items:center;gap:.6rem;font-family:'Saira',sans-serif;font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(242,239,233,.55);background:none;border:none;cursor:pointer;padding:.55rem .75rem;border-radius:9px;transition:all .15s;text-align:left;}
+.share-menu-item:hover{background:rgba(255,255,255,.06);color:#f2efe9;}
+.share-menu-item .smi-icon{font-size:1.1rem;flex-shrink:0;width:1.4rem;text-align:center;}
 
 /* HERO */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1877,7 +1883,7 @@ text-decoration:none;
   <div class="gh-div"></div>
   <div class="gh-stat"><div class="gh-sn">16</div><div class="gh-sl">Categories</div></div>
   <div class="gh-div"></div>
-  <div class="gh-stat"><div class="gh-sn">24/7</div><div class="gh-sl">AI Coach Floyd</div></div>
+  <div class="gh-stat"><div class="gh-sn">24/7</div><div class="gh-sl">AI Coach (Elite)</div></div>
   <div class="gh-div"></div>
   <div class="gh-stat"><div class="gh-sn">∞</div><div class="gh-sl">Rhymes Found</div></div>
 </div>
@@ -1918,10 +1924,9 @@ text-decoration:none;
     <span class="gh-tick-item"><span>📄</span> PDF EXPORT</span>
     <span class="gh-tick-item"><span>✍️</span> REWRITE ENGINE</span>
     <span class="gh-tick-item"><span>💡</span> HOVER WORD POPUPS</span>
-    <span class="gh-tick-item"><span>✦</span> BPM GUIDE</span>
-    <span class="gh-tick-item"><span>✦</span> RHYME MAP OVERLAY</span>
-    <span class="gh-tick-item"><span>✦</span> STICKY NOTES</span>
-    <span class="gh-tick-item"><span>✦</span> PDF EXPORT</span>
+    <span class="gh-tick-item"><span>🎙️</span> STUDIO RECORDER</span>
+    <span class="gh-tick-item"><span>🎶</span> AUDIO PLAYER</span>
+    <span class="gh-tick-item"><span>📤</span> SHARE YOUR BARS</span>
   </div>
 </div>
 
@@ -2089,7 +2094,7 @@ text-decoration:none;
 
     <ul style="list-style:none;padding:0;margin:0 0 1.6rem;display:flex;flex-direction:column;gap:.55rem;">
       <li style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(242,239,233,.6);display:flex;gap:.7rem;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;">✅</span>Everything in Artist Pro</li>
-      <li style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(200,140,255,.9);display:flex;gap:.7rem;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;">🤖</span>Floyd AI Coach  -  Unlimited</li>
+      <li style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(200,140,255,.9);display:flex;gap:.7rem;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;">🤖</span>Floyd AI Coach  -  50 Daily Messages</li>
       <li style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(200,140,255,.9);display:flex;gap:.7rem;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;">✨</span>AI Rhyme Suggestions</li>
       <li style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(200,140,255,.9);display:flex;gap:.7rem;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;">✍️</span>Floyd Rewrite Engine</li>
       <li style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(200,140,255,.9);display:flex;gap:.7rem;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;">🎧</span>Beat Search  -  YouTube Library</li>
@@ -2686,6 +2691,7 @@ text-decoration:none;
       <input class="syl-input" id="sylTarget" type="number" min="1" max="99" placeholder=" - " oninput="setTarget(this.value)" onchange="setTarget(this.value)">
       <span class="syl-label">SYL/LINE</span>
     </div>
+    <button id="shareBtn" onclick="openShareMenu()" class="share-btn">📤 SHARE</button>
     <button id="vizBtn" onclick="toggleViz()">◈ RHYME MAP</button><span style="font-size:.86rem;color:var(--dim);cursor:help;margin-left:.3rem;" onmouseover="showTip('vizmap',this)" onmouseout="closeTip()">?</span>
   </div>
 </div>
@@ -5164,6 +5170,63 @@ function discardRec(){
   _recBlob = null; _recChunks = [];
   document.getElementById('recResult').style.display = 'none';
   showToast('Recording discarded.');
+}
+
+// ═══════════════════════════════════════════
+//  SHARE LYRICS
+// ═══════════════════════════════════════════
+function getShareText(){
+const text = (document.getElementById('pad').value || '').trim();
+if(!text){ showToast('Write something first!'); return null; }
+const lines = text.split('\n').filter(l=>l.trim()).slice(0,8);
+let snippet = lines.join('\n');
+if(text.split('\n').filter(l=>l.trim()).length > 8) snippet += '\n...';
+return snippet;
+}
+function openShareMenu(){
+const existing = document.getElementById('shareMenu');
+if(existing){ existing.remove(); return; }
+const text = getShareText();
+if(!text) return;
+const foot = document.querySelector('.pad-foot');
+const menu = document.createElement('div');
+menu.className = 'share-menu';
+menu.id = 'shareMenu';
+function mkBtn(icon, label, fn){
+const b = document.createElement('button');
+b.className = 'share-menu-item';
+b.innerHTML = '<span class="smi-icon">' + icon + '</span>' + label;
+b.onclick = function(){ fn(); menu.remove(); };
+menu.appendChild(b);
+}
+if(navigator.share){
+mkBtn('📱','SHARE...', function(){
+navigator.share({title:'My Bars - FlowStation',text:text + '\n\nWritten on FlowStation\nhttps://www.myflowstation.com'}).catch(function(){});
+});
+}
+mkBtn('🐦','TWITTER / X', function(){
+const t = encodeURIComponent(text.substring(0,250) + '\n\nWritten on @FlowStation\nhttps://www.myflowstation.com');
+window.open('https://twitter.com/intent/tweet?text=' + t, '_blank');
+});
+mkBtn('📘','FACEBOOK', function(){
+window.open('https://www.facebook.com/sharer/sharer.php?quote=' + encodeURIComponent(text.substring(0,400) + '\n\nWritten on FlowStation') + '&u=' + encodeURIComponent('https://www.myflowstation.com'), '_blank');
+});
+mkBtn('💬','WHATSAPP', function(){
+window.open('https://wa.me/?text=' + encodeURIComponent(text.substring(0,400) + '\n\nWritten on FlowStation\nhttps://www.myflowstation.com'), '_blank');
+});
+mkBtn('📋','COPY TO CLIPBOARD', function(){
+navigator.clipboard.writeText(text + '\n\nWritten on FlowStation\nhttps://www.myflowstation.com').then(function(){ showToast('Copied to clipboard!'); });
+});
+foot.style.position = 'relative';
+foot.appendChild(menu);
+setTimeout(function(){
+document.addEventListener('click', function closeShare(e){
+if(!menu.contains(e.target) && e.target.id !== 'shareBtn'){
+menu.remove();
+document.removeEventListener('click', closeShare);
+}
+});
+}, 10);
 }
 
 // ═══════════════════════════════════════════
