@@ -662,6 +662,36 @@ transform:translate(-50%,-50%);
 width:2px;height:40px;
 background:rgba(255,255,255,.12);border-radius:2px;
 }
+
+/* ── PROJECTS PANEL ── */
+.proj-entry{
+background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+border-radius:10px;padding:.55rem .7rem;margin-bottom:.35rem;
+transition:background .15s;
+}
+.proj-entry:hover{background:rgba(255,255,255,.06);}
+.proj-preview{
+font-size:.94rem;color:var(--tx2);line-height:1.45;margin-bottom:.35rem;
+white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.proj-meta{
+display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.4rem;
+font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);
+}
+.proj-actions{display:flex;gap:.3rem;}
+.proj-load{
+flex:1;background:rgba(240,192,64,.09);border:1px solid rgba(240,192,64,.18);
+color:var(--gold);font-family:'Saira',sans-serif;font-size:.75rem;font-weight:700;
+letter-spacing:.09em;text-transform:uppercase;padding:.3rem .5rem;
+border-radius:7px;cursor:pointer;transition:background .15s;
+}
+.proj-load:hover{background:rgba(240,192,64,.18);}
+.proj-del{
+background:rgba(255,60,60,.06);border:1px solid rgba(255,60,60,.12);
+color:rgba(255,80,80,.55);font-size:.84rem;font-weight:700;
+padding:.3rem .55rem;border-radius:7px;cursor:pointer;transition:background .15s;
+}
+.proj-del:hover{background:rgba(255,60,60,.14);color:rgba(255,80,80,.9);}
 /* ── NOTEPAD ── */
 .notepad-wrap{
 flex:1;display:flex;flex-direction:column;overflow:hidden;
@@ -2330,6 +2360,9 @@ text-decoration:none;
     <button class="sbi" id="sbi-beats" onclick="toggleTool('beats')" title="Beat Search" onmouseover="showTip('beats',this)" onmouseout="closeTip()">
       <span class="sbi-icon">🎹</span><span class="sbi-label">BEATS</span>
     </button>
+    <button class="sbi" id="sbi-projects" onclick="toggleTool('projects')" title="My Projects" onmouseover="showTip('projects',this)" onmouseout="closeTip()">
+      <span class="sbi-icon">📂</span><span class="sbi-label">FILES</span>
+    </button>
     <div class="sbi-sep"></div>
     <button class="sbi" id="sbi-floyd"    onclick="toggleFloyd()"          title="AI Coach Floyd" onmouseover="showTip('floyd',this)" onmouseout="closeTip()">
       <span class="sbi-icon">🤖</span><span class="sbi-label">FLOYD</span>
@@ -2466,6 +2499,23 @@ text-decoration:none;
           <div style="font-size:1.4rem;margin-bottom:.4rem;">🎹</div>
           <div style="font-size:1.08rem;color:var(--dim);">Pick a genre or search above<br>to browse beats from YouTube.</div>
         </div>
+      </div>
+    </div>
+    <div class="psec" id="ps-projects">
+      <!-- Action bar -->
+      <div style="padding:.45rem .6rem .3rem;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.05);">
+        <div style="display:flex;gap:.3rem;margin-bottom:.35rem;">
+          <input id="projNameInput" placeholder="Name this project…" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--tx);font-family:Saira,sans-serif;font-size:1.02rem;padding:.38rem .65rem;outline:none;" onkeydown="if(event.key==='Enter')saveToProject()">
+          <button onclick="saveToProject()" style="background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.22);color:var(--gold);font-family:Saira,sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.38rem .75rem;border-radius:8px;cursor:pointer;white-space:nowrap;flex-shrink:0;">SAVE</button>
+        </div>
+        <div style="display:flex;gap:.3rem;">
+          <button onclick="manualSave(false)" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);color:var(--tx2);font-family:Saira,sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.3rem .5rem;border-radius:7px;cursor:pointer;">💾 QUICK SAVE</button>
+          <button onclick="exportPad()" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);color:var(--tx2);font-family:Saira,sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.3rem .5rem;border-radius:7px;cursor:pointer;">⬇ EXPORT TXT</button>
+        </div>
+      </div>
+      <!-- Projects list -->
+      <div class="lres" id="projectsList" style="padding:.4rem .5rem;">
+        <div class="sempty">No saves yet.<br>Start writing and hit SAVE.</div>
       </div>
     </div>
 <!-- NOTEPAD -->
@@ -4987,7 +5037,7 @@ if(btn && btn.classList.contains('locked')){ showUpgradeModal(id); return; }
 
 const panel = document.getElementById('toolPanel');
 const tpTitle = document.getElementById('tpTitle');
-const names = {dict:'DICTIONARY',thes:'THESAURUS',rhyme:'RHYME DICTIONARY',starters:'FLOW STARTERS',hooks:'HOOK FORMULAS',bpm:'BPM GUIDE',urban:'URBAN DICTIONARY',beats:'BEAT SEARCH'};
+const names = {dict:'DICTIONARY',thes:'THESAURUS',rhyme:'RHYME DICTIONARY',starters:'FLOW STARTERS',hooks:'HOOK FORMULAS',bpm:'BPM GUIDE',urban:'URBAN DICTIONARY',beats:'BEAT SEARCH',projects:'MY PROJECTS'};
 
 if(activeTool === id){
 // Same icon clicked — close panel
@@ -5005,7 +5055,8 @@ const sec = document.getElementById('ps-'+id);
 if(sec) sec.classList.add('on');
 // Set title
 if(tpTitle) tpTitle.textContent = names[id]||id.toUpperCase();
-// Open panel
+// Open panel — refresh projects list when switching to it
+if(id === 'projects') renderProjects();
 panel.classList.add('open');
 // Auto-load beats on first open
 if(id === 'beats'){
@@ -5481,6 +5532,7 @@ starters: 'Over 800 phrase starters across 16 categories. Click one to insert it
 hooks:    '10 proven hook structures. Use these frameworks to shape your chorus.',
 bpm:      'Match your syllable count to the tempo of your beat for perfect flow.',
 urban:    'Search street slang, phrases, and cultural terms.',
+projects: 'Your saved writings, organized by project. Load, rename, or delete any session.',
 floyd:    'Your AI songwriting coach. Ask for feedback, rhyme help, or creative ideas. Requires an Anthropic API key.',
 pad:      'Your writing space. Line numbers and syllable counts update live as you type.',
 sylcnt:   'Syllable count per line. Set a target to highlight lines that are over or under.',
@@ -5758,6 +5810,7 @@ const name  = input?.value?.trim();
 if(!name){ showToast('Enter a project name first'); return; }
 manualSave(false, name);
 input.value = '';
+renderProjects();
 }
 
 // ── Global error handler — surface silent failures ──
@@ -6975,6 +7028,78 @@ draw();
 });
 }
 
+
+
+// ── MY PROJECTS PANEL ───────────────────────────────────────────────────────
+function renderProjects(){
+  const list = document.getElementById('projectsList');
+  if(!list) return;
+  const saves = getSaves();
+  if(!saves.length){
+    list.innerHTML = '<div class="sempty" style="padding:1.2rem .3rem;text-align:center;">No saves yet.<br><span style="font-size:.84rem;color:var(--dim);">Start writing and hit SAVE.</span></div>';
+    return;
+  }
+  // Group by project name
+  const groups = {};
+  saves.forEach(s=>{ const p=s.project||'Unsaved'; (groups[p]=groups[p]||[]).push(s); });
+  let html = '';
+  Object.entries(groups).forEach(([proj, items])=>{
+    html += '<div style="margin-bottom:.6rem;">';
+    html += '<div style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);padding:.4rem .3rem .2rem;display:flex;align-items:center;gap:.4rem;">';
+    html += '📂 '+escHtml(proj)+' <span style="color:var(--dim);font-weight:400;">('+items.length+')</span></div>';
+    items.forEach(s=>{
+      const age = s.date || '';
+      const words = s.words ? s.words+' words' : '';
+      const lines = s.lines ? s.lines+' lines' : '';
+      html += '<div class="proj-entry" data-id="'+s.id+'">';
+      html += '<div class="proj-preview">'+escHtml((s.preview||'').slice(0,72))+'…</div>';
+      html += '<div class="proj-meta">';
+      html += '<span>'+age+'</span>';
+      if(words) html += '<span>'+words+'</span>';
+      if(lines) html += '<span>'+lines+'</span>';
+      html += '</div>';
+      html += '<div class="proj-actions">';
+      html += '<button class="proj-load" onclick="loadSave('+s.id+')">LOAD</button>';
+      html += '<button class="proj-del" onclick="deleteSave('+s.id+')">✕</button>';
+      html += '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+  list.innerHTML = html;
+}
+
+function escHtml(t){
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function loadSave(id){
+  const saves = getSaves();
+  const entry = saves.find(s=>s.id===id);
+  if(!entry) return;
+  const pad = document.getElementById('pad');
+  if(!pad) return;
+  pad.value = entry.text;
+  pad.dispatchEvent(new Event('input'));
+  // Set current project label
+  const cp = document.getElementById('currentProject');
+  if(cp && entry.project && entry.project !== 'Unsaved') cp.dataset.name = entry.project;
+  showToast('✓ LOADED: ' + (entry.project||'Unsaved').toUpperCase() + (entry.date ? ' · '+entry.date : ''));
+  closeTool();
+  pad.focus();
+}
+
+function deleteSave(id){
+  const key = padKey();
+  let saves = getSaves();
+  const entry = saves.find(s=>s.id===id);
+  if(!entry) return;
+  if(!confirm('Delete this save from "'+(entry.project||'Unsaved')+'"?\n\n'+entry.preview+'…')) return;
+  saves = saves.filter(s=>s.id!==id);
+  localStorage.setItem(key, JSON.stringify(saves));
+  renderProjects();
+  showToast('Save deleted.');
+}
 
 // ── TOOL PANEL RESIZE ───────────────────────────────────────────────────
 (function(){
