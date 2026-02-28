@@ -1,7 +1,16 @@
+const ALLOWED_ORIGINS = [
+  'https://www.myflowstation.com',
+  'https://myflowstation.com',
+  'https://flowstation.vercel.app',
+];
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin || '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Vary', 'Origin');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -9,6 +18,10 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: { message: 'Method not allowed' } });
+  }
+
+  if (!ALLOWED_ORIGINS.includes(origin)) {
+    return res.status(403).json({ error: { message: 'Forbidden' } });
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -25,7 +38,6 @@ export default async function handler(req, res) {
     'claude-sonnet-4-6',
     'claude-haiku-4-5-20251001',
     'claude-sonnet-4-20250514',
-    'claude-haiku-4-5-20251001'
   ];
   const model = ALLOWED_MODELS.includes(body.model) ? body.model : 'claude-haiku-4-5-20251001';
 
