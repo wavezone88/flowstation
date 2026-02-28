@@ -4499,9 +4499,13 @@ const btn     = document.getElementById('vizBtn');
 const overlay = document.getElementById('vizOverlay');
 btn.classList.toggle('on', vizOn);
 btn.textContent = vizOn ? '◈ MAP ON' : '◈ RHYME MAP';
-// THIS was the bug  -  overlay never got .on class
-if(overlay) overlay.classList.toggle('on', vizOn);
-if(vizOn) updateViz(); // render immediately on open
+if(window.innerWidth <= 768){
+  if(overlay) overlay.classList.remove('on');
+  updateMirror();
+} else {
+  if(overlay) overlay.classList.toggle('on', vizOn);
+  if(vizOn) updateViz();
+}
 }
 
 function updateViz() {
@@ -6523,6 +6527,8 @@ if(!mirror || !pad) return;
 
 // Only show highlights for Pro+ (rhymeMap not blurred)
 if(tc().rhymeMap === 'blur'){ mirror.innerHTML = ''; return; }
+// On mobile, only show highlights when Rhyme Map is toggled on
+if(window.innerWidth <= 768 && !vizOn){ mirror.innerHTML = ''; return; }
 
 const text  = pad.value;
 const lines = text.split('\n');
