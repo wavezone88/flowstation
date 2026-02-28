@@ -2653,15 +2653,15 @@ text-decoration:none;
     <div style="font-size:.58rem;font-weight:700;letter-spacing:.14em;color:rgba(62,207,94,.7);text-transform:uppercase;">FLOYD</div>
     <div style="font-size:.86rem;color:rgba(242,239,233,.3);margin-top:.2rem;line-height:1.5;">Your AI coach is ready.<br>Ask me anything about your bars.</div>
   </div>
-  <div class="chat-msgs" id="chatMsgs"><div class="msg ai typing" id="typing" style="display:none"><div class="msg-who">FLOYD</div><div class="msg-bub">Thinking…</div></div>
+  <div class="chat-msgs" id="chatMsgs"><div class="msg ai typing" id="typing" style="display:none"><div class="msg-who">FLOYD</div><div class="msg-bub">Thinking...</div></div>
     <div class="msg ai">
       <div class="msg-who">FLOYD</div>
-      <div class="msg-bub">Hey, I'm Floyd — your AI songwriting coach. Share a line, ask for feedback, or tell me what you're working on. Let's build.</div>
+      <div class="msg-bub">Hey, I'm Floyd - your AI songwriting coach. Share a line, ask for feedback, or tell me what you're working on. Let's build.</div>
     </div>
   </div>
   <div id="floydCounter" class="floyd-counter"></div>
   <div class="chat-form">
-    <textarea class="chat-in" id="chatIn" placeholder="Ask Floyd anything…" rows="1"
+    <textarea class="chat-in" id="chatIn" placeholder="Ask Floyd anything..." rows="1"
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"
       oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
     <button class="chat-go" id="chatGo" onclick="sendChat()">SEND</button>
