@@ -662,7 +662,7 @@ padding:0 1.2rem 0 .8rem;
 background:rgba(6,6,6,.9);
 backdrop-filter:blur(28px) saturate(200%);
 -webkit-backdrop-filter:blur(28px) saturate(200%);
-border-bottom:1px solid var(--bd2);z-index:200;
+border-bottom:1px solid var(--bd2);z-index:9500;
 }
 .logo-img{height:38px;width:auto;object-fit:contain;margin-right:.3rem;mix-blend-mode:screen;filter:brightness(1.4) contrast(1.1);}
 .tdiv{width:1px;height:16px;background:var(--bd);margin:0 .2rem;flex-shrink:0;}
@@ -1029,7 +1029,7 @@ z-index:100;
 .acct-name{font-size:.86rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .acct-chev{font-size:.48rem;transition:transform .2s;}
 .acct-btn.open .acct-chev{transform:rotate(180deg);}
-.acct-dd{position:absolute;top:calc(100% + 8px);right:0;background:#1a1a1c;border:1px solid rgba(255,255,255,.1);border-radius:14px;width:240px;z-index:9000;box-shadow:0 20px 60px rgba(0,0,0,.7);display:none;overflow:hidden;}
+.acct-dd{position:absolute;top:calc(100% + 8px);right:0;background:#1a1a1c;border:1px solid rgba(255,255,255,.1);border-radius:14px;width:240px;z-index:10000;box-shadow:0 20px 60px rgba(0,0,0,.7);display:none;overflow:hidden;}
 .acct-dd.open{display:block;animation:ddIn .15s ease;}
 @keyframes ddIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 .acct-dd-head{padding:.95rem 1.1rem .82rem;border-bottom:1px solid rgba(255,255,255,.07);}
@@ -3669,7 +3669,19 @@ if(go) go.disabled = false;
 }
 
 // Account dropdown
-function toggleAcctDD(){document.getElementById('acctBtn').classList.toggle('open');document.getElementById('acctDD').classList.toggle('open');}
+function toggleAcctDD(){
+var btn=document.getElementById('acctBtn');
+var dd=document.getElementById('acctDD');
+btn.classList.toggle('open');
+dd.classList.toggle('open');
+if(dd.classList.contains('open')){
+var r=btn.getBoundingClientRect();
+dd.style.position='fixed';
+dd.style.top=(r.bottom+6)+'px';
+dd.style.right=(window.innerWidth-r.right)+'px';
+dd.style.left='auto';
+}
+}
 function closeAcctDD(){document.getElementById('acctBtn').classList.remove('open');document.getElementById('acctDD').classList.remove('open');}
 document.addEventListener('click',e=>{const w=document.getElementById('acctWrap');const dd=document.getElementById('acctDD');if(w&&!w.contains(e.target)&&dd&&!dd.contains(e.target))closeAcctDD();});
 function updateAccountUI(tier,email){
