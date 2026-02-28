@@ -1541,12 +1541,14 @@ border-top:1px solid rgba(255,255,255,.1)!important;
 .gn-desktop{display:none!important;}
 .gn-burger{display:block!important;}
 
-.gh{padding:7rem 1.2rem 4rem;}
-.gh-logo-wrap{width:min(65vw, 320px);margin-bottom:1.5rem;}
-.gh-h1{font-size:clamp(2.4rem,12vw,4rem);}
-.gh-sub{font-size:1.02rem;margin-bottom:2.2rem;}
-.gh-actions{flex-direction:column;gap:.7rem;width:100%;max-width:320px;}
-.btn-gold,.btn-w,.btn-ghost{width:100%;text-align:center;padding:.85rem 1.5rem;}
+.gh{padding:3.5rem 1.2rem 3rem;}
+.gh-badge-wrap{margin-bottom:.6rem;}
+.gh-logo-wrap{width:min(55vw, 260px);margin-bottom:1rem;}
+.gh-h1{font-size:clamp(2.2rem,11vw,3.6rem);margin-bottom:.5rem;}
+.gh-sub{font-size:.96rem;margin-bottom:1.2rem;}
+.gh p[style*="1.15rem"]{font-size:1rem!important;margin:1rem auto 1.2rem!important;}
+.gh-actions{flex-direction:column;gap:.55rem;width:100%;max-width:320px;}
+.btn-gold,.btn-w,.btn-ghost{width:100%;text-align:center;padding:.75rem 1.3rem;}
 .gh-stats{grid-template-columns:repeat(2,1fr);gap:.7rem;margin-bottom:2.5rem;}
 .gh-stat{padding:1rem .6rem .9rem;border-radius:14px;}
 .gh-stat-icon{width:42px;height:42px;border-radius:11px;margin-bottom:.6rem;}
@@ -1650,6 +1652,8 @@ background:rgba(255,255,255,.12);border-radius:2px;
 
 /* ── VERY SMALL SCREENS (iPhone SE etc) ── */
 @media(max-width:380px){
+.gh{padding:2.5rem 1rem 2.5rem;}
+.gh-logo-wrap{width:min(50vw, 220px);margin-bottom:.8rem;}
 .gh-h1{font-size:clamp(2rem,11vw,3.2rem);}
 .sbi{width:46px;}
 .topbar{padding:0 .4rem;}
