@@ -5660,13 +5660,13 @@ async function lookupDict(){
 const q = (document.getElementById('dictQ').value||'').trim();
 if(!q) return;
 const res = document.getElementById('dictRes');
-res.innerHTML = '<div class="sempty">Looking up <em>'+q+'</em>...</div>';
+res.innerHTML = '<div class="sempty">Looking up <em>'+escHtml(q)+'</em>...</div>';
 try{
 const data = await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/'+encodeURIComponent(q)).then(r=>r.json());
-if(!Array.isArray(data)){ res.innerHTML='<div class="sempty">No results for "'+q+'".</div>'; return; }
+if(!Array.isArray(data)){ res.innerHTML='<div class="sempty">No results for "'+escHtml(q)+'".</div>'; return; }
 res.innerHTML = data.slice(0,3).map(entry=>{
 const phonetic = entry.phonetic || (entry.phonetics||[]).find(p=>p.text)?.text || '';
-return entry.meanings.slice(0,3).map(m=>` <div class="ritem"> <b>${entry.word}</b> ${phonetic?'<span style="color:var(--dim);font-size:1.08rem">'+phonetic+'</span>':''}<br> <span style="font-size:.84rem;color:var(--gold);letter-spacing:.06em;text-transform:uppercase">${m.partOfSpeech}</span><br> ${m.definitions.slice(0,2).map(d=>'<span style="color:var(--tx2)">'+d.definition+'</span>'+(d.example?'<br><span style="color:var(--dim);font-style:italic;font-size:1.02rem">"'+d.example+'"</span>':'')).join('<br>')} </div>`).join('');
+return entry.meanings.slice(0,3).map(m=>` <div class="ritem"> <b>${escHtml(entry.word)}</b> ${phonetic?'<span style="color:var(--dim);font-size:1.08rem">'+escHtml(phonetic)+'</span>':''}<br> <span style="font-size:.84rem;color:var(--gold);letter-spacing:.06em;text-transform:uppercase">${escHtml(m.partOfSpeech)}</span><br> ${m.definitions.slice(0,2).map(d=>'<span style="color:var(--tx2)">'+escHtml(d.definition)+'</span>'+(d.example?'<br><span style="color:var(--dim);font-style:italic;font-size:1.02rem">"'+escHtml(d.example)+'"</span>':'')).join('<br>')} </div>`).join('');
 }).join('');
 }catch(e){ res.innerHTML='<div class="sempty">Lookup failed. Check your connection.</div>'; }
 }
@@ -5675,7 +5675,7 @@ async function lookupThes(){
 const q = (document.getElementById('thesQ').value||'').trim();
 if(!q) return;
 const res = document.getElementById('thesRes');
-res.innerHTML = '<div class="sempty">Finding synonyms for <em>'+q+'</em>...</div>';
+res.innerHTML = '<div class="sempty">Finding synonyms for <em>'+escHtml(q)+'</em>...</div>';
 try{
 const [syns, ants] = await Promise.all([
 fetch('https://api.datamuse.com/words?rel_syn='+encodeURIComponent(q)+'&max=30').then(r=>r.json()),
@@ -5698,7 +5698,7 @@ async function lookupRhyme(){
 const q = (document.getElementById('rhymeQ').value||'').trim();
 if(!q) return;
 const res = document.getElementById('rhymeRes');
-res.innerHTML = '<div class="sempty">Finding rhymes for <em>'+q+'</em>...</div>';
+res.innerHTML = '<div class="sempty">Finding rhymes for <em>'+escHtml(q)+'</em>...</div>';
 try{
 const [perfect, near, sounds] = await Promise.all([
 fetch('https://api.datamuse.com/words?rel_rhy='+encodeURIComponent(q)+'&max=70').then(r=>r.json()),
@@ -5730,11 +5730,11 @@ async function lookupUrban(){
 const q = (document.getElementById('urbanQ').value||'').trim();
 if(!q) return;
 const res = document.getElementById('urbanRes');
-res.innerHTML = '<div class="sempty">Searching Urban Dictionary for <em>'+q+'</em>...</div>';
+res.innerHTML = '<div class="sempty">Searching Urban Dictionary for <em>'+escHtml(q)+'</em>...</div>';
 try{
 const data = await fetch('https://api.urbandictionary.com/v0/define?term='+encodeURIComponent(q)).then(r=>r.json());
-if(!data.list||!data.list.length){ res.innerHTML='<div class="sempty">No results for "'+q+'".</div>'; return; }
-res.innerHTML = data.list.slice(0,5).map(entry=>` <div class="ucard"> <div class="uword">${entry.word}</div> <div class="udef">${entry.definition.replace(/\[|\]/g,'')}</div> ${entry.example?'<div class="uex">'+entry.example.replace(/\[|\]/g,'')+'</div>':''} <div class="uvotes">👍 ${entry.thumbs_up} · 👎 ${entry.thumbs_down}</div> </div>`).join('');
+if(!data.list||!data.list.length){ res.innerHTML='<div class="sempty">No results for "'+escHtml(q)+'".</div>'; return; }
+res.innerHTML = data.list.slice(0,5).map(entry=>` <div class="ucard"> <div class="uword">${escHtml(entry.word)}</div> <div class="udef">${escHtml(entry.definition.replace(/\[|\]/g,''))}</div> ${entry.example?'<div class="uex">'+escHtml(entry.example.replace(/\[|\]/g,''))+'</div>':''} <div class="uvotes">👍 ${entry.thumbs_up} · 👎 ${entry.thumbs_down}</div> </div>`).join('');
 }catch(e){ res.innerHTML='<div class="sempty">Lookup failed. Check your connection.</div>'; }
 }
 

@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 const ALLOWED_ORIGINS = [
   'https://www.myflowstation.com',
   'https://myflowstation.com',
@@ -81,14 +83,17 @@ export default async function handler(req, res) {
   const clientSecret = process.env.FLOYD_CLIENT_SECRET;
   if (clientSecret) {
     const provided = req.headers['x-floyd-token'] || '';
-    if (provided !== clientSecret) {
+    const a = Buffer.from(provided.padEnd(clientSecret.length).slice(0, clientSecret.length));
+    const b = Buffer.from(clientSecret);
+    if (!crypto.timingSafeEqual(a, b) || provided.length !== clientSecret.length) {
       return res.status(401).json({ error: { message: 'Unauthorized' } });
     }
   }
 
   // ── IP rate limit ───────────────────────────────────────────────────────
   const ip =
-    req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+    req.headers['x-real-ip'] ||
+    req.headers['x-forwarded-for']?.split(',').pop()?.trim() ||
     req.socket?.remoteAddress ||
     'unknown';
 

@@ -39,14 +39,22 @@ export default async function handler(req, res) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object
 
-const email =
-  session.customer_details?.email ||
-  session.customer_email
+    const email =
+      session.customer_details?.email ||
+      session.customer_email
 
-    let tier = 'basic'
+    if (!email) {
+      console.error('No email found in session', session.id)
+      return res.status(200).json({ received: true })
+    }
 
-    if (session.amount_total === 999) tier = 'pro'
-    if (session.amount_total === 1999) tier = 'elite'
+    const TIER_MAP = { 999: 'pro', 1999: 'elite' }
+    const tier = TIER_MAP[session.amount_total]
+
+    if (!tier) {
+      console.warn(`Unrecognized amount ${session.amount_total} for session ${session.id}, skipping tier update`)
+      return res.status(200).json({ received: true })
+    }
 
     const { error } = await supabase
       .from('profiles')
