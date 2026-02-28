@@ -2851,18 +2851,9 @@ text-decoration:none;
     </div>
     <button id="tourBtn" onclick="startTour()" style="margin-left:auto;background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.18);color:#d4a843;font-family:'Saira',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.3rem .7rem;border-radius:6px;cursor:pointer;white-space:nowrap;transition:all .2s;min-height:28px;">TAKE A TOUR</button>
   </div>
-  <div id="basicWelcome" style="display:none;margin:.5rem .75rem .3rem;background:linear-gradient(135deg,rgba(240,192,64,.06),rgba(138,79,255,.04));border:1px solid rgba(240,192,64,.18);border-radius:12px;padding:.85rem 2.5rem .85rem 1rem;font-family:'Saira',sans-serif;font-size:.9rem;color:rgba(242,239,233,.55);line-height:1.5;position:relative;flex-shrink:0;">
-    <button onclick="this.parentElement.style.display='none'" style="position:absolute;top:.5rem;right:.6rem;background:none;border:none;color:rgba(255,255,255,.25);cursor:pointer;font-size:.9rem;padding:.2rem;">✕</button>
-    <div style="display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap;">
-      <div style="flex:1;min-width:200px;">
-        <span style="color:#f0c040;font-weight:700;">You're on Basic.</span> 
-        Rhyme tools, AI coach, beat search and flow scoring are all locked. 
-        <span style="color:rgba(242,239,233,.35);">Tap any 🔒 to unlock.</span>
-      </div>
-      <button onclick="su('starters')" style="background:linear-gradient(135deg,#c8940e,#f0c040);border:none;color:#060606;font-family:'Saira',sans-serif;font-size:.82rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.5rem 1.1rem;border-radius:8px;cursor:pointer;white-space:nowrap;flex-shrink:0;">
-        UPGRADE →
-      </button>
-    </div>
+  <div id="basicWelcome" style="display:none;margin:.35rem .75rem .2rem;background:rgba(240,192,64,.04);border:1px solid rgba(240,192,64,.12);border-radius:10px;padding:.5rem 2rem .5rem .75rem;font-family:'Saira',sans-serif;font-size:.78rem;color:rgba(242,239,233,.45);line-height:1.4;position:relative;flex-shrink:0;">
+    <button onclick="this.parentElement.style.display='none';try{localStorage.setItem('fs_bw_dismissed','1')}catch(e){}" style="position:absolute;top:.35rem;right:.45rem;background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:.8rem;padding:.2rem;min-height:28px;min-width:28px;">✕</button>
+    <span style="color:#f0c040;font-weight:700;">Basic plan</span> -- Start writing below! Some tools are locked. <span onclick="su('elite_all')" style="color:var(--gold);cursor:pointer;text-decoration:underline;">See upgrade options</span>
   </div>
   <div class="pad-body" style="position:relative">
     <div class="lnum-col" id="lnGut"></div>
@@ -5900,9 +5891,13 @@ airBtn.style.pointerEvents = cfg.aiRhyme ? '' : 'none';
 }
 
 // ── 11. Counter + Account UI ──
-// Show basic welcome banner
+// Show basic welcome banner (only if not previously dismissed)
 const bw = document.getElementById('basicWelcome');
-if(bw) bw.style.display = tier === 'basic' ? '' : 'none';
+if(bw){
+var bwDismissed = false;
+try{ bwDismissed = localStorage.getItem('fs_bw_dismissed') === '1'; }catch(e){}
+bw.style.display = (tier === 'basic' && !bwDismissed) ? '' : 'none';
+}
 updateFloydCounter();
 updateAccountUI(tier, currentUser ? (currentUser.email||'') : '');
 renderStarters();
