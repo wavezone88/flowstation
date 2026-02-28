@@ -32,7 +32,7 @@ canvas#particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;po
 
 .s-inner{position:relative;z-index:2;text-align:center;padding:0 2rem;max-width:900px;width:100%;}
 
-.s1{background:radial-gradient(ellipse at 50% 40%,rgba(30,20,5,.6) 0%,#000 70%);}
+.s1{background:radial-gradient(ellipse at 50% 40%,rgba(0,15,0,.7) 0%,rgba(0,0,0,.85) 70%);}
 .s1 .logo-wrap{width:min(80vw,600px);margin:0 auto 2rem;opacity:0;transform:scale(.8);animation:logoIn 1.5s cubic-bezier(.16,1,.3,1) .3s forwards;}
 .s1 .logo-wrap img{width:100%;height:auto;filter:drop-shadow(0 0 60px rgba(240,192,64,.4)) drop-shadow(0 0 120px rgba(240,192,64,.15));}
 @keyframes logoIn{to{opacity:1;transform:scale(1);}}
@@ -48,12 +48,12 @@ canvas#particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;po
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
 @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 
-.s2{background:radial-gradient(ellipse at 50% 60%,rgba(20,8,40,.5) 0%,#000 70%);}
+.s2{background:radial-gradient(ellipse at 50% 60%,rgba(0,20,5,.6) 0%,rgba(0,0,0,.8) 70%);}
 .feat-label{font-size:.6rem;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:rgba(138,79,255,.6);margin-bottom:1.5rem;}
 .feat-title{font-size:clamp(2.5rem,8vw,5rem);font-weight:900;letter-spacing:-.02em;line-height:1;margin-bottom:1rem;background:linear-gradient(135deg,#f2efe9 30%,rgba(240,192,64,.8));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .feat-sub{font-size:clamp(.95rem,2.5vw,1.2rem);font-weight:300;color:rgba(242,239,233,.45);line-height:1.7;max-width:600px;margin:0 auto;}
 
-.s3{background:radial-gradient(ellipse at 30% 50%,rgba(20,10,2,.5) 0%,#000 70%);}
+.s3{background:radial-gradient(ellipse at 30% 50%,rgba(0,15,5,.6) 0%,rgba(0,0,0,.8) 70%);}
 .feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;width:100%;max-width:800px;margin:2.5rem auto 0;}
 .feat-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:1.8rem 1.4rem;text-align:left;transition:all .3s;}
 .feat-card:hover{background:rgba(240,192,64,.04);border-color:rgba(240,192,64,.15);transform:translateY(-4px);}
@@ -61,12 +61,12 @@ canvas#particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;po
 .feat-card .fc-name{font-size:.7rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#f0c040;margin-bottom:.4rem;}
 .feat-card .fc-desc{font-size:.88rem;color:rgba(242,239,233,.4);line-height:1.6;}
 
-.s4{background:radial-gradient(ellipse at 60% 40%,rgba(10,20,40,.5) 0%,#000 70%);}
+.s4{background:radial-gradient(ellipse at 60% 40%,rgba(0,15,5,.5) 0%,rgba(0,0,0,.8) 70%);}
 .quote-mark{font-size:6rem;line-height:1;color:rgba(240,192,64,.15);margin-bottom:-1rem;}
 .quote-text{font-size:clamp(1.3rem,4vw,2.2rem);font-weight:300;font-style:italic;color:rgba(242,239,233,.7);line-height:1.5;max-width:700px;margin:0 auto 1.5rem;}
 .quote-attr{font-size:.7rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,192,64,.5);}
 
-.s5{background:radial-gradient(ellipse at 50% 50%,rgba(30,20,5,.4) 0%,#000 70%);}
+.s5{background:radial-gradient(ellipse at 50% 50%,rgba(0,20,5,.5) 0%,rgba(0,0,0,.8) 70%);}
 .cta-title{font-size:clamp(2rem,7vw,4rem);font-weight:900;letter-spacing:-.02em;line-height:1.1;margin-bottom:.8rem;}
 .cta-title span{background:linear-gradient(135deg,#c8940e,#f0c040,#ffe066);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .cta-sub{font-size:clamp(.9rem,2vw,1.1rem);color:rgba(242,239,233,.35);margin-bottom:2.5rem;font-weight:300;}
@@ -193,49 +193,52 @@ canvas#particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;po
 </section>
 
 <script>
-const canvas = document.getElementById('particles');
-const ctx = canvas.getContext('2d');
-let W, H, particles = [];
+var canvas = document.getElementById('particles');
+var ctx = canvas.getContext('2d');
+var W, H;
+var fontSize = 14;
+var columns;
+var drops;
+var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%^&*()_+-=[]{}|;:,.<>?/~`!FlowStationBARSFLOYDRHYMEBEATSFLOW';
 
-function resize(){
+function initMatrix(){
   W = canvas.width = window.innerWidth;
   H = canvas.height = window.innerHeight;
+  columns = Math.floor(W / fontSize);
+  drops = [];
+  for(var i = 0; i < columns; i++){
+    drops[i] = Math.random() * -100;
+  }
 }
-resize();
-window.addEventListener('resize', resize);
+initMatrix();
+window.addEventListener('resize', initMatrix);
 
-function Particle(){
-  this.x = Math.random() * W;
-  this.y = Math.random() * H;
-  this.vx = (Math.random() - .5) * .3;
-  this.vy = (Math.random() - .5) * .3;
-  this.r = Math.random() * 1.5 + .5;
-  this.o = Math.random() * .4 + .1;
-  this.gold = Math.random() > .6;
+function drawMatrix(){
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+  ctx.fillRect(0, 0, W, H);
+  for(var i = 0; i < drops.length; i++){
+    var ch = chars[Math.floor(Math.random() * chars.length)];
+    var y = drops[i] * fontSize;
+    var brightness = Math.random();
+    if(brightness > 0.95){
+      ctx.fillStyle = 'rgba(180, 255, 180, 0.9)';
+      ctx.font = 'bold ' + fontSize + 'px monospace';
+    } else if(brightness > 0.8){
+      ctx.fillStyle = 'rgba(0, 255, 65, 0.7)';
+      ctx.font = fontSize + 'px monospace';
+    } else {
+      ctx.fillStyle = 'rgba(0, 255, 65, ' + (0.15 + Math.random() * 0.25) + ')';
+      ctx.font = fontSize + 'px monospace';
+    }
+    ctx.fillText(ch, i * fontSize, y);
+    if(y > H && Math.random() > 0.975){
+      drops[i] = 0;
+    }
+    drops[i] += 0.6 + Math.random() * 0.4;
+  }
+  requestAnimationFrame(drawMatrix);
 }
-
-const count = Math.min(120, Math.floor(window.innerWidth / 10));
-for(let i = 0; i < count; i++) particles.push(new Particle());
-
-function draw(){
-  ctx.clearRect(0, 0, W, H);
-  particles.forEach(p => {
-    p.x += p.vx;
-    p.y += p.vy;
-    if(p.x < 0) p.x = W;
-    if(p.x > W) p.x = 0;
-    if(p.y < 0) p.y = H;
-    if(p.y > H) p.y = 0;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    ctx.fillStyle = p.gold
-      ? `rgba(240,192,64,${p.o})`
-      : `rgba(255,255,255,${p.o * .5})`;
-    ctx.fill();
-  });
-  requestAnimationFrame(draw);
-}
-draw();
+drawMatrix();
 
 const observer = new IntersectionObserver(entries => {
   entries.forEach(e => {
