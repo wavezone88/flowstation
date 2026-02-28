@@ -22,11 +22,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Saira:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-html{scroll-snap-type:y mandatory;overflow-y:scroll;scroll-behavior:smooth;scrollbar-width:none;}
+html{scroll-snap-type:y proximity;overflow-y:scroll;scroll-behavior:smooth;scrollbar-width:none;}
 html::-webkit-scrollbar{display:none;}
 body{background:#000;color:#f2efe9;font-family:'Saira',sans-serif;overflow-x:hidden;}
 
-.s{height:100vh;width:100%;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.s{min-height:100vh;width:100%;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:visible;padding:4rem 0;box-sizing:border-box;}
 
 canvas#particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
 
