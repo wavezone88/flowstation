@@ -1628,9 +1628,11 @@ color:rgba(242,239,233,.45);line-height:1.4;
 flex-shrink:0;background:rgba(41,151,255,.15);
 border:1px solid rgba(41,151,255,.3);border-radius:8px;
 color:#2997ff;font-family:'Saira',sans-serif;
-font-size:.68rem;font-weight:700;letter-spacing:.1em;
-text-transform:uppercase;padding:.35rem .65rem;cursor:pointer;
-white-space:nowrap;
+font-size:.82rem;font-weight:700;letter-spacing:.1em;
+text-transform:uppercase;padding:.65rem 1.1rem;cursor:pointer;
+white-space:nowrap;min-height:44px;min-width:44px;
+-webkit-tap-highlight-color:rgba(41,151,255,.2);
+touch-action:manipulation;
 }
 .mobile-notice-close:hover{background:rgba(255,255,255,.14);color:#f2efe9;}
 
@@ -3222,7 +3224,7 @@ async function authGoogle(){
 if(!sb){ showToast('SUPABASE NOT CONFIGURED'); return; }
 const { error } = await sb.auth.signInWithOAuth({
 provider: 'google',
-options: { redirectTo: 'https://flowstation.vercel.app' }
+options: { redirectTo: window.location.origin }
 });
 if(error){ showToast('GOOGLE SIGN IN FAILED: ' + error.message); }
 }
