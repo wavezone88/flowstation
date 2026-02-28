@@ -228,15 +228,7 @@ text-align:center;
 pointer-events:auto;
 }
 .gh-hero-video{
-position:absolute;
-top:50%;left:50%;
-transform:translate(-50%,-50%);
-min-width:100%;min-height:100%;
-width:auto;height:auto;
-object-fit:cover;
-z-index:0;
-opacity:.18;
-pointer-events:none;
+display:none;
 }
 /* Grain texture overlay */
 .gh::before{
@@ -1954,9 +1946,6 @@ text-decoration:none;
   </nav>
 
   <section class="gh">
-    <video class="gh-hero-video" autoplay muted loop playsinline>
-      <source src="/flowstation-hero.mp4" type="video/mp4">
-    </video>
     <div class="gh-glow"></div>
     <canvas id="heroCanvas"></canvas>
 
