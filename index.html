@@ -3,7 +3,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 
 <!-- ── PRIMARY SEO ── -->
 
@@ -1361,6 +1362,23 @@ width:auto;
 .rc{font-size:.84rem;padding:.25rem .55rem;}
 }
 
+/* ── MOBILE TOUCH & UX IMPROVEMENTS ── */
+@media(max-width:768px){
+.g-field{font-size:16px!important;padding:1rem 1.1rem;}
+.chat-in{font-size:16px!important;}
+.si{font-size:16px!important;}
+.pad{font-size:16px!important;line-height:1.7;}
+.g-auth-tab{min-height:44px;}
+.g-auth-submit{min-height:48px;}
+.btn-gold,.btn-w,.btn-ghost{min-height:48px;display:flex;align-items:center;justify-content:center;}
+.go{min-height:44px;display:flex;align-items:center;justify-content:center;}
+.chat-go{min-height:44px;}
+.sbi{min-height:38px;min-width:44px;}
+.tbtn{min-height:36px;}
+.modal-box{width:95vw!important;max-height:90vh;overflow-y:auto;margin:auto;}
+.pc-cta{min-height:48px;}
+}
+
 /* ── VERY SMALL SCREENS (iPhone SE etc) ── */
 @media(max-width:380px){
 .gh-h1{font-size:clamp(3rem,17vw,4.5rem);}
@@ -2690,9 +2708,8 @@ const STRIPE_PORTAL   = 'https://billing.stripe.com/p/login/3cI6oJ1NY8n61ei4KKes
 const YOUTUBE_API_KEY = 'AIzaSyDBLOr3dgWG8XqUwKBn56KYeGya9gwiMzk';
 const STRIPE_ELITE  = 'https://buy.stripe.com/4gM00l3W69ra6yC1yyes001';
 
-// ── PLATFORM API KEY (spend cap set in console.anthropic.com → Limits) ──
-const PLATFORM_API_KEY = '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';
-const FLOYD_ENDPOINT   = 'https://api.anthropic.com/v1/messages';
+// ── FLOYD AI — routed through secure Vercel proxy (API key is server-side only) ──
+const FLOYD_ENDPOINT   = '/api/floyd';
 
 // Pro daily cap (resets at midnight)
 const PRO_DAILY_CAP   = 20;  // Pro: 20 AI messages per day
@@ -2709,8 +2726,8 @@ let sylTarget  = 0;
 let catFilter  = 'all';
 let moodFilter = null;
 let chatHistory= [];
-let apiKey     = localStorage.getItem('fs_key') || '';
-if(apiKey === 'platform'){ localStorage.removeItem('fs_key'); apiKey = ''; } // clear stale proxy sentinel
+let apiKey     = 'proxy';
+// API key handled server-side via /api/floyd proxy
 let activeTool = null;
 let floydOpen  = false;
 let muted      = false;
@@ -2962,16 +2979,8 @@ return true;
 
 function applyPlatformKey(tier){
 if(tier === 'basic') return;
-// For Pro: always use platform key
-// For Elite: use platform key unless they've manually entered their own (stored in fs_key)
-const stored = localStorage.getItem('fs_key');
-if(tier === 'regular'){
-apiKey = PLATFORM_API_KEY;
-// Don't persist platform key in localStorage
-} else if(tier === 'premium'){
-// Elite: keep their own key if they've entered one, else use platform key
-apiKey = (stored && stored !== 'platform') ? stored : PLATFORM_API_KEY;
-}
+// API key is handled server-side via Vercel proxy — no client key needed
+apiKey = 'proxy';
 updateChatStatus();
 }
 
@@ -3142,7 +3151,7 @@ if(go) go.disabled = true;
 }
 } else {
 // Elite
-const usingOwn = apiKey && apiKey !== PLATFORM_API_KEY;
+const usingOwn = false; // API routed through secure proxy
 ctr.textContent = usingOwn ? '✨ FLOYD — ELITE · YOUR KEY' : '✨ FLOYD — ELITE UNLIMITED';
 ctr.className   = 'floyd-counter';
 if(go) go.disabled = false;
@@ -4599,7 +4608,7 @@ if(!_checkApiRateLimit()){
 
 const resp = await fetch(FLOYD_ENDPOINT, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ model: currentTier === 'premium' ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001', max_tokens: currentTier === 'premium' ? 1200 : 600, system: systemWithContext, messages: chatHistory })
 });
 const data = await resp.json();
@@ -5665,11 +5674,7 @@ btn.textContent = '🤖 ASK FLOYD FOR RHYME IDEAS';
 return;
 }
 
-// Elite: real Claude API call
-if(!apiKey){
-res.innerHTML = '<span style="font-size:.84rem;color:var(--dim);">Set your API key to use Floyd AI rhyme engine.</span>';
-btn.disabled=false; btn.textContent='🤖 ASK FLOYD FOR RHYME IDEAS'; return;
-}
+// Elite: call via proxy
 
 try{
 const prompt = word
@@ -5679,7 +5684,7 @@ const prompt = word
 ```
 const resp = await fetch(FLOYD_ENDPOINT,{
   method:'POST',
-  headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+  headers:{'Content-Type':'application/json'},
   body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,messages:[{role:'user',content:prompt}]})
 });
 const data = await resp.json();
@@ -6002,7 +6007,7 @@ Your specialties:
 
 async function aiRhymeSuggest(){
 if(!tc().aiRhyme){ showToast('AI Rhymes — Artist Elite only'); return; }
-if(!apiKey){ showToast('Set your API key first'); openModal(); return; }
+// API key handled server-side via proxy
 const pad = document.getElementById('pad');
 const val = pad?.value || '';
 const pos = pad?.selectionStart || val.length;
@@ -6025,7 +6030,7 @@ const _airPrompt = `Word to rhyme with: "${lastWord}"\nLine context: "${lastLine
 const _airSystem = 'You are a hip-hop rhyme expert. Given a word and a lyric line, suggest 10 creative rhyming words or multi-syllable rhymes that would work well in a rap or R&B context. Return ONLY a JSON array of strings, no commentary. Example: ["night","ignite","alight","white","sprite","recite","polite","invite","moonlight","appetite"]';
 const resp = await fetch(FLOYD_ENDPOINT,{
 method:'POST',
-headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+headers:{'Content-Type':'application/json'},
 body:JSON.stringify({model:'claude-sonnet-4-6', max_tokens:300, system:_airSystem, messages:[{role:'user',content:_airPrompt}]})
 });
 const data = await resp.json();
