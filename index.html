@@ -5261,6 +5261,10 @@ function loadAudio(input) {
 const file = input.files[0];
 if (!file) return;
 if (audioEl) { audioEl.pause(); audioEl = null; }
+var ytA = document.getElementById('floatYtArea');
+if(ytA){ ytA.style.display='none'; ytA.innerHTML=''; }
+var ac = document.getElementById('audioControls');
+if(ac) ac.style.display='';
 audioEl = new Audio(URL.createObjectURL(file));
 const vol = document.getElementById('vslider');
 audioEl.volume = vol ? parseFloat(vol.value) : 0.8;
