@@ -778,7 +778,13 @@ font-size:1.02rem;line-height:1.65;color:#2a2520;
 }
 .viz-overlay.on{display:block;}
 @media(max-width:768px){
-.viz-overlay{position:fixed;inset:auto 0 0 0;top:auto;height:45vh;z-index:9000;border-top:2px solid rgba(180,150,80,.3);border-radius:16px 16px 0 0;box-shadow:0 -8px 32px rgba(0,0,0,.4);}
+.viz-overlay{position:fixed;inset:auto 0 0 0;top:auto;height:45vh;z-index:9000;border-radius:16px 16px 0 0;box-shadow:0 -8px 32px rgba(0,0,0,.6);
+background:#111113!important;background-image:none!important;color:#f2efe9;border-top:2px solid rgba(240,192,64,.3);}
+.viz-overlay .viz-close{background:rgba(240,192,64,.1);border-color:rgba(240,192,64,.2);color:rgba(240,192,64,.7);}
+.viz-overlay .viz-close:hover{background:rgba(240,192,64,.2);color:var(--gold);}
+.viz-overlay .viz-title{color:rgba(240,192,64,.5);}
+.viz-overlay .viz-ln{color:rgba(242,239,233,.3);}
+.viz-overlay .viz-line span{color:rgba(242,239,233,.65);}
 }
 .viz-close{float:right;background:rgba(80,60,30,.08);border:1px solid rgba(80,60,30,.15);color:rgba(80,60,30,.5);font-size:.84rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.28rem .68rem;border-radius:8px;cursor:pointer;margin-bottom:.5rem;transition:all .15s;}
 .viz-close:hover{background:rgba(80,60,30,.14);color:rgba(80,60,30,.8);}
