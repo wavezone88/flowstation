@@ -3096,10 +3096,10 @@ box.innerHTML =
 '<button onclick="document.getElementById(\'upgradeModal\').remove()" style="position:absolute;top:.9rem;right:.9rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:50%;width:28px;height:28px;color:rgba(255,255,255,.4);font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>'
 + '<div style="font-size:2.6rem;margin-bottom:.6rem;">'+info.icon+'</div>'
 + '<div style="font-family:\'Saira\',sans-serif;font-size:1.6rem;color:'+accentColor+'.9);letter-spacing:.06em;text-transform:uppercase;margin-bottom:.7rem;">'+info.name+'</div>'
-+ '<div style="font-family:'Saira',sans-serif;font-size:.96rem;color:rgba(242,239,233,.5);line-height:1.75;margin-bottom:1.6rem;max-width:300px;margin-left:auto;margin-right:auto;">'+info.teaser+'</div>'
-+ '<button onclick="'+primaryFn+'" style="background:'+btnGrad+';border:none;color:'+btnTxt+';font-family:'Saira',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.9rem 1.4rem;border-radius:12px;cursor:pointer;width:100%;margin-bottom:.6rem;display:block;box-shadow:0 4px 20px '+accentColor+'.25);">'+primaryPlan+' — '+primaryPrice+' →</button>'
-+ '<button onclick="'+secondaryFn+'" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);color:rgba(242,239,233,.4);font-family:'Saira',sans-serif;font-size:.88rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:.65rem 1.2rem;border-radius:10px;cursor:pointer;width:100%;margin-bottom:.9rem;display:block;">'+secondaryPlan+' — '+secondaryPrice+'</button>'
-+ '<div style="font-family:'Saira',sans-serif;font-size:.78rem;color:rgba(242,239,233,.2);letter-spacing:.04em;">Cancel anytime · Unlock instantly</div>';
++ '<div style="font-family:Saira,sans-serif;font-size:.96rem;color:rgba(242,239,233,.5);line-height:1.75;margin-bottom:1.6rem;max-width:300px;margin-left:auto;margin-right:auto;">'+info.teaser+'</div>'
++ '<button onclick="'+primaryFn+'" style="background:'+btnGrad+';border:none;color:'+btnTxt+';font-family:Saira,sans-serif;font-size:1rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.9rem 1.4rem;border-radius:12px;cursor:pointer;width:100%;margin-bottom:.6rem;display:block;box-shadow:0 4px 20px '+accentColor+'.25);">'+primaryPlan+' — '+primaryPrice+' →</button>'
++ '<button onclick="'+secondaryFn+'" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);color:rgba(242,239,233,.4);font-family:Saira,sans-serif;font-size:.88rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:.65rem 1.2rem;border-radius:10px;cursor:pointer;width:100%;margin-bottom:.9rem;display:block;">'+secondaryPlan+' — '+secondaryPrice+'</button>'
++ '<div style="font-family:Saira,sans-serif;font-size:.78rem;color:rgba(242,239,233,.2);letter-spacing:.04em;">Cancel anytime · Unlock instantly</div>';
 
 modal.appendChild(box);
 document.body.appendChild(modal);
@@ -4188,7 +4188,7 @@ const slist = document.getElementById('slist');
 if(!slist) return;
 slist.innerHTML = show.map(s => {
 const cat = CATS[s.c] || { label: s.c, emoji: '' };
-const txt = s.t.replace(/'/g,"'").replace(/"/g,""");
+const txt = s.t.replace(/'/g,"&#39;").replace(/"/g,"&quot;");
 return `<div class="scard" onclick="insertStarter('${txt}', this)"> <div class="sc-cat cc-${s.c}"><div class="sc-dot cd-${s.c}"></div>${cat.emoji} ${cat.label}</div> <div class="sc-txt">${s.t}</div> </div>`;
 }).join('') + (locked ? `<div class="tier-more-card" onclick="su('starters')"><div>🔒 ${all.length - show.length} MORE PHRASES</div><div style="font-size:1.02rem;color:var(--dim);margin-top:.2rem;">Upgrade to Artist Pro for unlimited access</div></div>` : '');
 }
@@ -4285,7 +4285,7 @@ if (vowel && !prev) count++;
 prev = vowel;
 }
 // silent e
-if (word.endsWith('e') && count > 1) count–;
+if (word.endsWith('e') && count > 1) count--;
 return total + Math.max(1, count);
 }, 0);
 }
@@ -4404,7 +4404,7 @@ const val   = pad.value || '';
 const pos   = pad.selectionStart;
 // Get word at/before cursor first, then fall back to last word
 let ws = pos, we = pos;
-while(ws > 0 && /[\w']/.test(val[ws-1])) ws–;
+while(ws > 0 && /[\w']/.test(val[ws-1])) ws--;
 while(we < val.length && /[\w']/.test(val[we])) we++;
 const wordAtCursor = val.substring(ws, we).replace(/[^a-zA-Z']/g,'').toLowerCase();
 // Also get last word typed
@@ -4599,7 +4599,6 @@ if(padContent){
 systemWithContext += ' [NOTEPAD - artist is currently writing]: ' + padContent.slice(0,2000);
 }
 
-```
 // Client-side rate guard
 if(!_checkApiRateLimit()){
   appendMsg('ai', "You're sending messages really fast — slow down a little and try again in a moment. 🤙");
@@ -4617,7 +4616,6 @@ const reply = data.content?.[0]?.text || 'Something went wrong. Please try again
 chatHistory.push({ role: 'assistant', content: reply });
 appendMsg('ai', reply);
 incrementFloyd(); // track for both Pro and Elite caps
-```
 
 } catch(e) {
 appendMsg('ai', 'Connection issue. Check your API key.\n\nError: ' + e.message);
@@ -5246,7 +5244,7 @@ const pos   = pad.selectionStart;
 const val   = pad.value;
 // Find word boundaries around cursor
 let ws = pos, we = pos;
-while(ws > 0 && /\w/.test(val[ws-1])) ws–;
+while(ws > 0 && /\w/.test(val[ws-1])) ws--;
 while(we < val.length && /\w/.test(val[we])) we++;
 const curWord = val.substring(ws, we);
 let before, after, insert;
@@ -5342,7 +5340,7 @@ box.style.cssText = 'max-width:520px;max-height:80vh;display:flex;flex-direction
 const head = document.createElement('div');
 head.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.4rem;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;';
 const title = document.createElement('div');
-title.style.cssText = 'font-family:'Saira',sans-serif;font-size:1.2rem;text-transform:uppercase;letter-spacing:.1em;color:#f0c040;';
+title.style.cssText = 'font-family:Saira,sans-serif;font-size:1.2rem;text-transform:uppercase;letter-spacing:.1em;color:#f0c040;';
 title.textContent = '📁 SAVED WRITINGS';
 const closeBtn = document.createElement('button');
 closeBtn.className = 'modal-close';
@@ -5355,11 +5353,11 @@ head.appendChild(title); head.appendChild(closeBtn);
 const acts = document.createElement('div');
 acts.style.cssText = 'padding:.6rem .8rem;border-bottom:1px solid rgba(255,255,255,.07);display:flex;gap:.5rem;flex-shrink:0;';
 const saveBtn = document.createElement('button');
-saveBtn.style.cssText = 'background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.2);color:#f0c040;font-family:'Saira',sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.44rem .9rem;border-radius:8px;cursor:pointer;flex:1;';
+saveBtn.style.cssText = 'background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.2);color:#f0c040;font-family:Saira,sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.44rem .9rem;border-radius:8px;cursor:pointer;flex:1;';
 saveBtn.textContent = '💾 SAVE CURRENT';
 saveBtn.onclick = () => { manualSave(false); overlay.remove(); };
 const expBtn = document.createElement('button');
-expBtn.style.cssText = 'background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:rgba(242,239,233,.5);font-family:'Saira',sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.44rem .9rem;border-radius:8px;cursor:pointer;flex:1;';
+expBtn.style.cssText = 'background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:rgba(242,239,233,.5);font-family:Saira,sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.44rem .9rem;border-radius:8px;cursor:pointer;flex:1;';
 expBtn.textContent = '⬇ EXPORT TXT';
 expBtn.onclick = exportPad;
 acts.appendChild(saveBtn); acts.appendChild(expBtn);
@@ -5372,7 +5370,6 @@ if(saves.length){
 const projects = {};
 saves.forEach(s=>{ const p=s.project||'Unsaved'; (projects[p]=projects[p]||[]).push(s); });
 
-```
 Object.entries(projects).forEach(([proj, items])=>{
   // Project header
   const ph = document.createElement('div');
@@ -5398,9 +5395,8 @@ Object.entries(projects).forEach(([proj, items])=>{
 // Save to project button
 const newProj = document.createElement('div');
 newProj.style.cssText = 'margin-top:.75rem;padding-top:.6rem;border-top:1px solid rgba(255,255,255,.06);';
-newProj.innerHTML = '<div style="font-size:.84rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:.4rem;">SAVE TO PROJECT</div><div style="display:flex;gap:.4rem;"><input id="projNameInput" placeholder="Project name…" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:var(--tx);font-family:'Saira',sans-serif;font-size:1.08rem;padding:.4rem .7rem;border-radius:8px;"><button onclick="saveToProject()" style="background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.2);color:var(--gold);font-family:'Saira',sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.4rem .75rem;border-radius:8px;cursor:pointer;white-space:nowrap;">SAVE</button></div>';
+newProj.innerHTML = '<div style="font-size:.84rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:.4rem;">SAVE TO PROJECT</div><div style="display:flex;gap:.4rem;"><input id="projNameInput" placeholder="Project name…" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:var(--tx);font-family:Saira,sans-serif;font-size:1.08rem;padding:.4rem .7rem;border-radius:8px;"><button onclick="saveToProject()" style="background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.2);color:var(--gold);font-family:Saira,sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.4rem .75rem;border-radius:8px;cursor:pointer;white-space:nowrap;">SAVE</button></div>';
 list.appendChild(newProj);
-```
 
 } else {
 list.innerHTML = '<div style="text-align:center;padding:2rem;font-size:.84rem;color:rgba(242,239,233,.28);">No saved writings yet.<br><br>Start writing and hit Save.</div>';
@@ -5681,7 +5677,6 @@ const prompt = word
 ? 'Give me exactly 8 creative rhyme options for the word "'+word+'". Focus on multi-syllable rhymes, slant rhymes, and options that would work in hip-hop/R&B. Format: just the words, comma-separated, one line. Then on a new line: one sentence on which rhyme would create the most lyrical impact and why.' + (context?'\n\nContext (last few bars the artist wrote):\n'+context:'')
 : 'Based on these lyrics, suggest 5 fresh end-rhyme options for the next bar. Be specific, creative, and hip-hop aware.\n\nLyrics:\n'+context;
 
-```
 const resp = await fetch(FLOYD_ENDPOINT,{
   method:'POST',
   headers:{'Content-Type':'application/json'},
@@ -5699,7 +5694,6 @@ if(lines[0]){
 }
 if(lines[1]) html += '<br><span style="font-size:.84rem;color:rgba(242,239,233,.5);line-height:1.5;display:block;margin-top:.5rem;">'+lines[1]+'</span>';
 res.innerHTML = html;
-```
 
 }catch(e){
 res.innerHTML = '<span style="font-size:.84rem;color:var(--dim);">Error: '+e.message+'</span>';
@@ -5776,58 +5770,56 @@ modal.innerHTML = `
 <div style="background:#1a1a1c;border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:2rem 1.8rem 1.8rem;max-width:380px;width:100%;position:relative;box-shadow:0 40px 100px rgba(0,0,0,.8);">
 <button onclick="document.getElementById('checkoutModal').remove()" style="position:absolute;top:1rem;right:1rem;background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1.08rem;display:flex;align-items:center;justify-content:center;">✕</button>
 
-```
   <div style="text-align:center;margin-bottom:1.4rem;">
     <div style="display:inline-block;background:${planColor}22;border:1px solid ${planColor}55;border-radius:20px;padding:.3rem .9rem;margin-bottom:.8rem;">
-      <span style="font-family:'Saira',sans-serif;font-size:.94rem;font-weight:700;letter-spacing:.12em;color:${planColor};">${planName.toUpperCase()} — ${planPrice}</span>
+      <span style="font-family:Saira,sans-serif;font-size:.94rem;font-weight:700;letter-spacing:.12em;color:${planColor};">${planName.toUpperCase()} — ${planPrice}</span>
     </div>
-    <div style="font-family:'Saira',sans-serif;font-size:1.75rem;font-weight:700;color:#f2efe9;letter-spacing:.02em;">Create your account first</div>
+    <div style="font-family:Saira,sans-serif;font-size:1.75rem;font-weight:700;color:#f2efe9;letter-spacing:.02em;">Create your account first</div>
     <div style="font-size:1.08rem;color:rgba(242,239,233,.4);margin-top:.4rem;">Then we'll take you straight to checkout.</div>
   </div>
 
-  <div id="coMsg" style="font-family:'Saira',sans-serif;font-size:1.08rem;text-align:center;margin-bottom:.6rem;min-height:1.2em;"></div>
+  <div id="coMsg" style="font-family:Saira,sans-serif;font-size:1.08rem;text-align:center;margin-bottom:.6rem;min-height:1.2em;"></div>
 
   <div id="coSignupForm">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.6rem;">
       <div>
-        <label style="font-family:'Saira',sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;color:rgba(242,239,233,.4);display:block;margin-bottom:.25rem;">FIRST NAME</label>
-        <input id="coFirst" type="text" placeholder="First" autocomplete="given-name" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .7rem;color:#f2efe9;font-family:'Saira',sans-serif;font-size:.96rem;outline:none;box-sizing:border-box;">
+        <label style="font-family:Saira,sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;color:rgba(242,239,233,.4);display:block;margin-bottom:.25rem;">FIRST NAME</label>
+        <input id="coFirst" type="text" placeholder="First" autocomplete="given-name" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .7rem;color:#f2efe9;font-family:Saira,sans-serif;font-size:.96rem;outline:none;box-sizing:border-box;">
       </div>
       <div>
-        <label style="font-family:'Saira',sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;color:rgba(242,239,233,.4);display:block;margin-bottom:.25rem;">LAST NAME</label>
-        <input id="coLast" type="text" placeholder="Last" autocomplete="family-name" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .7rem;color:#f2efe9;font-family:'Saira',sans-serif;font-size:.96rem;outline:none;box-sizing:border-box;">
+        <label style="font-family:Saira,sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;color:rgba(242,239,233,.4);display:block;margin-bottom:.25rem;">LAST NAME</label>
+        <input id="coLast" type="text" placeholder="Last" autocomplete="family-name" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .7rem;color:#f2efe9;font-family:Saira,sans-serif;font-size:.96rem;outline:none;box-sizing:border-box;">
       </div>
     </div>
     <div style="margin-bottom:.6rem;">
-      <label style="font-family:'Saira',sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;color:rgba(242,239,233,.4);display:block;margin-bottom:.25rem;">EMAIL</label>
-      <input id="coEmail" type="email" placeholder="you@email.com" autocomplete="email" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .7rem;color:#f2efe9;font-family:'Saira',sans-serif;font-size:.96rem;outline:none;box-sizing:border-box;">
+      <label style="font-family:Saira,sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;color:rgba(242,239,233,.4);display:block;margin-bottom:.25rem;">EMAIL</label>
+      <input id="coEmail" type="email" placeholder="you@email.com" autocomplete="email" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .7rem;color:#f2efe9;font-family:Saira,sans-serif;font-size:.96rem;outline:none;box-sizing:border-box;">
     </div>
     <div style="margin-bottom:.6rem;">
-      <label style="font-family:'Saira',sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;color:rgba(242,239,233,.4);display:block;margin-bottom:.25rem;">PASSWORD</label>
-      <input id="coPass" type="password" placeholder="Min. 6 characters" autocomplete="new-password" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .7rem;color:#f2efe9;font-family:'Saira',sans-serif;font-size:.96rem;outline:none;box-sizing:border-box;">
+      <label style="font-family:Saira,sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;color:rgba(242,239,233,.4);display:block;margin-bottom:.25rem;">PASSWORD</label>
+      <input id="coPass" type="password" placeholder="Min. 6 characters" autocomplete="new-password" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .7rem;color:#f2efe9;font-family:Saira,sans-serif;font-size:.96rem;outline:none;box-sizing:border-box;">
     </div>
     <div style="margin-bottom:1rem;">
-      <label style="font-family:'Saira',sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;color:rgba(242,239,233,.4);display:block;margin-bottom:.25rem;">CONFIRM PASSWORD</label>
-      <input id="coPass2" type="password" placeholder="Repeat password" autocomplete="new-password" onkeydown="if(event.key==='Enter')checkoutSignup()" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .7rem;color:#f2efe9;font-family:'Saira',sans-serif;font-size:.96rem;outline:none;box-sizing:border-box;">
+      <label style="font-family:Saira,sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;color:rgba(242,239,233,.4);display:block;margin-bottom:.25rem;">CONFIRM PASSWORD</label>
+      <input id="coPass2" type="password" placeholder="Repeat password" autocomplete="new-password" onkeydown="if(event.key==='Enter')checkoutSignup()" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .7rem;color:#f2efe9;font-family:Saira,sans-serif;font-size:.96rem;outline:none;box-sizing:border-box;">
     </div>
-    <button id="coBtnSignup" onclick="checkoutSignup()" style="width:100%;background:${planColor};border:none;color:#fff;font-family:'Saira',sans-serif;font-size:1.08rem;font-weight:700;letter-spacing:.08em;padding:.75rem;border-radius:10px;cursor:pointer;margin-bottom:.7rem;">CREATE ACCOUNT & CHECKOUT →</button>
-    <div style="text-align:center;font-family:'Saira',sans-serif;font-size:.84rem;color:rgba(242,239,233,.35);">Already have an account? <a href="#" onclick="showCoSignin();return false;" style="color:var(--gold);text-decoration:none;">Sign in instead</a></div>
+    <button id="coBtnSignup" onclick="checkoutSignup()" style="width:100%;background:${planColor};border:none;color:#fff;font-family:Saira,sans-serif;font-size:1.08rem;font-weight:700;letter-spacing:.08em;padding:.75rem;border-radius:10px;cursor:pointer;margin-bottom:.7rem;">CREATE ACCOUNT & CHECKOUT →</button>
+    <div style="text-align:center;font-family:Saira,sans-serif;font-size:.84rem;color:rgba(242,239,233,.35);">Already have an account? <a href="#" onclick="showCoSignin();return false;" style="color:var(--gold);text-decoration:none;">Sign in instead</a></div>
   </div>
 
   <div id="coSigninForm" style="display:none;">
     <div style="margin-bottom:.6rem;">
-      <label style="font-family:'Saira',sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;color:rgba(242,239,233,.4);display:block;margin-bottom:.25rem;">EMAIL</label>
-      <input id="coSiEmail" type="email" placeholder="you@email.com" autocomplete="email" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .7rem;color:#f2efe9;font-family:'Saira',sans-serif;font-size:.96rem;outline:none;box-sizing:border-box;">
+      <label style="font-family:Saira,sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;color:rgba(242,239,233,.4);display:block;margin-bottom:.25rem;">EMAIL</label>
+      <input id="coSiEmail" type="email" placeholder="you@email.com" autocomplete="email" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .7rem;color:#f2efe9;font-family:Saira,sans-serif;font-size:.96rem;outline:none;box-sizing:border-box;">
     </div>
     <div style="margin-bottom:1rem;">
-      <label style="font-family:'Saira',sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;color:rgba(242,239,233,.4);display:block;margin-bottom:.25rem;">PASSWORD</label>
-      <input id="coSiPass" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')checkoutSignin()" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .7rem;color:#f2efe9;font-family:'Saira',sans-serif;font-size:.96rem;outline:none;box-sizing:border-box;">
+      <label style="font-family:Saira,sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.1em;color:rgba(242,239,233,.4);display:block;margin-bottom:.25rem;">PASSWORD</label>
+      <input id="coSiPass" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')checkoutSignin()" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .7rem;color:#f2efe9;font-family:Saira,sans-serif;font-size:.96rem;outline:none;box-sizing:border-box;">
     </div>
-    <button id="coBtnSignin" onclick="checkoutSignin()" style="width:100%;background:${planColor};border:none;color:#fff;font-family:'Saira',sans-serif;font-size:1.08rem;font-weight:700;letter-spacing:.08em;padding:.75rem;border-radius:10px;cursor:pointer;margin-bottom:.7rem;">SIGN IN & CHECKOUT →</button>
-    <div style="text-align:center;font-family:'Saira',sans-serif;font-size:.84rem;color:rgba(242,239,233,.35);">New here? <a href="#" onclick="showCoSignup();return false;" style="color:var(--gold);text-decoration:none;">Create an account</a></div>
+    <button id="coBtnSignin" onclick="checkoutSignin()" style="width:100%;background:${planColor};border:none;color:#fff;font-family:Saira,sans-serif;font-size:1.08rem;font-weight:700;letter-spacing:.08em;padding:.75rem;border-radius:10px;cursor:pointer;margin-bottom:.7rem;">SIGN IN & CHECKOUT →</button>
+    <div style="text-align:center;font-family:Saira,sans-serif;font-size:.84rem;color:rgba(242,239,233,.35);">New here? <a href="#" onclick="showCoSignup();return false;" style="color:var(--gold);text-decoration:none;">Create an account</a></div>
   </div>
 </div>`;
-```
 
 document.body.appendChild(modal);
 setTimeout(()=>document.getElementById('coFirst')?.focus(), 100);
@@ -5928,7 +5920,6 @@ screen.innerHTML = `
 </svg>
 </div>
 
-```
   <div style="font-size:2.8rem;font-weight:700;color:#111;letter-spacing:-.03em;line-height:1.1;margin-bottom:.5rem;">
     Welcome${firstName ? ', ' + firstName : ''}.
   </div>
@@ -5955,7 +5946,6 @@ screen.innerHTML = `
     Questions? <a href="mailto:wavezonemg@gmail.com" style="color:#888;text-decoration:none;">wavezonemg@gmail.com</a>
   </div>
 </div>`;
-```
 
 document.body.appendChild(screen);
 }
@@ -6618,7 +6608,6 @@ const url = 'https://www.googleapis.com/youtube/v3/search'
 + '&relevanceLanguage=en'
 + '&key=' + YOUTUBE_API_KEY;
 
-```
 const resp = await fetch(url);
 const data = await resp.json();
 
@@ -6666,7 +6655,6 @@ data.items.forEach(item => {
   card.querySelector('.beat-embed-btn').onclick = () => toggleBeatEmbed(vid);
   res.appendChild(card);
 })
-```
 
 }catch(e){
 res.innerHTML = '<div class="sempty" style="padding:1rem;">Error: ' + e.message + '</div>';
@@ -6743,7 +6731,6 @@ resize();
 ctx.clearRect(0,0,W,H);
 const cx = W/2, cy = H/2;
 
-```
 // Draw 3 expanding sine wave rings
 for(let ring=0; ring<3; ring++){
   const phase   = t * 0.018 - ring * 0.7;
@@ -6795,7 +6782,6 @@ for(let side=-1; side<=1; side+=2){
 
 t++;
 raf = requestAnimationFrame(draw);
-```
 
 }
 
@@ -6826,34 +6812,32 @@ modal.innerHTML = `
 <div style="background:#1a1a1c;border:1px solid rgba(240,192,64,.2);border-radius:24px;padding:2rem 1.8rem;max-width:380px;width:100%;text-align:center;position:relative;">
 <button onclick="document.getElementById('restoreModal').remove()" style="position:absolute;top:1rem;right:1rem;background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.5);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1.08rem;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
 
-```
   <div style="font-size:1.95rem;margin-bottom:.6rem;">🎟</div>
-  <div style="font-family:'Saira',sans-serif;font-size:1.65rem;color:#f2efe9;letter-spacing:.04em;margin-bottom:.4rem;">RESTORE YOUR PLAN</div>
-  <div style="font-family:'Saira',sans-serif;font-size:1.08rem;color:rgba(242,239,233,.4);line-height:1.6;margin-bottom:1.4rem;">
+  <div style="font-family:Saira,sans-serif;font-size:1.65rem;color:#f2efe9;letter-spacing:.04em;margin-bottom:.4rem;">RESTORE YOUR PLAN</div>
+  <div style="font-family:Saira,sans-serif;font-size:1.08rem;color:rgba(242,239,233,.4);line-height:1.6;margin-bottom:1.4rem;">
     Already paid? Sign in with the <strong style="color:rgba(242,239,233,.7);">exact email you used at checkout</strong>, then click Refresh below. Your plan will activate instantly.
   </div>
 
-  <div id="restoreMsg" style="font-family:'Saira',sans-serif;font-size:1.08rem;min-height:1.4em;margin-bottom:1rem;color:rgba(242,239,233,.5);"></div>
+  <div id="restoreMsg" style="font-family:Saira,sans-serif;font-size:1.08rem;min-height:1.4em;margin-bottom:1rem;color:rgba(242,239,233,.5);"></div>
 
-  <button onclick="restorePlanFromStripe()" style="width:100%;background:linear-gradient(135deg,#c8940e,#f0c040);border:none;color:#060606;font-family:'Saira',sans-serif;font-size:.96rem;font-weight:700;letter-spacing:.1em;padding:.8rem;border-radius:12px;cursor:pointer;margin-bottom:.7rem;">
+  <button onclick="restorePlanFromStripe()" style="width:100%;background:linear-gradient(135deg,#c8940e,#f0c040);border:none;color:#060606;font-family:Saira,sans-serif;font-size:.96rem;font-weight:700;letter-spacing:.1em;padding:.8rem;border-radius:12px;cursor:pointer;margin-bottom:.7rem;">
     🔄 REFRESH MY PLAN
   </button>
 
   <div style="display:flex;gap:.6rem;margin-bottom:.7rem;">
     <div style="flex:1;height:1px;background:rgba(255,255,255,.07);margin-top:.65rem;"></div>
-    <span style="font-family:'Saira',sans-serif;font-size:1.02rem;color:rgba(242,239,233,.25);">or</span>
+    <span style="font-family:Saira,sans-serif;font-size:1.02rem;color:rgba(242,239,233,.25);">or</span>
     <div style="flex:1;height:1px;background:rgba(255,255,255,.07);margin-top:.65rem;"></div>
   </div>
 
-  <a href="${STRIPE_PORTAL}" target="_blank" style="display:block;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(242,239,233,.55);font-family:'Saira',sans-serif;font-size:1.08rem;padding:.7rem;border-radius:10px;text-decoration:none;margin-bottom:.9rem;">
+  <a href="${STRIPE_PORTAL}" target="_blank" style="display:block;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(242,239,233,.55);font-family:Saira,sans-serif;font-size:1.08rem;padding:.7rem;border-radius:10px;text-decoration:none;margin-bottom:.9rem;">
     Manage Billing / View Receipt →
   </a>
 
-  <p style="font-family:'Saira',sans-serif;font-size:.94rem;color:rgba(242,239,233,.25);line-height:1.6;margin:0;">
+  <p style="font-family:Saira,sans-serif;font-size:.94rem;color:rgba(242,239,233,.25);line-height:1.6;margin:0;">
     Still stuck? Email <a href="mailto:wavezonemg@gmail.com" style="color:rgba(240,192,64,.6);text-decoration:none;">wavezonemg@gmail.com</a> with your receipt and we'll fix it within 24 hours.
   </p>
 </div>`;
-```
 
 document.body.appendChild(modal);
 }
@@ -6874,7 +6858,6 @@ if(msg){ msg.textContent='Not signed in. Sign in first, then try again.'; msg.st
 return;
 }
 
-```
 const user = session.user;
 const tier = getEffectiveTier(user, user.user_metadata?.tier || 'basic');
 
@@ -6891,7 +6874,6 @@ if(tier !== 'basic'){
     msg.style.color='rgba(242,239,233,.5)'; 
   }
 }
-```
 
 } catch(e){
 if(msg){ msg.textContent='Error: '+e.message; msg.style.color='#ff453a'; }
@@ -6907,7 +6889,6 @@ const waves = parseInt(canvas.dataset.waves || '3');
 const speed = parseFloat(canvas.dataset.speed || '1');
 let t = ci * 40; // stagger phase per canvas
 
-```
 function resize(){
   canvas.width  = canvas.offsetWidth || canvas.parentElement?.offsetWidth || 800;
   canvas.height = canvas.offsetHeight || 60;
@@ -6939,7 +6920,6 @@ function draw(){
   requestAnimationFrame(draw);
 }
 draw();
-```
 
 });
 }
