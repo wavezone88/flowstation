@@ -676,7 +676,7 @@ font-family:'Saira',monospace;font-size:1.08rem;line-height:1.65;
 padding:.7rem 1rem;
 caret-color:#b08a10;
 overflow-y:auto;
-box-shadow:inset 2px 2px 8px rgba(0,0,0,.08), inset -1px -1px 4px rgba(0,0,0,.04);
+background-position:0 .7rem;box-shadow:inset 2px 2px 8px rgba(0,0,0,.08), inset -1px -1px 4px rgba(0,0,0,.04);
 }
 .pad::placeholder{color:rgba(100,85,60,.35);font-style:italic;}
 .pad::selection{background:rgba(200,150,10,.2);}
@@ -1659,14 +1659,10 @@ text-decoration:none;
     </div>
   </nav>
 
-```
-<canvas id="heroCanvas"></canvas>
-```
-
   <section class="gh">
     <div class="gh-glow"></div>
+    <canvas id="heroCanvas"></canvas>
 
-```
 <div class="gh-badge-wrap">
   <canvas class="gh-badge-waves" id="badgeWaves"></canvas>
   <div class="gh-badge">
@@ -3165,8 +3161,10 @@ if(go) go.disabled = true;
 } else {
 // Elite
 const usingOwn = false; // API routed through secure proxy
-ctr.textContent = usingOwn ? '✨ FLOYD — ELITE · YOUR KEY' : '✨ FLOYD — ELITE UNLIMITED';
-ctr.className   = 'floyd-counter';
+const remE2 = getFloydRemaining();
+const warnE = remE2 <= 10;
+ctr.textContent = usingOwn ? '✨ FLOYD — ELITE · YOUR KEY' : '✨ FLOYD — ' + remE2 + ' of ' + ELITE_DAILY_CAP + ' daily messages left';
+ctr.className = 'floyd-counter' + (warnE ? ' warn' : '');
 if(go) go.disabled = false;
 }
 }
@@ -4710,7 +4708,8 @@ if(mascot) mascot.style.display = 'none';
 const msgs = document.getElementById('chatMsgs');
 const d = document.createElement('div');
 d.className = 'msg ' + role;
-d.innerHTML = `<span class="msg-who">${role === 'ai' ? 'Floyd' : 'You'}</span> <div class="msg-bub">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</div>`;
+const safeText = text.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");
+d.innerHTML = `<span class="msg-who">${role === 'ai' ? 'Floyd' : 'You'}</span> <div class="msg-bub">${safeText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</div>`;
 msgs.appendChild(d);
 msgs.scrollTop = msgs.scrollHeight;
 }
@@ -5677,7 +5676,7 @@ out += '<br><span style="font-size:1.08rem;color:var(--dim);display:block;margin
 } else {
 out += 'Click a word in the rhyme panel, or type in your notepad to activate suggestions.';
 }
-res.innerHTML = out;
+res.innerHTML = '<button onclick="this.parentElement.style.display=\'none\'" style="float:right;background:none;border:none;color:var(--dim);cursor:pointer;font-size:.9rem;padding:0 .2rem;line-height:1;">✕</button>' + out;
 btn.disabled = false;
 btn.textContent = '🤖 ASK FLOYD FOR RHYME IDEAS';
 return;
@@ -5706,7 +5705,7 @@ if(lines[0]){
   html += rhymes.map(w=>`<span class="rc" onclick="insertWord('${w.split(' ')[0]}')">${w}</span>`).join(' ');
 }
 if(lines[1]) html += '<br><span style="font-size:.84rem;color:rgba(242,239,233,.5);line-height:1.5;display:block;margin-top:.5rem;">'+lines[1]+'</span>';
-res.innerHTML = html;
+res.innerHTML = '<button onclick="this.parentElement.style.display=\'none\'" style="float:right;background:none;border:none;color:var(--dim);cursor:pointer;font-size:.9rem;padding:0 .2rem;line-height:1;">✕</button>' + html;
 
 }catch(e){
 res.innerHTML = '<span style="font-size:.84rem;color:var(--dim);">Error: '+e.message+'</span>';
