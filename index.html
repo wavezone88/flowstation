@@ -6992,6 +6992,7 @@ let dragging=false, startX=0, startW=0;
 handle.addEventListener('mousedown', e=>{
   if(!panel.classList.contains('open')) return;
   dragging=true; startX=e.clientX; startW=panel.offsetWidth;
+  panel.style.transition='none';
   handle.classList.add('dragging');
   document.body.style.cursor='col-resize';
   document.body.style.userSelect='none';
@@ -7005,6 +7006,7 @@ document.addEventListener('mousemove', e=>{
 document.addEventListener('mouseup', ()=>{
   if(!dragging) return;
   dragging=false;
+  panel.style.transition='';
   handle.classList.remove('dragging');
   document.body.style.cursor='';
   document.body.style.userSelect='';
@@ -7013,13 +7015,14 @@ document.addEventListener('mouseup', ()=>{
 handle.addEventListener('touchstart', e=>{
   if(!panel.classList.contains('open')) return;
   dragging=true; startX=e.touches[0].clientX; startW=panel.offsetWidth;
+  panel.style.transition='none';
 },{passive:true});
 document.addEventListener('touchmove', e=>{
   if(!dragging) return;
   const newW = Math.max(200, Math.min(560, startW + (e.touches[0].clientX - startX)));
   panel.style.width = newW+'px'; panel.style.minWidth = newW+'px';
 },{passive:true});
-document.addEventListener('touchend', ()=>{ dragging=false; });
+document.addEventListener('touchend', ()=>{ dragging=false; panel.style.transition=''; });
 })();
 
 </script>
