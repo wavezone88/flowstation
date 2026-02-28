@@ -7250,11 +7250,29 @@ if('visualViewport' in window && window.innerWidth <= 768){
   const toolP = document.getElementById('toolPanel');
   const floydP = document.getElementById('floydPanel');
   const chatIn = document.getElementById('chatIn');
+  const padEl = document.getElementById('pad');
+  const topbarEl = document.querySelector('.topbar');
+  const sidebarEl = document.querySelector('.sidebar');
+  const padHead = document.querySelector('.pad-head');
+  const padFoot = document.querySelector('.pad-foot');
+  const audioBarEl = document.getElementById('audioBar');
   let kbWasOpen = false;
+
+  function setMobileWritingMode(on){
+    const els = [topbarEl, sidebarEl, padHead, padFoot, audioBarEl];
+    els.forEach(el => { if(el) el.style.display = on ? 'none' : ''; });
+    if(padEl && on){
+      padEl.style.fontSize = '1rem';
+    } else if(padEl){
+      padEl.style.fontSize = '';
+    }
+  }
+
   window.visualViewport.addEventListener('resize', ()=>{
     const kbHeight = window.innerHeight - window.visualViewport.height;
     const kbOpen = kbHeight > 80;
     const floydFocused = chatIn && document.activeElement === chatIn;
+    const padFocused = padEl && document.activeElement === padEl;
     if(kbOpen){
       if(floydFocused && floydP){
         floydP.style.height = window.visualViewport.height + 'px';
@@ -7265,15 +7283,18 @@ if('visualViewport' in window && window.innerWidth <= 768){
         floydP.style.right = '0';
         floydP.style.zIndex = '9999';
         floydP.style.borderRadius = '0';
+        setMobileWritingMode(false);
+      } else if(padFocused){
+        setMobileWritingMode(true);
+        if(toolP && toolP.classList.contains('open')) toolP.classList.remove('open');
+        if(floydP && floydP.classList.contains('open')) floydP.classList.remove('open');
       } else {
-        if(toolP && toolP.classList.contains('open')){
-          toolP.classList.remove('open');
-        }
-        if(floydP && floydP.classList.contains('open') && !floydFocused){
-          floydP.classList.remove('open');
-        }
+        setMobileWritingMode(false);
+        if(toolP && toolP.classList.contains('open')) toolP.classList.remove('open');
+        if(floydP && floydP.classList.contains('open') && !floydFocused) floydP.classList.remove('open');
       }
     } else {
+      setMobileWritingMode(false);
       if(floydP){
         floydP.style.height = '';
         floydP.style.maxHeight = '';
@@ -7284,9 +7305,6 @@ if('visualViewport' in window && window.innerWidth <= 768){
         floydP.style.zIndex = '';
         floydP.style.borderRadius = '';
       }
-    }
-    if(!floydFocused && padWrap){
-      padWrap.style.paddingBottom = kbOpen ? kbHeight+'px' : '';
     }
     kbWasOpen = kbOpen;
   });
