@@ -281,7 +281,10 @@ body{background:var(--bg);color:var(--tx);font-family:'Saira',sans-serif;overflo
 
 <div class="demo-spotlight" id="demoSpot"></div>
 <div class="demo-caption" id="demoCap"></div>
-<button class="demo-restart" id="demoRestart" onclick="location.reload()">REPLAY DEMO</button>
+<div id="demoEndBtns" style="position:fixed;bottom:20px;right:20px;z-index:700;display:flex;gap:.6rem;opacity:0;transition:opacity .4s;">
+  <a href="/" class="demo-restart" style="opacity:1;text-decoration:none;display:inline-flex;align-items:center;">BACK TO FLOWSTATION</a>
+  <button class="demo-restart" style="opacity:1;" onclick="location.reload()">REPLAY DEMO</button>
+</div>
 
 <script>
 var lines = [];
@@ -626,7 +629,7 @@ async function runDemo(){
   await showOverlay('Write Harder. Flow Better.', '<strong>FlowStation</strong> \u2014 everything you need to finish records.<br><br><span style="color:var(--gold);font-weight:700;">myflowstation.com</span>', 4000);
   updateProgress();
 
-  document.getElementById('demoRestart').classList.add('show');
+  document.getElementById('demoEndBtns').style.opacity = '1';
 }
 
 runDemo();
