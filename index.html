@@ -66,7 +66,7 @@
     {
       "@type": "Offer",
       "name": "Artist Elite",
-      "price": "19.99",
+      "price": "14.99",
       "priceCurrency": "USD",
       "billingIncrement": "monthly",
       "description": "Floyd AI coach, beat search, audio player, rewrite engine, live rhyme map"
@@ -2021,7 +2021,7 @@ text-decoration:none;
       </div>
       <div style="font-family:'Saira',sans-serif;font-size:.84rem;font-weight:700;letter-spacing:.18em;color:rgba(180,120,255,.7);text-transform:uppercase;margin-bottom:.3rem;">ARTIST ELITE</div>
       <div style="display:flex;align-items:baseline;gap:.4rem;">
-        <div style="font-family:'Saira',sans-serif;font-size:2.2rem;font-weight:700;color:#f2efe9;letter-spacing:.02em;line-height:1;">$19.99</div>
+        <div style="font-family:'Saira',sans-serif;font-size:2.2rem;font-weight:700;color:#f2efe9;letter-spacing:.02em;line-height:1;">$14.99</div>
         <div style="font-family:'Saira',sans-serif;font-size:.86rem;color:rgba(242,239,233,.35);">/ month</div>
       </div>
       <div style="font-family:'Saira',sans-serif;font-size:.84rem;color:rgba(242,239,233,.3);margin-top:.3rem;">Cancel anytime</div>
@@ -3233,10 +3233,10 @@ const btnGrad     = goElite ? 'linear-gradient(135deg,#6a2ddb,#8a4fff,#c87bff)' 
 const btnTxt      = goElite ? 'white' : '#060606';
 const borderColor = goElite ? 'rgba(138,79,255,.3)' : 'rgba(240,192,64,.2)';
 const primaryPlan  = goElite ? 'ARTIST ELITE' : 'ARTIST PRO';
-const primaryPrice = goElite ? '$19.99/MO' : '$9.99/MO';
+const primaryPrice = goElite ? '$14.99/MO' : '$9.99/MO';
 const primaryFn    = goElite ? 'goCheckoutElite()' : 'goCheckoutPro()';
 const secondaryPlan  = goElite ? 'ARTIST PRO' : 'ARTIST ELITE';
-const secondaryPrice = goElite ? '$9.99/MO' : '$19.99/MO';
+const secondaryPrice = goElite ? '$9.99/MO' : '$14.99/MO';
 const secondaryFn    = goElite ? 'goCheckoutPro()' : 'goCheckoutElite()';
 
 const box = document.createElement('div');
@@ -5930,7 +5930,7 @@ const ex = document.getElementById('checkoutModal');
 if(ex) ex.remove();
 
 const planName  = plan === 'elite' ? 'Artist Elite' : 'Artist Pro';
-const planPrice = plan === 'elite' ? '$19.99/mo' : '$9.99/mo';
+const planPrice = plan === 'elite' ? '$14.99/mo' : '$9.99/mo';
 const planColor = plan === 'elite' ? '#8a4fff' : '#c8940e';
 
 const esc = e => { if(e.key==='Escape'){ document.getElementById('checkoutModal')?.remove(); document.removeEventListener('keydown',esc); }};
