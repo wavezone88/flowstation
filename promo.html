@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowStation - The Studio in Your Pocket</title>
+<meta name="description" content="FlowStation: AI-powered songwriting suite for independent artists. Write better bars with Floyd AI, beat search, studio recorder, and more.">
+<meta property="og:title" content="FlowStation - The Studio in Your Pocket">
+<meta property="og:image" content="https://www.myflowstation.com/flowstation-gold.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Saira:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-snap-type:y mandatory;overflow-y:scroll;scroll-behavior:smooth;scrollbar-width:none;}
+html::-webkit-scrollbar{display:none;}
+body{background:#000;color:#f2efe9;font-family:'Saira',sans-serif;overflow-x:hidden;}
+
+.s{height:100vh;width:100%;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+
+canvas#particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+
+.s-inner{position:relative;z-index:2;text-align:center;padding:0 2rem;max-width:900px;width:100%;}
+
+.s1{background:radial-gradient(ellipse at 50% 40%,rgba(30,20,5,.6) 0%,#000 70%);}
+.s1 .logo-wrap{width:min(80vw,600px);margin:0 auto 2rem;opacity:0;transform:scale(.8);animation:logoIn 1.5s cubic-bezier(.16,1,.3,1) .3s forwards;}
+.s1 .logo-wrap img{width:100%;height:auto;filter:drop-shadow(0 0 60px rgba(240,192,64,.4)) drop-shadow(0 0 120px rgba(240,192,64,.15));}
+@keyframes logoIn{to{opacity:1;transform:scale(1);}}
+
+.s1 .tagline{font-size:clamp(1rem,3vw,1.5rem);font-weight:300;letter-spacing:.25em;text-transform:uppercase;color:rgba(240,192,64,.6);opacity:0;animation:fadeUp .8s ease .8s forwards;}
+.s1 .tagline strong{color:#f0c040;font-weight:600;}
+
+.s1 .scroll-hint{position:absolute;bottom:3rem;left:50%;transform:translateX(-50%);opacity:0;animation:fadeUp .6s ease 2s forwards;}
+.scroll-hint span{display:block;font-size:.6rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:.5rem;}
+.scroll-arrow{width:20px;height:20px;border-right:2px solid rgba(240,192,64,.4);border-bottom:2px solid rgba(240,192,64,.4);transform:rotate(45deg);margin:0 auto;animation:bounce 2s ease infinite;}
+@keyframes bounce{0%,100%{transform:rotate(45deg) translate(0,0);}50%{transform:rotate(45deg) translate(5px,5px);}}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+.s2{background:radial-gradient(ellipse at 50% 60%,rgba(20,8,40,.5) 0%,#000 70%);}
+.feat-label{font-size:.6rem;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:rgba(138,79,255,.6);margin-bottom:1.5rem;}
+.feat-title{font-size:clamp(2.5rem,8vw,5rem);font-weight:900;letter-spacing:-.02em;line-height:1;margin-bottom:1rem;background:linear-gradient(135deg,#f2efe9 30%,rgba(240,192,64,.8));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.feat-sub{font-size:clamp(.95rem,2.5vw,1.2rem);font-weight:300;color:rgba(242,239,233,.45);line-height:1.7;max-width:600px;margin:0 auto;}
+
+.s3{background:radial-gradient(ellipse at 30% 50%,rgba(20,10,2,.5) 0%,#000 70%);}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;width:100%;max-width:800px;margin:2.5rem auto 0;}
+.feat-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:1.8rem 1.4rem;text-align:left;transition:all .3s;}
+.feat-card:hover{background:rgba(240,192,64,.04);border-color:rgba(240,192,64,.15);transform:translateY(-4px);}
+.feat-card .fc-icon{font-size:1.8rem;margin-bottom:.8rem;}
+.feat-card .fc-name{font-size:.7rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#f0c040;margin-bottom:.4rem;}
+.feat-card .fc-desc{font-size:.88rem;color:rgba(242,239,233,.4);line-height:1.6;}
+
+.s4{background:radial-gradient(ellipse at 60% 40%,rgba(10,20,40,.5) 0%,#000 70%);}
+.quote-mark{font-size:6rem;line-height:1;color:rgba(240,192,64,.15);margin-bottom:-1rem;}
+.quote-text{font-size:clamp(1.3rem,4vw,2.2rem);font-weight:300;font-style:italic;color:rgba(242,239,233,.7);line-height:1.5;max-width:700px;margin:0 auto 1.5rem;}
+.quote-attr{font-size:.7rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,192,64,.5);}
+
+.s5{background:radial-gradient(ellipse at 50% 50%,rgba(30,20,5,.4) 0%,#000 70%);}
+.cta-title{font-size:clamp(2rem,7vw,4rem);font-weight:900;letter-spacing:-.02em;line-height:1.1;margin-bottom:.8rem;}
+.cta-title span{background:linear-gradient(135deg,#c8940e,#f0c040,#ffe066);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.cta-sub{font-size:clamp(.9rem,2vw,1.1rem);color:rgba(242,239,233,.35);margin-bottom:2.5rem;font-weight:300;}
+.cta-btn{display:inline-block;background:linear-gradient(135deg,#c8940e,#f0c040);color:#060606;font-family:'Saira',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:1rem 3rem;border-radius:980px;text-decoration:none;transition:all .25s;box-shadow:0 4px 32px rgba(240,192,64,.3);}
+.cta-btn:hover{transform:scale(1.05);box-shadow:0 8px 48px rgba(240,192,64,.5);}
+.cta-free{display:block;margin-top:1rem;font-size:.7rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:rgba(242,239,233,.25);}
+.price-row{display:flex;align-items:center;justify-content:center;gap:2rem;margin-bottom:2rem;flex-wrap:wrap;}
+.price-card{text-align:center;}
+.price-label{font-size:.55rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(242,239,233,.3);margin-bottom:.3rem;}
+.price-amt{font-size:2rem;font-weight:800;color:#f0c040;}
+.price-amt small{font-size:.8rem;font-weight:400;color:rgba(240,192,64,.5);}
+.price-per{font-size:.6rem;color:rgba(242,239,233,.25);letter-spacing:.1em;}
+.price-card.free .price-amt{color:rgba(242,239,233,.5);}
+
+.s-reveal{opacity:0;transform:translateY(40px);transition:opacity .8s ease,transform .8s ease;}
+.s-reveal.visible{opacity:1;transform:translateY(0);}
+
+.glow-line{width:80px;height:2px;background:linear-gradient(90deg,transparent,rgba(240,192,64,.5),transparent);margin:0 auto 2rem;border-radius:2px;}
+
+@media(max-width:600px){
+.feat-grid{grid-template-columns:1fr;gap:1rem;}
+.feat-card{padding:1.3rem 1.1rem;}
+.price-row{gap:1.2rem;}
+.s1 .logo-wrap{width:min(90vw,400px);}
+}
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+
+<section class="s s1">
+  <div class="s-inner">
+    <div class="logo-wrap">
+      <img src="/flowstation-gold.png" alt="FlowStation">
+    </div>
+    <div class="tagline">THE <strong>STUDIO</strong> IN YOUR POCKET</div>
+  </div>
+  <div class="scroll-hint">
+    <span>SCROLL</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<section class="s s2">
+  <div class="s-inner s-reveal">
+    <div class="feat-label">INTRODUCING</div>
+    <div class="feat-title">WRITE HARDER.<br>FLOW SMARTER.</div>
+    <div class="glow-line"></div>
+    <div class="feat-sub">The AI-powered songwriting suite built for independent artists. Every tool you need to write, record, and refine your bars.</div>
+  </div>
+</section>
+
+<section class="s s3">
+  <div class="s-inner s-reveal">
+    <div class="feat-label">EVERYTHING YOU NEED</div>
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="fc-icon">🤖</div>
+        <div class="fc-name">FLOYD AI COACH</div>
+        <div class="fc-desc">Industry-level feedback on your bars. Rewrite engine, tone shift, flow density scoring.</div>
+      </div>
+      <div class="feat-card">
+        <div class="fc-icon">🎙️</div>
+        <div class="fc-name">STUDIO RECORDER</div>
+        <div class="fc-desc">Record your vocals over any beat. Mix mic + beat, play it back, download the file.</div>
+      </div>
+      <div class="feat-card">
+        <div class="fc-icon">🎧</div>
+        <div class="fc-name">BEAT SEARCH</div>
+        <div class="fc-desc">Find beats by BPM, vibe, and genre. Play them while you write.</div>
+      </div>
+      <div class="feat-card">
+        <div class="fc-icon">📝</div>
+        <div class="fc-name">SMART NOTEPAD</div>
+        <div class="fc-desc">Syllable counter, rhyme map, 1000+ flow starters, and hook formulas built in.</div>
+      </div>
+      <div class="feat-card">
+        <div class="fc-icon">🎯</div>
+        <div class="fc-name">RHYME ENGINE</div>
+        <div class="fc-desc">Full dictionary with near-rhymes, multi-syllable matches, and AI suggestions.</div>
+      </div>
+      <div class="feat-card">
+        <div class="fc-icon">📊</div>
+        <div class="fc-name">FLOW SCORE</div>
+        <div class="fc-desc">Real-time scoring on your syllable density, rhyme consistency, and flow patterns.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="s s4">
+  <div class="s-inner s-reveal">
+    <div class="quote-mark">"</div>
+    <div class="quote-text">WE TREAT THEM LIKE WHAT THEY ARE &mdash; BARS</div>
+    <div class="quote-attr">FLOWSTATION</div>
+  </div>
+</section>
+
+<section class="s s5">
+  <div class="s-inner s-reveal">
+    <div class="cta-title">START <span>FREE</span>.</div>
+    <div class="cta-sub">No credit card. No trial. Just open and write.</div>
+    <div class="price-row">
+      <div class="price-card free">
+        <div class="price-label">BASIC</div>
+        <div class="price-amt">FREE</div>
+        <div class="price-per">FOREVER</div>
+      </div>
+      <div class="price-card">
+        <div class="price-label">ARTIST PRO</div>
+        <div class="price-amt">$9.99<small>/mo</small></div>
+        <div class="price-per">FULL TOOLKIT</div>
+      </div>
+      <div class="price-card">
+        <div class="price-label">ARTIST ELITE</div>
+        <div class="price-amt">$14.99<small>/mo</small></div>
+        <div class="price-per">EVERYTHING UNLOCKED</div>
+      </div>
+    </div>
+    <a class="cta-btn" href="https://www.myflowstation.com/">GET STARTED &rarr;</a>
+    <div class="cta-free">FREE FOREVER &bull; NO CREDIT CARD REQUIRED</div>
+  </div>
+</section>
+
+<script>
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
+
+function resize(){
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function Particle(){
+  this.x = Math.random() * W;
+  this.y = Math.random() * H;
+  this.vx = (Math.random() - .5) * .3;
+  this.vy = (Math.random() - .5) * .3;
+  this.r = Math.random() * 1.5 + .5;
+  this.o = Math.random() * .4 + .1;
+  this.gold = Math.random() > .6;
+}
+
+const count = Math.min(120, Math.floor(window.innerWidth / 10));
+for(let i = 0; i < count; i++) particles.push(new Particle());
+
+function draw(){
+  ctx.clearRect(0, 0, W, H);
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    if(p.x < 0) p.x = W;
+    if(p.x > W) p.x = 0;
+    if(p.y < 0) p.y = H;
+    if(p.y > H) p.y = 0;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.gold
+      ? `rgba(240,192,64,${p.o})`
+      : `rgba(255,255,255,${p.o * .5})`;
+    ctx.fill();
+  });
+  requestAnimationFrame(draw);
+}
+draw();
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting) e.target.classList.add('visible');
+  });
+}, {threshold: .2});
+document.querySelectorAll('.s-reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
