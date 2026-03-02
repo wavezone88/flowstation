@@ -3377,7 +3377,10 @@ location.reload();
 }
 
 // ── CALLED AFTER SUCCESSFUL AUTH ──
+let _signedInOnce = false;
 async function onSignedIn(user){
+if(_signedInOnce) return;
+_signedInOnce = true;
 currentUser = user;
 const params = new URLSearchParams(window.location.search);
 const plan   = params.get('plan');
@@ -6042,7 +6045,7 @@ function getEffectiveTier(user, storedTier){
 if(!user) return storedTier || 'basic';
 var em = (user.email||'').toLowerCase();
 if(ADMIN_EMAILS.includes(em)) return 'premium';
-if(PRO_EMAILS.includes(em) && (!storedTier || storedTier === 'basic')) return 'regular';
+if(PRO_EMAILS.includes(em)) return 'regular';
 return storedTier || 'basic';
 }
 
