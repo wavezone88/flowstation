@@ -6034,11 +6034,13 @@ showToast('✓ ' + word.toUpperCase());
 //  full Elite access when logged in as that user
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const ADMIN_EMAILS = ['flowstationai@gmail.com'];
+const PRO_EMAILS = ['wavezonemg@gmail.com'];
 
 function getEffectiveTier(user, storedTier){
-if(user && ADMIN_EMAILS.includes((user.email||'').toLowerCase())){
-return 'premium'; // Admin always gets Elite
-}
+if(!user) return storedTier || 'basic';
+var em = (user.email||'').toLowerCase();
+if(ADMIN_EMAILS.includes(em)) return 'premium';
+if(PRO_EMAILS.includes(em) && (!storedTier || storedTier === 'basic')) return 'regular';
 return storedTier || 'basic';
 }
 
