@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowStation - Flow Score Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Saira:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#060606;color:#f2efe9;font-family:'Saira',sans-serif;overflow:hidden;height:100vh;display:flex;align-items:center;justify-content:center;}
+.demo-wrap{width:1100px;max-width:96vw;position:relative;}
+.demo-header{text-align:center;margin-bottom:2rem;opacity:0;animation:fadeUp .8s .3s forwards;}
+.demo-header h1{font-size:2.2rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:linear-gradient(135deg,#c8940e,#f0c040,#ffe680);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.demo-header p{font-size:.92rem;color:rgba(242,239,233,.4);letter-spacing:.06em;margin-top:.4rem;}
+.demo-body{display:flex;gap:1.5rem;opacity:0;animation:fadeUp .8s .6s forwards;}
+.demo-pad{flex:1;background:#1a1a1c;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;min-height:380px;display:flex;flex-direction:column;}
+.demo-pad-head{display:flex;align-items:center;padding:.5rem .8rem;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.3);}
+.demo-pad-head span{font-size:.62rem;font-weight:700;letter-spacing:.12em;color:rgba(242,239,233,.3);text-transform:uppercase;}
+.demo-pad-body{flex:1;display:flex;padding:.6rem 0;}
+.demo-gutter{width:36px;display:flex;flex-direction:column;align-items:center;gap:0;padding-top:.2rem;}
+.demo-gutter-num{font-size:.7rem;font-weight:600;color:rgba(242,239,233,.15);height:1.65rem;display:flex;align-items:center;}
+.demo-syl{width:28px;display:flex;flex-direction:column;align-items:center;gap:0;padding-top:.2rem;border-left:1px solid rgba(255,255,255,.04);}
+.demo-syl-num{font-size:.68rem;font-weight:700;height:1.65rem;display:flex;align-items:center;transition:color .3s;}
+.demo-lines{flex:1;padding:0 .8rem;display:flex;flex-direction:column;gap:0;}
+.demo-line{font-size:.92rem;color:#2c2a24;height:1.65rem;display:flex;align-items:center;white-space:nowrap;overflow:hidden;background:#f0ebe0;border-bottom:1px solid rgba(0,0,0,.04);padding:0 .4rem;font-weight:400;}
+.demo-line:first-child{border-radius:4px 4px 0 0;}
+.demo-line:last-child{border-radius:0 0 4px 4px;}
+.demo-cursor{display:inline-block;width:2px;height:1rem;background:#c8940e;animation:blink 1s infinite;margin-left:1px;vertical-align:middle;}
+.demo-pad-foot{display:flex;align-items:center;padding:.4rem .8rem;border-top:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.2);}
+.demo-stat{font-size:.6rem;font-weight:600;letter-spacing:.08em;color:rgba(242,239,233,.25);text-transform:uppercase;}
+.demo-score-panel{width:320px;display:flex;flex-direction:column;gap:1rem;}
+.score-card{background:#1a1a1c;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:1.4rem;position:relative;overflow:hidden;}
+.score-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#f0c040,transparent);opacity:0;transition:opacity .5s;}
+.score-card.active::before{opacity:1;}
+.score-ring-wrap{display:flex;align-items:center;gap:1.2rem;margin-bottom:1rem;}
+.score-ring{width:80px;height:80px;position:relative;flex-shrink:0;}
+.score-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+.score-ring-track{fill:none;stroke:rgba(255,255,255,.06);stroke-width:5;}
+.score-ring-fill{fill:none;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset 1s ease,stroke .5s;}
+.score-num{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.8rem;font-weight:800;transition:color .5s;}
+.score-label{font-size:.58rem;font-weight:700;letter-spacing:.14em;color:rgba(242,239,233,.3);text-transform:uppercase;}
+.score-title{font-size:1.1rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;}
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
+.metric{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:.55rem .7rem;transition:all .4s;}
+.metric-label{font-size:.5rem;font-weight:700;letter-spacing:.1em;color:rgba(242,239,233,.3);text-transform:uppercase;margin-bottom:.2rem;}
+.metric-bar{height:3px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-bottom:.25rem;}
+.metric-bar-fill{height:100%;border-radius:3px;transition:width 1s ease,background .5s;}
+.metric-val{font-size:1rem;font-weight:800;transition:color .5s;}
+.rhyme-groups{background:#1a1a1c;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:1rem 1.2rem;}
+.rg-title{font-size:.54rem;font-weight:700;letter-spacing:.12em;color:rgba(242,239,233,.3);text-transform:uppercase;margin-bottom:.6rem;}
+.rg-row{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.4rem;opacity:0;transition:opacity .5s;}
+.rg-row.show{opacity:1;}
+.rg-chip{font-size:.78rem;font-weight:600;padding:.2rem .55rem;border-radius:6px;background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.15);color:#f0c040;}
+.rg-chip.green{background:rgba(48,209,88,.08);border-color:rgba(48,209,88,.15);color:#30d158;}
+.rg-chip.purple{background:rgba(138,79,255,.08);border-color:rgba(138,79,255,.15);color:#8a4fff;}
+.int-badge{font-size:.42rem;font-weight:700;letter-spacing:.04em;color:#8a4fff;background:rgba(138,79,255,.1);border:1px solid rgba(138,79,255,.2);padding:.1rem .3rem;border-radius:4px;margin-left:.4rem;text-transform:uppercase;vertical-align:middle;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+@keyframes blink{0%,50%{opacity:1;}51%,100%{opacity:0;}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(48,209,88,.3);}50%{box-shadow:0 0 20px 4px rgba(48,209,88,.15);}}
+.score-card.pulse{animation:pulse 2s ease-in-out;}
+</style>
+</head>
+<body>
+
+<div class="demo-wrap">
+  <div class="demo-header">
+    <h1>Flow Score</h1>
+    <p>Real-time composite analysis as you write</p>
+  </div>
+  <div class="demo-body">
+    <div class="demo-pad">
+      <div class="demo-pad-head">
+        <span>NOTEPAD</span>
+      </div>
+      <div class="demo-pad-body">
+        <div class="demo-gutter" id="gutter"></div>
+        <div class="demo-syl" id="sylGutter"></div>
+        <div class="demo-lines" id="lines"></div>
+      </div>
+      <div class="demo-pad-foot">
+        <span class="demo-stat" id="padStat">0 WORDS · 0 LINES · 0 SYL</span>
+      </div>
+    </div>
+    <div class="demo-score-panel">
+      <div class="score-card" id="scoreCard">
+        <div class="score-ring-wrap">
+          <div class="score-ring">
+            <svg viewBox="0 0 36 36">
+              <circle class="score-ring-track" cx="18" cy="18" r="15.5" stroke-dasharray="97.4"/>
+              <circle class="score-ring-fill" id="ringFill" cx="18" cy="18" r="15.5" stroke-dasharray="97.4" stroke-dashoffset="97.4"/>
+            </svg>
+            <div class="score-num" id="scoreNum">--</div>
+          </div>
+          <div>
+            <div class="score-title" id="scoreTitle">FLOW SCORE</div>
+            <div class="score-label" id="scoreVerdict">Write bars to begin</div>
+          </div>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric" id="m-cad">
+            <div class="metric-label">Cadence</div>
+            <div class="metric-bar"><div class="metric-bar-fill" id="bar-cad" style="width:0%;background:#555;"></div></div>
+            <div class="metric-val" id="val-cad" style="color:#555;">--</div>
+          </div>
+          <div class="metric" id="m-rhy">
+            <div class="metric-label">End Rhymes</div>
+            <div class="metric-bar"><div class="metric-bar-fill" id="bar-rhy" style="width:0%;background:#555;"></div></div>
+            <div class="metric-val" id="val-rhy" style="color:#555;">--</div>
+          </div>
+          <div class="metric" id="m-int">
+            <div class="metric-label">Internal</div>
+            <div class="metric-bar"><div class="metric-bar-fill" id="bar-int" style="width:0%;background:#555;"></div></div>
+            <div class="metric-val" id="val-int" style="color:#555;">--</div>
+          </div>
+          <div class="metric" id="m-voc">
+            <div class="metric-label">Vocabulary</div>
+            <div class="metric-bar"><div class="metric-bar-fill" id="bar-voc" style="width:0%;background:#555;"></div></div>
+            <div class="metric-val" id="val-voc" style="color:#555;">--</div>
+          </div>
+        </div>
+      </div>
+      <div class="rhyme-groups" id="rhymeGroups" style="opacity:0;transition:opacity .5s;">
+        <div class="rg-title">Rhyme Groups Detected</div>
+        <div id="rgRows"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var bars = [
+  "I came from nothing now I'm something watch me rise",
+  "Every setback was a setup in disguise",
+  "They counted me out but I never lost the drive",
+  "Born in the struggle that's the reason I survive",
+  "My pen bleeds truth every single line I write",
+  "Dark before the dawn I had to fight for light",
+  "Stack my dreams up high and build them overnight",
+  "No shortcuts taken every step was right"
+];
+
+function lineSyl(line){
+  var w=line.trim().toLowerCase().replace(/[^a-z\s]/g,'');
+  if(!w) return 0;
+  return w.split(/\s+/).reduce(function(t,word){
+    if(!word) return t;
+    var c=0,p=false;
+    for(var i=0;i<word.length;i++){var v=/[aeiouy]/.test(word[i]);if(v&&!p)c++;p=v;}
+    if(word.endsWith('e')&&c>1)c--;
+    return t+Math.max(1,c);
+  },0);
+}
+
+function phoneticEnd(word){
+  var w=word.toLowerCase().replace(/[^a-z]/g,'');
+  if(!w)return '';
+  var vowels='aeiouy';var last=-1;
+  for(var i=w.length-1;i>=0;i--){if(vowels.indexOf(w[i])>=0){last=i;break;}}
+  if(last<0)return w.slice(-2);
+  return w.slice(last);
+}
+
+function wordsRhyme(a,b){
+  if(a===b)return false;
+  var pa=phoneticEnd(a),pb=phoneticEnd(b);
+  if(pa.length<2&&pb.length<2)return pa===pb;
+  if(pa===pb)return true;
+  if(pa.length>=2&&pb.length>=2&&pa.slice(-2)===pb.slice(-2))return true;
+  var va=pa.replace(/[^aeiouy]/g,''),vb=pb.replace(/[^aeiouy]/g,'');
+  if(va.length>=2&&va===vb)return true;
+  return false;
+}
+
+function getEndWord(line){
+  var m=line.trim().match(/[\w']+(?=[^\w']*$)/);
+  return m?m[0].toLowerCase():'';
+}
+
+function calcScore(activeLines){
+  if(activeLines.length<2) return {score:0,cadence:0,endRhyme:0,internal:0,vocab:0,punch:0};
+  var sylCounts=activeLines.map(lineSyl);
+  var avg=sylCounts.reduce(function(a,b){return a+b;},0)/sylCounts.length;
+  var vr=0;for(var i=0;i<sylCounts.length;i++){var d=sylCounts[i]-avg;vr+=d*d;}
+  vr=Math.sqrt(vr/sylCounts.length);
+  var cadence=Math.max(0,Math.min(100,100-vr*6));
+
+  var endWords=activeLines.map(getEndWord).filter(Boolean);
+  var paired=0;
+  for(var i=0;i<endWords.length;i++){
+    for(var j=i+1;j<Math.min(i+5,endWords.length);j++){
+      if(wordsRhyme(endWords[i],endWords[j])){paired++;break;}
+    }
+  }
+  var endRhyme=endWords.length>1?Math.min(100,Math.round((paired/Math.max(1,endWords.length-1))*100)):0;
+
+  var intCount=0;
+  for(var i=0;i<activeLines.length;i++){
+    var ws=activeLines[i].trim().toLowerCase().replace(/[^a-z\s']/g,'').split(/\s+/).filter(function(w){return w.length>2;});
+    for(var a=0;a<ws.length;a++){for(var b=a+2;b<ws.length;b++){if(wordsRhyme(ws[a],ws[b])){intCount++;break;}}}
+  }
+  var internal=Math.min(100,Math.round((intCount/activeLines.length)*50));
+
+  var allW=[];activeLines.forEach(function(l){l.trim().toLowerCase().replace(/[^a-z\s']/g,'').split(/\s+/).forEach(function(w){if(w.length>1)allW.push(w);});});
+  var unique={};allW.forEach(function(w){unique[w]=1;});
+  var vocab=allW.length<3?0:Math.min(100,Math.round((Object.keys(unique).length/allW.length)*130));
+
+  var lastLine=activeLines[activeLines.length-1]||'';
+  var ps=0;
+  if(/[!?]/.test(lastLine))ps++;
+  if(lastLine.split(' ').length<=8)ps++;
+  if(activeLines.length>=4){
+    var lw=getEndWord(lastLine);
+    for(var k=Math.max(0,activeLines.length-4);k<activeLines.length-1;k++){
+      var kw=getEndWord(activeLines[k]);
+      if(lw&&kw&&wordsRhyme(lw,kw)){ps+=2;break;}
+    }
+  }
+  var punch=Math.min(100,ps*30);
+
+  var score=Math.round(cadence*0.30+endRhyme*0.30+internal*0.15+vocab*0.15+punch*0.10);
+  return {score:score,cadence:Math.round(cadence),endRhyme:Math.round(endRhyme),internal:Math.round(internal),vocab:Math.round(vocab),punch:Math.round(punch)};
+}
+
+function clr(v){return v>=70?'#30d158':v>=40?'#f0c040':'#ff453a';}
+
+function updateMetric(id,val){
+  document.getElementById('bar-'+id).style.width=val+'%';
+  document.getElementById('bar-'+id).style.background=clr(val);
+  document.getElementById('val-'+id).textContent=val;
+  document.getElementById('val-'+id).style.color=clr(val);
+}
+
+var currentLines=[];
+var charIdx=0;
+var lineIdx=0;
+var typingLine='';
+
+function typeNextChar(){
+  if(lineIdx>=bars.length){
+    setTimeout(function(){
+      document.getElementById('scoreCard').classList.add('pulse');
+    },500);
+    return;
+  }
+  var target=bars[lineIdx];
+  typingLine+=target[charIdx];
+  charIdx++;
+  renderLines();
+  if(charIdx>=target.length){
+    currentLines.push(target);
+    lineIdx++;
+    charIdx=0;
+    typingLine='';
+    setTimeout(function(){
+      updateScore();
+      updateRhymeGroups();
+    },200);
+    setTimeout(typeNextChar,600);
+  } else {
+    setTimeout(typeNextChar,25+Math.random()*35);
+  }
+}
+
+function renderLines(){
+  var g=document.getElementById('gutter');
+  var s=document.getElementById('sylGutter');
+  var l=document.getElementById('lines');
+  var html='',ghtml='',shtml='';
+  var totalWords=0,totalSyl=0;
+  for(var i=0;i<currentLines.length;i++){
+    var sy=lineSyl(currentLines[i]);
+    totalSyl+=sy;
+    totalWords+=currentLines[i].split(/\s+/).length;
+    ghtml+='<div class="demo-gutter-num">'+(i+1)+'</div>';
+    shtml+='<div class="demo-syl-num" style="color:'+clr(sy>8?80:40)+'">'+sy+'</div>';
+    html+='<div class="demo-line">'+currentLines[i]+'</div>';
+  }
+  if(typingLine){
+    var idx=currentLines.length;
+    var sy=lineSyl(typingLine);
+    totalSyl+=sy;
+    totalWords+=typingLine.split(/\s+/).filter(Boolean).length;
+    ghtml+='<div class="demo-gutter-num">'+(idx+1)+'</div>';
+    shtml+='<div class="demo-syl-num" style="color:rgba(242,239,233,.15);">'+sy+'</div>';
+    html+='<div class="demo-line">'+typingLine+'<span class="demo-cursor"></span></div>';
+  }
+  for(var j=(currentLines.length+(typingLine?1:0));j<8;j++){
+    ghtml+='<div class="demo-gutter-num">'+(j+1)+'</div>';
+    shtml+='<div class="demo-syl-num" style="color:rgba(242,239,233,.08);"> </div>';
+    html+='<div class="demo-line" style="color:transparent;"> </div>';
+  }
+  g.innerHTML=ghtml;
+  s.innerHTML=shtml;
+  l.innerHTML=html;
+  document.getElementById('padStat').textContent=totalWords+' WORDS · '+(currentLines.length+(typingLine?1:0))+' LINES · '+totalSyl+' SYL';
+}
+
+function updateScore(){
+  if(currentLines.length<2) return;
+  var r=calcScore(currentLines);
+  var card=document.getElementById('scoreCard');
+  card.classList.add('active');
+  document.getElementById('scoreNum').textContent=r.score;
+  document.getElementById('scoreNum').style.color=clr(r.score);
+  var circ=97.4;
+  var off=circ-(r.score/100)*circ;
+  var ring=document.getElementById('ringFill');
+  ring.style.strokeDashoffset=off;
+  ring.style.stroke=clr(r.score);
+  var v=r.score>=75?'Professional cadence':r.score>=50?'Solid foundation':'Keep building';
+  document.getElementById('scoreVerdict').textContent=v;
+  updateMetric('cad',r.cadence);
+  updateMetric('rhy',r.endRhyme);
+  updateMetric('int',r.internal);
+  updateMetric('voc',r.vocab);
+}
+
+function updateRhymeGroups(){
+  if(currentLines.length<2) return;
+  var rg=document.getElementById('rhymeGroups');
+  rg.style.opacity='1';
+  var endWords=currentLines.map(getEndWord).filter(Boolean);
+  var groups=[],used={};
+  for(var i=0;i<endWords.length;i++){
+    if(used[i])continue;
+    var grp=[endWords[i]];
+    for(var j=i+1;j<endWords.length;j++){
+      if(!used[j]&&wordsRhyme(endWords[i],endWords[j])){grp.push(endWords[j]);used[j]=1;}
+    }
+    if(grp.length>1)groups.push(grp);
+  }
+  var colors=['','green','purple'];
+  var html='';
+  groups.forEach(function(g,idx){
+    var cc=colors[idx%3];
+    html+='<div class="rg-row show" style="animation-delay:'+(idx*0.15)+'s">';
+    g.forEach(function(w){html+='<span class="rg-chip '+cc+'">'+w+'</span>';});
+    html+='</div>';
+  });
+  if(!html) html='<div style="font-size:.78rem;color:rgba(242,239,233,.2);">Analyzing patterns...</div>';
+  document.getElementById('rgRows').innerHTML=html;
+}
+
+renderLines();
+setTimeout(typeNextChar,1200);
+</script>
+</body>
+</html>
