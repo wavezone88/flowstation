@@ -2756,8 +2756,8 @@ text-decoration:none;
       </div>
       <!-- Flow Score -->
       <div id="flowScoreWrap" style="padding:.4rem .6rem .3rem;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:.4rem;display:none;">
-        <div style="font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:.35rem;">⚡ LINE FLOW VS BEAT</div>
-        <div id="flowScoreLines" style="max-height:100px;overflow-y:auto;"></div>
+        <div style="font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:.35rem;">⚡ FLOW ANALYSIS</div>
+        <div id="flowScoreLines" style="max-height:180px;overflow-y:auto;"></div>
       </div>
       <div class="bpmlist" id="bpmlist"></div>
     </div>
@@ -4808,30 +4808,125 @@ renderGutters(lines);
 updateFlowBadge(ne);
 }
 
+function phoneticEnd(word){
+var w = word.toLowerCase().replace(/[^a-z]/g,'');
+if(!w) return '';
+var vowels = 'aeiouy';
+var last = -1;
+for(var i=w.length-1;i>=0;i--){ if(vowels.indexOf(w[i])>=0){ last=i; break; } }
+if(last<0) return w.slice(-2);
+return w.slice(last);
+}
+
+function wordsRhyme(a,b){
+if(a===b) return false;
+var pa = phoneticEnd(a), pb = phoneticEnd(b);
+if(pa.length<2 && pb.length<2) return pa===pb;
+if(pa===pb) return true;
+if(pa.length>=2 && pb.length>=2 && pa.slice(-2)===pb.slice(-2)) return true;
+var va=pa.replace(/[^aeiouy]/g,''), vb=pb.replace(/[^aeiouy]/g,'');
+if(va.length>=2 && va===vb) return true;
+return false;
+}
+
+function getEndWords(lines){
+return lines.map(function(l){
+var m=l.trim().match(/[\w']+(?=[^\w']*$)/);
+return m ? m[0].toLowerCase() : '';
+}).filter(Boolean);
+}
+
+function countEndRhymes(endWords){
+var paired=0;
+for(var i=0;i<endWords.length;i++){
+for(var j=i+1;j<Math.min(i+5,endWords.length);j++){
+if(wordsRhyme(endWords[i],endWords[j])){ paired++; break; }
+}
+}
+return paired;
+}
+
+function countInternalRhymes(lines){
+var total=0;
+for(var i=0;i<lines.length;i++){
+var ws=lines[i].trim().toLowerCase().replace(/[^a-z\s']/g,'').split(/\s+/).filter(function(w){return w.length>2;});
+for(var a=0;a<ws.length;a++){
+for(var b=a+2;b<ws.length;b++){
+if(wordsRhyme(ws[a],ws[b])){ total++; break; }
+}
+}
+}
+return total;
+}
+
+function calcVocabRichness(lines){
+var all=[];
+lines.forEach(function(l){
+l.trim().toLowerCase().replace(/[^a-z\s']/g,'').split(/\s+/).forEach(function(w){if(w.length>1) all.push(w);});
+});
+if(all.length<3) return 0;
+var unique = {};
+all.forEach(function(w){unique[w]=1;});
+return Object.keys(unique).length / all.length;
+}
+
+function calcCompositeFlow(filledLines){
+if(filledLines.length<2) return {score:0,cadence:0,endRhyme:0,internal:0,vocab:0,punch:0};
+var sylCounts = filledLines.map(function(l){return lineSyl(l);});
+var avg = sylCounts.reduce(function(a,b){return a+b;},0)/sylCounts.length;
+var vr=0;
+for(var i=0;i<sylCounts.length;i++){var d=sylCounts[i]-avg;vr+=d*d;}
+vr = Math.sqrt(vr/sylCounts.length);
+var cadence = Math.max(0,Math.min(100,100-vr*6));
+
+var endWords = getEndWords(filledLines);
+var paired = countEndRhymes(endWords);
+var endRhyme = endWords.length>1 ? Math.min(100,Math.round((paired/Math.floor(endWords.length/2))*100)) : 0;
+
+var intCount = countInternalRhymes(filledLines);
+var internal = Math.min(100,Math.round((intCount/filledLines.length)*50));
+
+var richness = calcVocabRichness(filledLines);
+var vocab = Math.min(100,Math.round(richness*130));
+
+var lastLine = filledLines[filledLines.length-1]||'';
+var punchSignals = 0;
+if(/[!?]/.test(lastLine)) punchSignals++;
+if(lastLine.split(' ').length<=8) punchSignals++;
+if(filledLines.length>=4){
+var lastEnd = phoneticEnd((lastLine.match(/[\w']+(?=[^\w']*$)/)||[''])[0]);
+for(var k=Math.max(0,filledLines.length-4);k<filledLines.length-1;k++){
+var kEnd = phoneticEnd((filledLines[k].match(/[\w']+(?=[^\w']*$)/)||[''])[0]);
+if(wordsRhyme(kEnd,lastEnd)){punchSignals+=2;break;}
+}
+}
+var punch = Math.min(100,punchSignals*30);
+
+var score = Math.round(cadence*0.30 + endRhyme*0.30 + internal*0.15 + vocab*0.15 + punch*0.10);
+return {score:score,cadence:Math.round(cadence),endRhyme:Math.round(endRhyme),internal:Math.round(internal),vocab:Math.round(vocab),punch:Math.round(punch)};
+}
+
 function updateFlowBadge(filledLines){
 var badge = document.getElementById('flowBadge');
 var scoreEl = document.getElementById('fbScoreNum');
 var ringEl = document.getElementById('fbRingFill');
 if(!badge||!scoreEl||!ringEl) return;
 if(!filledLines) filledLines = getLines().filter(function(l){return l.trim();});
-if(filledLines.length < 2){ badge.classList.remove('on','elite','solid','work'); scoreEl.textContent='--'; ringEl.style.strokeDashoffset='97.4'; return; }
+if(filledLines.length < 2){ badge.classList.remove('on','elite','solid','work'); scoreEl.textContent='--'; ringEl.style.strokeDashoffset='97.4'; badge.title='Flow Score measures cadence, rhyme density, internal rhymes, vocabulary, and punchline strength'; return; }
 badge.classList.add('on');
-var sylCounts = filledLines.map(function(l){return lineSyl(l);});
-var avg = sylCounts.reduce(function(a,b){return a+b;},0) / sylCounts.length;
-var variance = 0;
-for(var i=0;i<sylCounts.length;i++){var d=sylCounts[i]-avg;variance+=d*d;}
-variance = Math.sqrt(variance/sylCounts.length);
-var score = Math.max(0, Math.min(100, Math.round(100 - variance * 8)));
+var result = calcCompositeFlow(filledLines);
+var score = result.score;
 scoreEl.textContent = score;
+badge.title = 'FLOW SCORE: '+score+'/100\nCadence: '+result.cadence+' · End Rhyme: '+result.endRhyme+' · Internal: '+result.internal+'\nVocab: '+result.vocab+' · Punch: '+result.punch;
 var circumference = 97.4;
 var offset = circumference - (score / 100) * circumference;
 ringEl.style.strokeDashoffset = offset;
 badge.classList.remove('elite','solid','work');
-if(score >= 80){
+if(score >= 75){
 badge.classList.add('elite');
 scoreEl.style.color = '#30d158';
 ringEl.style.stroke = '#30d158';
-} else if(score >= 55){
+} else if(score >= 50){
 badge.classList.add('solid');
 scoreEl.style.color = '#f0c040';
 ringEl.style.stroke = '#f0c040';
@@ -5197,55 +5292,69 @@ const words  = text.split(/\s+/).filter(Boolean);
 const totalSyl = lines.reduce((a,l)=>a+lineSyl(l),0);
 const avgSyl = lines.length ? (totalSyl / lines.length).toFixed(1) : 0;
 
-// Rhyme density
-const endWords = lines.map(l=>{
-const m = l.trim().match(/[\w']+(?=[^\w']*$)/);
-return m ? m[0].toLowerCase() : '';
-}).filter(Boolean);
-const code = w => w.replace(/[^a-z]/g,'').slice(-3);
-const groups = {};
-endWords.forEach(w=>{ const c=code(w); groups[c]=(groups[c]||[]).concat(w); });
-const rhyming = Object.values(groups).filter(g=>g.length>1);
-const rhymeDensity = endWords.length ? Math.round((rhyming.flat().length / endWords.length)*100) : 0;
-
-// Flow score
-const sylPerLine = lines.map(l=>lineSyl(l));
-const variance   = sylPerLine.length > 1
-? Math.sqrt(sylPerLine.reduce((s,v)=>s+Math.pow(v-avgSyl,2),0)/sylPerLine.length).toFixed(1)
-: 0;
-const flowScore  = Math.max(0, Math.min(100, 100 - variance*8));
-
-// Multi-syllable detection
+const result = calcCompositeFlow(lines);
+const endWords = getEndWords(lines);
+const intCount = countInternalRhymes(lines);
 const multiSyl = words.filter(w=>lineSyl(w)>=3).length;
 
-// Punchline check (last line)
-const lastLine  = lines[lines.length-1] || '';
-const hasPunch  = /[!?]/.test(lastLine) || lastLine.split(' ').length <= 7;
-
-// Build analysis
 const NL = '\n';
 let out = '📊 FLOYD ANALYSIS' + NL + NL;
-out += '🎵 RHYME DENSITY: ' + rhymeDensity + '% ';
-if(rhymeDensity >= 75) out += ' -  Fire. Your end rhymes are locked in.' + NL;
-else if(rhymeDensity >= 50) out += ' -  Solid. A few bars could hit harder.' + NL;
-else out += ' -  Needs work. Tighten those end rhymes.' + NL;
 
-out += '⚡ FLOW SCORE: ' + Math.round(flowScore) + '/100 ';
-if(flowScore >= 80) out += " -  Consistent cadence. Elite level." + NL;
-else if(flowScore >= 55) out += ' -  Some variance. Could be intentional.' + NL;
-else out += ' -  Choppy. Match your syllable count per bar.' + NL;
+out += '⚡ FLOW SCORE: ' + result.score + '/100' + NL;
+if(result.score >= 75) out += 'Bars are locked in. Professional cadence.' + NL;
+else if(result.score >= 50) out += 'Solid foundation. Room to tighten.' + NL;
+else out += 'Early stages. Keep building.' + NL;
 
-out += '🧠 AVG SYL/BAR: ' + avgSyl;
+out += NL + '── BREAKDOWN ──' + NL;
+
+out += '🎵 CADENCE: ' + result.cadence + '/100 ';
+if(result.cadence >= 80) out += ' -  Syllable count is consistent. Pocket is tight.' + NL;
+else if(result.cadence >= 55) out += ' -  Some variation. Could be intentional or could be tightened.' + NL;
+else out += ' -  Lines are uneven. Match your bar lengths.' + NL;
+
+out += '🔗 END RHYMES: ' + result.endRhyme + '/100 ';
+var paired = countEndRhymes(endWords);
+out += '(' + paired + ' of ' + Math.floor(endWords.length/2) + ' pairs) ';
+if(result.endRhyme >= 75) out += ' -  End rhymes are fire.' + NL;
+else if(result.endRhyme >= 45) out += ' -  Decent scheme. A few bars could hit harder.' + NL;
+else out += ' -  Needs more end rhymes to lock in the pattern.' + NL;
+
+out += '🎯 INTERNAL RHYMES: ' + result.internal + '/100 ';
+out += '(' + intCount + ' found) ';
+if(result.internal >= 60) out += ' -  Strong internal texture. Advanced technique.' + NL;
+else if(result.internal >= 25) out += ' -  Some internal play. Add more for density.' + NL;
+else out += ' -  Try rhyming words within your bars, not just at the ends.' + NL;
+
+out += '📚 VOCABULARY: ' + result.vocab + '/100 ';
+if(result.vocab >= 75) out += ' -  Rich word choice. Not repeating yourself.' + NL;
+else if(result.vocab >= 45) out += ' -  Decent range. Try swapping some repeated words.' + NL;
+else out += ' -  Using the same words too much. Diversify.' + NL;
+
+out += '💥 PUNCHLINE: ' + result.punch + '/100 ';
+if(result.punch >= 60) out += ' -  Closer hits. Good payoff.' + NL;
+else out += ' -  End stronger. Last bar should land like a haymaker.' + NL;
+
+out += NL + '🧠 AVG SYL/BAR: ' + avgSyl;
 if(avgSyl < 8) out += '  -  Very sparse. Add more texture.' + NL;
 else if(avgSyl > 18) out += '  -  Dense. Hard to breathe.' + NL;
 else out += '  -  Good range.' + NL;
 
-out += '✍ MULTI-SYL: ' + multiSyl + (multiSyl >= 3 ? '  -  Nice complexity.' : '  -  Add 3+ syllable words.') + NL;
-out += '🎯 CLOSER: ' + (hasPunch ? 'Last line hits like a punchline.' : 'Closer could be stronger  -  end with a bang.') + NL;
+out += '✍ MULTI-SYL WORDS: ' + multiSyl + (multiSyl >= 3 ? '  -  Nice complexity.' : '  -  Add 3+ syllable words for sophistication.') + NL;
 
-if(rhyming.length){
-const scheme = Object.entries(groups).filter(([,g])=>g.length>1).map(([,g])=>g[0]).slice(0,4);
-out += NL + '🔗 RHYME GROUPS: ' + scheme.join(' · ');
+if(endWords.length >= 2){
+var rhymeGroups = [];
+var used = {};
+for(var ri=0;ri<endWords.length;ri++){
+if(used[ri]) continue;
+var grp = [endWords[ri]];
+for(var rj=ri+1;rj<endWords.length;rj++){
+if(!used[rj] && wordsRhyme(endWords[ri],endWords[rj])){ grp.push(endWords[rj]); used[rj]=1; }
+}
+if(grp.length>1) rhymeGroups.push(grp);
+}
+if(rhymeGroups.length){
+out += NL + '🔗 RHYME GROUPS: ' + rhymeGroups.map(function(g){return g.join(' / ');}).slice(0,5).join('  ·  ');
+}
 }
 
 out += NL + NL + ' -  Upgrade to Elite for full rewrites, tone shifting, and bar restructuring.';
@@ -6347,11 +6456,12 @@ bar.style.width='0%';
 //  FLOW SCORE vs BEAT
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function updateFlowScore(bpm){
-// Target syllables per bar based on BPM
 const targetSyl = bpm < 70  ? 7  :
-bpm < 90  ? 10 :
+bpm < 80  ? 9  :
+bpm < 95  ? 11 :
 bpm < 110 ? 13 :
-bpm < 130 ? 16 : 20;
+bpm < 125 ? 15 :
+bpm < 140 ? 18 : 21;
 
 const wrap = document.getElementById('flowScoreWrap');
 const el   = document.getElementById('flowScoreLines');
@@ -6361,19 +6471,38 @@ const lines = getLines().filter(l=>l.trim());
 if(!lines.length){ wrap.style.display='none'; return; }
 wrap.style.display = '';
 
-el.innerHTML = lines.slice(0,8).map(line=>{
-const n   = lineSyl(line);
-const d   = n - targetSyl;
-const pct = Math.min(100, Math.round((n/targetSyl)*100));
-const clr = Math.abs(d) <= 2 ? '#30d158' : Math.abs(d) <= 5 ? '#f0c040' : '#ff453a';
-const lbl = Math.abs(d) <= 2 ? 'ON' : d > 0 ? '+'+d : ''+d;
-const preview = line.trim().slice(0,22)+(line.length>22?'...':'');
+const result = calcCompositeFlow(lines);
+
+var header = '<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.4rem;padding-bottom:.35rem;border-bottom:1px solid rgba(255,255,255,.06);">';
+header += '<span style="font-family:Saira,sans-serif;font-size:1.6rem;font-weight:800;color:'+(result.score>=75?'#30d158':result.score>=50?'#f0c040':'#ff453a')+';">'+result.score+'</span>';
+header += '<span style="font-size:.62rem;font-weight:700;letter-spacing:.08em;color:var(--dim);text-transform:uppercase;">COMPOSITE<br>FLOW</span>';
+header += '<div style="margin-left:auto;display:flex;gap:.5rem;">';
+var metrics = [{l:'CAD',v:result.cadence},{l:'RHY',v:result.endRhyme},{l:'INT',v:result.internal},{l:'VOC',v:result.vocab}];
+metrics.forEach(function(m){
+var mc = m.v>=70?'#30d158':m.v>=40?'#f0c040':'#ff453a';
+header += '<div style="text-align:center;"><div style="font-size:.5rem;font-weight:700;letter-spacing:.06em;color:var(--dim);">'+m.l+'</div><div style="font-size:.72rem;font-weight:800;color:'+mc+';">'+m.v+'</div></div>';
+});
+header += '</div></div>';
+
+var lineRows = lines.slice(0,8).map(function(line){
+var n   = lineSyl(line);
+var d   = n - targetSyl;
+var pct = Math.min(100, Math.round((n/targetSyl)*100));
+var clr = Math.abs(d) <= 2 ? '#30d158' : Math.abs(d) <= 4 ? '#f0c040' : '#ff453a';
+var lbl = Math.abs(d) <= 2 ? 'ON' : d > 0 ? '+'+d : ''+d;
+var ws = line.trim().toLowerCase().replace(/[^a-z\s']/g,'').split(/\s+/).filter(function(w){return w.length>2;});
+var hasInternal = false;
+for(var a=0;a<ws.length&&!hasInternal;a++){for(var b=a+2;b<ws.length;b++){if(wordsRhyme(ws[a],ws[b])){hasInternal=true;break;}}}
+var preview = line.trim().slice(0,20)+(line.length>20?'...':'');
 return '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.22rem;">'
 + '<span style="font-size:.86rem;color:rgba(242,239,233,.3);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+preview+'</span>'
++ (hasInternal ? '<span style="font-size:.5rem;color:#8a4fff;font-weight:700;letter-spacing:.04em;">INT</span>' : '')
 + '<div style="width:50px;height:4px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden;flex-shrink:0;"><div style="height:100%;width:'+Math.min(pct,100)+'%;background:'+clr+';border-radius:4px;transition:width .3s;"></div></div>'
 + '<span style="font-size:.86rem;font-weight:700;color:'+clr+';min-width:22px;text-align:right;flex-shrink:0;">'+lbl+'</span>'
 + '</div>';
 }).join('');
+
+el.innerHTML = header + lineRows;
 }
 
 function showExportMenu(btn){
