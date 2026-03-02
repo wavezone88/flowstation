@@ -1081,6 +1081,8 @@ FLOATING BEAT PLAYER
 grid-column:1/-1;grid-row:3;
 position:relative;
 transition:none;
+max-height:var(--audiobar);
+overflow:hidden;
 }
 .audio-bar.floating{
 position:fixed;
@@ -6845,18 +6847,29 @@ bar.style.bottom = '';
 bar.style.right  = '';
 bar.style.left   = '';
 bar.style.top    = '';
+bar.style.height = '';
+bar.style.minHeight = '';
+bar.style.maxHeight = '';
+bar.style.width = '';
 removeDraggable(bar);
-// Clean up YouTube embed
 const ytArea = document.getElementById('floatYtArea');
 if(ytArea){ ytArea.style.display = 'none'; ytArea.innerHTML = ''; }
 const audioControls = document.getElementById('audioControls');
 if(audioControls) audioControls.style.display = '';
+var app = document.querySelector('.app');
+if(app) app.style.gridTemplateRows = 'var(--topbar) 1fr var(--audiobar)';
 }
 
 function closeBeatPlayer(){
-// Don't destroy  -  just dock back to the bottom bar
 dockBeatPlayer();
-showToast('Beat player docked');
+var bar = document.getElementById('audioBar');
+if(bar){
+  bar.style.height = '';
+  bar.style.minHeight = '';
+  bar.style.maxHeight = '';
+}
+var app = document.querySelector('.app');
+if(app) app.style.gridTemplateRows = 'var(--topbar) 1fr var(--audiobar)';
 }
 
 // Pill track name is updated inside loadAudio() below
