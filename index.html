@@ -4794,18 +4794,19 @@ function getLines() {
 return (document.getElementById('pad').value || '').split('\n');
 }
 
+var _flowBadgeTimer = null;
 function updatePad() {
 const lines = getLines();
 const ne = lines.filter(l => l.trim());
 const words = ne.join(' ').split(/\s+/).filter(Boolean).length;
 const totalSyl = lines.reduce((a, l) => a + lineSyl(l), 0);
-// sw = LIVE indicator, NOT word count  -  leave it alone
 const sl = document.getElementById('sl'); if(sl) sl.textContent = ne.length;
 const ss = document.getElementById('ss'); if(ss) ss.textContent = totalSyl;
 const ps = document.getElementById('pstat');
 if(ps) ps.textContent = words + ' WORDS · ' + ne.length + ' LINES · ' + totalSyl + ' SYL';
 renderGutters(lines);
-updateFlowBadge(ne);
+if(_flowBadgeTimer) clearTimeout(_flowBadgeTimer);
+_flowBadgeTimer = setTimeout(function(){ updateFlowBadge(ne); }, 150);
 }
 
 function phoneticEnd(word){
@@ -4881,7 +4882,7 @@ var cadence = Math.max(0,Math.min(100,100-vr*6));
 
 var endWords = getEndWords(filledLines);
 var paired = countEndRhymes(endWords);
-var endRhyme = endWords.length>1 ? Math.min(100,Math.round((paired/Math.floor(endWords.length/2))*100)) : 0;
+var endRhyme = endWords.length>1 ? Math.min(100,Math.round((paired/Math.max(1,endWords.length-1))*100)) : 0;
 
 var intCount = countInternalRhymes(filledLines);
 var internal = Math.min(100,Math.round((intCount/filledLines.length)*50));
@@ -4894,10 +4895,10 @@ var punchSignals = 0;
 if(/[!?]/.test(lastLine)) punchSignals++;
 if(lastLine.split(' ').length<=8) punchSignals++;
 if(filledLines.length>=4){
-var lastEnd = phoneticEnd((lastLine.match(/[\w']+(?=[^\w']*$)/)||[''])[0]);
+var lastWord = ((lastLine.match(/[\w']+(?=[^\w']*$)/)||[''])[0]).toLowerCase();
 for(var k=Math.max(0,filledLines.length-4);k<filledLines.length-1;k++){
-var kEnd = phoneticEnd((filledLines[k].match(/[\w']+(?=[^\w']*$)/)||[''])[0]);
-if(wordsRhyme(kEnd,lastEnd)){punchSignals+=2;break;}
+var kWord = ((filledLines[k].match(/[\w']+(?=[^\w']*$)/)||[''])[0]).toLowerCase();
+if(lastWord && kWord && wordsRhyme(lastWord,kWord)){punchSignals+=2;break;}
 }
 }
 var punch = Math.min(100,punchSignals*30);
