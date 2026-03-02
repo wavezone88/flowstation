@@ -5827,13 +5827,26 @@ document.querySelectorAll('.sbi').forEach(b=>{ if(b.id!=='sbi-floyd') b.classLis
 document.querySelectorAll('.beat-yt-wrap.show').forEach(function(w){ w.classList.remove('show'); w.innerHTML=''; });
 }
 
+function closeFloyd(){
+if(!floydOpen) return;
+floydOpen = false;
+var panel = document.getElementById('floydPanel');
+var sbiFl = document.getElementById('sbi-floyd');
+if(panel) panel.classList.remove('open');
+if(sbiFl) sbiFl.classList.remove('on');
+}
+
+function closeAllPanels(){
+closeTool();
+closeFloyd();
+}
+
 function toggleFloyd(){
 const panel  = document.getElementById('floydPanel');
 const sbiFl  = document.getElementById('sbi-floyd');
 floydOpen = !floydOpen;
 panel.classList.toggle('open', floydOpen);
 if(sbiFl) sbiFl.classList.toggle('on', floydOpen);
-// Show mascot when panel opens and chat is mostly empty
 const mascot   = document.getElementById('floydMascotWrap');
 const chatMsgs = document.getElementById('chatMsgs');
 if(mascot){
@@ -7968,18 +7981,35 @@ function deleteSave(id){
 }
 
 
-// ── MOBILE: tap notepad to close tool panel ──
-if(window.innerWidth <= 768){
-  const nw = document.querySelector('.notepad-wrap');
-  const tp = document.getElementById('toolPanel');
-  if(nw && tp){
+// ── TAP NOTEPAD TO CLOSE ALL PANELS ──
+(function(){
+  var nw = document.querySelector('.notepad-wrap');
+  if(nw){
     nw.addEventListener('click', function(e){
-      if(tp.classList.contains('open') && window.innerWidth <= 768){
-        closeTool();
+      var tp = document.getElementById('toolPanel');
+      var fp = document.getElementById('floydPanel');
+      var toolOpen = tp && tp.classList.contains('open');
+      var floydIsOpen = fp && fp.classList.contains('open');
+      if(toolOpen || floydIsOpen){
+        closeAllPanels();
       }
     }, {capture:true, once:false});
   }
-}
+})();
+
+// ── ESCAPE KEY CLOSES OPEN PANELS ──
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    var tp = document.getElementById('toolPanel');
+    var fp = document.getElementById('floydPanel');
+    var toolOpen = tp && tp.classList.contains('open');
+    var floydIsOpen = fp && fp.classList.contains('open');
+    if(toolOpen || floydIsOpen){
+      closeAllPanels();
+      e.preventDefault();
+    }
+  }
+});
 
 // ── MOBILE: swipe down on tool panel header to close it ──
 (function(){
