@@ -26,6 +26,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/((?!api|about|how-it-works|promo|demo|terms|refund-policy|robots|sitemap).*)", "destination": "/index.html" }
+    { "source": "/((?!api|about|how-it-works|promo|demo|flow-score-demo|terms|refund-policy|robots|sitemap).*)", "destination": "/index.html" }
   ]
 }
