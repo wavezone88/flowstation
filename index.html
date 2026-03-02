@@ -3544,9 +3544,9 @@ rewrite:  { icon:'✍️', name:'FLOYD REWRITE ENGINE', teaser:"Paste a bar. Flo
 elite_all:{ icon:'👑', name:'ARTIST ELITE', teaser:"The full suite. Floyd AI, beat search, audio player, studio recorder, rewrite engine, rhyme map. Everything unleashed.", need:'elite' },
 };
 const info = items[item] || { icon:'🔓', name:(item||'THIS FEATURE').toUpperCase(), teaser:'Unlock the full FlowStation suite and write at a professional level.', need:'pro' };
-const goElite = info.need === 'elite';
 const _suUser = currentUser || window.currentUser;
 const isLoggedIn = !!_suUser;
+const goElite = info.need === 'elite' || currentTier === 'regular';
 
 const modal = document.createElement('div');
 modal.id = 'upgradeModal';
@@ -4686,7 +4686,7 @@ slist.innerHTML = show.map(s => {
 const cat = CATS[s.c] || { label: s.c, emoji: '' };
 const txt = s.t.replace(/'/g,"&#39;").replace(/"/g,"&quot;");
 return `<div class="scard" onclick="insertStarter('${txt}', this)"> <div class="sc-cat cc-${s.c}"><div class="sc-dot cd-${s.c}"></div>${cat.emoji} ${cat.label}</div> <div class="sc-txt">${s.t}</div> </div>`;
-}).join('') + (locked ? `<div class="tier-more-card" onclick="su('starters')"><div>🔒 ${all.length - show.length} MORE PHRASES</div><div style="font-size:1.02rem;color:var(--dim);margin-top:.2rem;">Upgrade to Artist Pro for unlimited access</div></div>` : '');
+}).join('') + (locked ? `<div class="tier-more-card" onclick="su('starters')"><div>🔒 ${all.length - show.length} MORE PHRASES</div><div style="font-size:1.02rem;color:var(--dim);margin-top:.2rem;">Upgrade to ${currentTier==='regular'?'Artist Elite':'Artist Pro'} for unlimited access</div></div>` : '');
 }
 
 function insertStarter(text, card) {
@@ -4717,7 +4717,7 @@ if(currentTier === 'basic'){
 window._surpriseUses = (window._surpriseUses||0) + 1;
 if(window._surpriseUses > 3){
 showUpgradeModal('starters');
-showToast('🔒 Upgrade to Artist Pro for unlimited Surprise Me');
+showToast('🔒 Upgrade to ' + (currentTier==='regular'?'Artist Elite':'Artist Pro') + ' for unlimited Surprise Me');
 return;
 }
 }
@@ -4737,7 +4737,7 @@ const show = lim === Infinity ? HOOKS : HOOKS.slice(0, lim);
 const locked = lim !== Infinity && HOOKS.length > lim;
 const el = document.getElementById('hooklist');
 if(!el) return;
-el.innerHTML = show.map((hook,i) => ` <div class="hcard" onclick="insertHook(${i})" title="Click to paste template into notepad"> <div class="hcard-name">${hook.name} <span style="font-size:.58rem;color:var(--dim);float:right;margin-top:.1rem;">TAP TO USE →</span></div> <div class="hcard-struct">${hook.struct}</div> <div class="hcard-ex">${hook.ex}</div> </div>`).join('') + (locked ? `<div class="tier-more-card" onclick="su('hooks')"><div>🔒 ${HOOKS.length - show.length} MORE HOOK FORMULAS</div><div style="font-size:1.02rem;color:var(--dim);margin-top:.2rem;">Upgrade to Artist Pro for all structures</div></div>` : '');
+el.innerHTML = show.map((hook,i) => ` <div class="hcard" onclick="insertHook(${i})" title="Click to paste template into notepad"> <div class="hcard-name">${hook.name} <span style="font-size:.58rem;color:var(--dim);float:right;margin-top:.1rem;">TAP TO USE →</span></div> <div class="hcard-struct">${hook.struct}</div> <div class="hcard-ex">${hook.ex}</div> </div>`).join('') + (locked ? `<div class="tier-more-card" onclick="su('hooks')"><div>🔒 ${HOOKS.length - show.length} MORE HOOK FORMULAS</div><div style="font-size:1.02rem;color:var(--dim);margin-top:.2rem;">Upgrade to ${currentTier==='regular'?'Artist Elite':'Artist Pro'} for all structures</div></div>` : '');
 }
 
 function renderBPM() {
@@ -5751,7 +5751,7 @@ sg.title = '';
 } else {
 sg.classList.add('tier-locked-blur');
 sg.style.pointerEvents = 'none';
-sg.title = 'Syllable highlighting  -  upgrade to Artist Pro';
+sg.title = 'Syllable highlighting  -  upgrade to ' + (currentTier === 'regular' ? 'Artist Elite' : 'Artist Pro');
 }
 }
 
@@ -5759,7 +5759,7 @@ sg.title = 'Syllable highlighting  -  upgrade to Artist Pro';
 const vb = document.getElementById('vizBtn');
 const vo = document.getElementById('vizOverlay');
 if(cfg.rhymeMap === 'blur'){
-if(vb){ vb.classList.add('tier-blur'); vb.title = 'Upgrade to Artist Pro to use Rhyme Map'; }
+if(vb){ vb.classList.add('tier-blur'); vb.title = 'Upgrade to ' + (currentTier === 'regular' ? 'Artist Elite' : 'Artist Pro') + ' to use Rhyme Map'; }
 if(vo){ vo.style.filter = 'blur(6px)'; vo.style.pointerEvents = 'none'; }
 } else {
 if(vb){ vb.classList.remove('tier-blur','locked'); vb.title = ''; }
@@ -5776,7 +5776,7 @@ ab.style.position = 'relative';
 const lo = document.createElement('div');
 lo.className = 'tier-lock-overlay';
 const loSpan = document.createElement('span');
-loSpan.textContent = '🔒 BEAT PLAYER  -  Artist Pro';
+loSpan.textContent = '🔒 BEAT PLAYER  -  ' + (currentTier === 'regular' ? 'Artist Elite' : 'Artist Pro');
 const loBtn = document.createElement('button');
 loBtn.className = 'tier-up-btn';
 loBtn.textContent = 'UPGRADE →';
@@ -5834,8 +5834,8 @@ const tease = document.createElement('div');
 tease.className = 'floyd-tease';
 tease.innerHTML = '<div class="ft-icon">🤖</div>'
 + '<div class="ft-title">FLOYD AI COACH</div>'
-+ '<div class="ft-sub">Get real-time rhyme density scores, flow analysis, and punchline critiques  -  all without an API key on Artist Pro.</div>'
-+ '<button class="ft-btn" onclick="su("floyd")">UNLOCK FLOYD  -  ARTIST PRO →</button>'
++ '<div class="ft-sub">Get real-time rhyme density scores, flow analysis, and punchline critiques  -  all without an API key.</div>'
++ '<button class="ft-btn" onclick="su("floyd")">UNLOCK FLOYD  -  ARTIST ELITE →</button>'
 + '<div class="ft-elite">Artist Elite gets full rewrite engine, tone shifting & bar restructuring</div>';
 fp.appendChild(tease);
 }
@@ -5863,7 +5863,7 @@ if(!oc.includes('showUpgradeModal')){
 b.dataset.origOc = oc;
 b.setAttribute('onclick', 'showUpgradeModal("saves")');
 b.classList.add('tier-dim');
-b.title = 'Upgrade to Artist Pro';
+b.title = 'Upgrade to ' + (currentTier === 'regular' ? 'Artist Elite' : 'Artist Pro');
 }
 } else {
 // Restore
