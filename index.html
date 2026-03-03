@@ -173,7 +173,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
 <!-- Supabase for real user accounts -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 /* ── RESET ── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -3296,7 +3296,8 @@ if(pass.length<6){ msg.textContent='Password must be at least 6 characters.';msg
 if(!sb){ demoLaunch('basic',email); return; }
 btn.disabled=true; btn.textContent='CREATING ACCOUNT...';
 try{
-const {data,error} = await sb.auth.signUp({email,password:pass,options:{data:{tier:'basic',first_name:first,last_name:last}}});
+var _utmData = {}; try{ _utmData = JSON.parse(sessionStorage.getItem('fs_utm')||'{}'); }catch(e){}
+const {data,error} = await sb.auth.signUp({email,password:pass,options:{data:{tier:'basic',first_name:first,last_name:last,signup_source:_utmData.utm_source||'direct',signup_campaign:_utmData.utm_campaign||'',signup_medium:_utmData.utm_medium||'',gclid:_utmData.gclid||''}}});
 if(error) throw error;
 if(data.user && !data.session){
 msg.textContent='✓ Check your email to confirm your account, then sign in.';
@@ -3496,6 +3497,22 @@ if(plan){
 window.history.replaceState({},'',window.location.pathname);
 try{ localStorage.setItem('fs_pending_tier', plan); }catch(e){}
 }
+
+// Capture UTM parameters from ad campaigns
+(function(){
+var utmKeys = ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','gclid','fbclid'];
+var captured = {};
+var hasAny = false;
+utmKeys.forEach(function(k){
+  var v = params.get(k);
+  if(v){ captured[k] = v; hasAny = true; }
+});
+if(hasAny){
+  captured._landed = new Date().toISOString();
+  captured._page = window.location.pathname;
+  try{ sessionStorage.setItem('fs_utm', JSON.stringify(captured)); }catch(e){}
+}
+})();
 
 // CRITICAL: Listen for auth state changes  -  catches Google OAuth hash callback
 sb.auth.onAuthStateChange(async (event, session) => {
@@ -6708,8 +6725,12 @@ var _coUser = currentUser || window.currentUser;
 if(_coUser){
 var stripeUrl = plan === 'elite' ? STRIPE_ELITE : STRIPE_PRO;
 var email = _coUser.email || '';
+var _sUtm = {}; try{ _sUtm = JSON.parse(sessionStorage.getItem('fs_utm')||'{}'); }catch(e){}
+var _sParams = '?prefilled_email=' + encodeURIComponent(email);
+if(_sUtm.gclid) _sParams += '&client_reference_id=' + encodeURIComponent(_sUtm.gclid);
+if(_sUtm.utm_source) _sParams += '&utm_source=' + encodeURIComponent(_sUtm.utm_source);
 showToast('Heading to checkout...');
-setTimeout(function(){ window.location.href = stripeUrl + '?prefilled_email=' + encodeURIComponent(email); }, 400);
+setTimeout(function(){ window.location.href = stripeUrl + _sParams; }, 400);
 return;
 }
 
@@ -6822,9 +6843,10 @@ if(pass.length < 6){ _coMsg('Password must be at least 6 characters.', true); re
 if(!sb){ _coMsg('Service unavailable. Try again shortly.', true); return; }
 btn.disabled = true; btn.textContent = 'CREATING ACCOUNT...';
 try{
+var _coUtm = {}; try{ _coUtm = JSON.parse(sessionStorage.getItem('fs_utm')||'{}'); }catch(e){}
 const {data, error} = await sb.auth.signUp({
 email, password: pass,
-options:{ data:{ tier:'basic', first_name:first, last_name:last } }
+options:{ data:{ tier:'basic', first_name:first, last_name:last, signup_source:_coUtm.utm_source||'direct', signup_campaign:_coUtm.utm_campaign||'', signup_medium:_coUtm.utm_medium||'', gclid:_coUtm.gclid||'' } }
 });
 if(error) throw error;
 // Store name for success screen
@@ -6833,8 +6855,11 @@ try{ localStorage.setItem('fs_pending_name', first); }catch(e){}
 if(data.user) upsertProfile(data.user, {first, last});
 // Redirect to Stripe with email prefilled
 const stripeUrl = _checkoutPlan === 'elite' ? STRIPE_ELITE : STRIPE_PRO;
+var _coUtm2 = {}; try{ _coUtm2 = JSON.parse(sessionStorage.getItem('fs_utm')||'{}'); }catch(e){}
+var _coParams = '?prefilled_email=' + encodeURIComponent(email);
+if(_coUtm2.gclid) _coParams += '&client_reference_id=' + encodeURIComponent(_coUtm2.gclid);
 _coMsg('Account created! Heading to checkout...', false);
-setTimeout(()=>{ window.location.href = stripeUrl + '?prefilled_email=' + encodeURIComponent(email); }, 800);
+setTimeout(()=>{ window.location.href = stripeUrl + _coParams; }, 800);
 }catch(e){
 _coMsg(e.message || 'Sign up failed. Try again.', true);
 btn.disabled = false; btn.textContent = 'CREATE ACCOUNT & CHECKOUT →';
@@ -6854,8 +6879,11 @@ if(error) throw error;
 const firstName = data.user?.user_metadata?.first_name || '';
 try{ localStorage.setItem('fs_pending_name', firstName); }catch(e){}
 const stripeUrl = _checkoutPlan === 'elite' ? STRIPE_ELITE : STRIPE_PRO;
+var _siUtm = {}; try{ _siUtm = JSON.parse(sessionStorage.getItem('fs_utm')||'{}'); }catch(e){}
+var _siParams = '?prefilled_email=' + encodeURIComponent(email);
+if(_siUtm.gclid) _siParams += '&client_reference_id=' + encodeURIComponent(_siUtm.gclid);
 _coMsg('Signed in! Heading to checkout...', false);
-setTimeout(()=>{ window.location.href = stripeUrl + '?prefilled_email=' + encodeURIComponent(email); }, 800);
+setTimeout(()=>{ window.location.href = stripeUrl + _siParams; }, 800);
 }catch(e){
 _coMsg(e.message || 'Sign in failed. Check your email and password.', true);
 btn.disabled = false; btn.textContent = 'SIGN IN & CHECKOUT →';
