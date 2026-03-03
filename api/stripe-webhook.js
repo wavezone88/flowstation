@@ -43,10 +43,14 @@ const email =
   session.customer_details?.email ||
   session.customer_email
 
-    let tier = 'basic'
+    // Prefer explicit tier metadata set on the Stripe price/checkout session,
+    // then fall back to matching by amount (in cents).
+    const AMOUNT_TO_TIER = {
+      999:  'regular',  // Pro plan  ($9.99/mo)
+      1999: 'premium',  // Elite plan ($19.99/mo)
+    }
 
-    if (session.amount_total === 999) tier = 'pro'
-    if (session.amount_total === 1999) tier = 'elite'
+    let tier = session.metadata?.tier || AMOUNT_TO_TIER[session.amount_total] || 'basic'
 
     const { error } = await supabase
       .from('profiles')

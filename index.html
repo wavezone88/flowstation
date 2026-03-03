@@ -3383,7 +3383,6 @@ async function onSignedIn(user){
 if(_signedInOnce) return;
 _signedInOnce = true;
 currentUser = user;
-console.log('[FS] onSignedIn email:', user.email, 'metadata.tier:', user.user_metadata?.tier);
 const params = new URLSearchParams(window.location.search);
 const plan   = params.get('plan');
 let tier = 'basic';
@@ -3413,7 +3412,6 @@ return;
 tier = user.user_metadata?.tier || 'basic';
 }
 tier = getEffectiveTier(user, tier);
-console.log('[FS] effectiveTier:', tier, 'launching...');
 currentTier = tier;
 try{ localStorage.setItem('fs_tier_cache', tier); }catch(e){}
 if(sb && PRO_EMAILS.includes((user.email||'').toLowerCase()) && tier === 'regular'){
@@ -3424,7 +3422,6 @@ launch(tier, user.email);
 }
 
 function launch(tier, email){
-console.log('[FS] launch() tier:', tier, 'email:', email);
 currentTier = tier;
 showApp();
 applyTier(tier);
@@ -6043,7 +6040,7 @@ showToast('✓ ' + word.toUpperCase());
 //  full Elite access when logged in as that user
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const ADMIN_EMAILS = ['flowstationai@gmail.com'];
-const PRO_EMAILS = ['wavezonemg@gmail.com'];
+const PRO_EMAILS = [];
 
 function getEffectiveTier(user, storedTier){
 if(!user) return storedTier || 'basic';
