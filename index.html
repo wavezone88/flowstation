@@ -1414,8 +1414,23 @@ font-size:.94rem;padding:.2rem .35rem;text-align:center;
 .sbi.locked-tease{opacity:.45;filter:grayscale(40%);}
 .sbi.locked-tease::after{content:'PRO';position:absolute;top:2px;right:2px;font-size:.44rem;font-weight:700;background:rgba(240,192,64,.85);color:#060606;padding:.08rem .28rem;border-radius:3px;letter-spacing:.04em;}
 
-/* ── FLOW SCORE BAR ── */
+/* ── FLOW SCORE DASHBOARD ── */
 #flowScoreWrap{transition:opacity .3s;}
+.fs-dash{display:flex;align-items:center;gap:.8rem;padding:.5rem 0 .6rem;}
+.fs-ring-lg{width:72px;height:72px;position:relative;flex-shrink:0;}
+.fs-ring-lg svg{width:100%;height:100%;transform:rotate(-90deg);}
+.fs-ring-lg .fs-track{fill:none;stroke:rgba(255,255,255,.06);stroke-width:4.5;}
+.fs-ring-lg .fs-fill{fill:none;stroke-width:4.5;stroke-linecap:round;transition:stroke-dashoffset .6s ease,stroke .4s;}
+.fs-ring-num{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.7rem;font-weight:900;line-height:1;transition:color .4s;}
+.fs-ring-sub{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);font-size:.38rem;font-weight:700;letter-spacing:.1em;color:rgba(242,239,233,.25);text-transform:uppercase;}
+.fs-bars{flex:1;display:flex;flex-direction:column;gap:.35rem;}
+.fs-bar-row{display:flex;align-items:center;gap:.4rem;}
+.fs-bar-lbl{font-size:.52rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(242,239,233,.35);width:52px;flex-shrink:0;text-align:right;}
+.fs-bar-track{flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;position:relative;}
+.fs-bar-fill{height:100%;border-radius:4px;transition:width .5s ease,background .4s;min-width:2px;}
+.fs-bar-val{font-size:.7rem;font-weight:800;width:26px;text-align:right;flex-shrink:0;transition:color .4s;}
+.fs-bar-wt{font-size:.42rem;font-weight:600;color:rgba(242,239,233,.18);width:22px;flex-shrink:0;text-align:left;}
+.fs-verdict{font-size:.52rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(242,239,233,.3);margin-top:.1rem;text-align:center;transition:color .3s;}
 
 /* ── BPM TAP TEMPO ── */
 #tapBtn:active{transform:scale(.96);}
@@ -2754,10 +2769,11 @@ text-decoration:none;
         </div>
         <div id="metroPulse" style="height:3px;background:rgba(255,255,255,.06);border-radius:4px;margin-top:.5rem;overflow:hidden;"><div id="metroBar" style="height:100%;width:0%;background:var(--gold);transition:width .05s;border-radius:4px;"></div></div>
       </div>
-      <!-- Flow Score -->
-      <div id="flowScoreWrap" style="padding:.4rem .6rem .3rem;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:.4rem;display:none;">
-        <div style="font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:.35rem;">⚡ FLOW ANALYSIS</div>
-        <div id="flowScoreLines" style="max-height:180px;overflow-y:auto;"></div>
+      <!-- Flow Score Dashboard -->
+      <div id="flowScoreWrap" style="padding:.5rem .7rem .4rem;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:.4rem;display:none;">
+        <div style="font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:.2rem;">⚡ FLOW SCORE</div>
+        <div id="flowScoreDash"></div>
+        <div id="flowScoreLines" style="max-height:160px;overflow-y:auto;margin-top:.4rem;"></div>
       </div>
       <div class="bpmlist" id="bpmlist"></div>
     </div>
@@ -6487,16 +6503,41 @@ wrap.style.display = '';
 
 const result = calcCompositeFlow(lines);
 
-var header = '<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.4rem;padding-bottom:.35rem;border-bottom:1px solid rgba(255,255,255,.06);">';
-header += '<span style="font-family:Saira,sans-serif;font-size:1.6rem;font-weight:800;color:'+(result.score>=75?'#30d158':result.score>=50?'#f0c040':'#ff453a')+';">'+result.score+'</span>';
-header += '<span style="font-size:.62rem;font-weight:700;letter-spacing:.08em;color:var(--dim);text-transform:uppercase;">COMPOSITE<br>FLOW</span>';
-header += '<div style="margin-left:auto;display:flex;gap:.5rem;">';
-var metrics = [{l:'CAD',v:result.cadence},{l:'RHY',v:result.endRhyme},{l:'INT',v:result.internal},{l:'VOC',v:result.vocab}];
-metrics.forEach(function(m){
-var mc = m.v>=70?'#30d158':m.v>=40?'#f0c040':'#ff453a';
-header += '<div style="text-align:center;"><div style="font-size:.5rem;font-weight:700;letter-spacing:.06em;color:var(--dim);">'+m.l+'</div><div style="font-size:.72rem;font-weight:800;color:'+mc+';">'+m.v+'</div></div>';
+var sc = result.score;
+var sClr = sc>=75?'#30d158':sc>=50?'#f0c040':'#ff453a';
+var circ = 97.4;
+var off = circ - (sc/100)*circ;
+var verdict = sc>=80?'ELITE FLOW':sc>=65?'STRONG FLOW':sc>=50?'SOLID BASE':sc>=30?'BUILDING':'KEEP WRITING';
+
+var dash = '<div class="fs-dash">';
+dash += '<div class="fs-ring-lg">';
+dash += '<svg viewBox="0 0 36 36"><circle class="fs-track" cx="18" cy="18" r="15.5" stroke-dasharray="97.4"/>';
+dash += '<circle class="fs-fill" cx="18" cy="18" r="15.5" stroke-dasharray="97.4" stroke-dashoffset="'+off+'" style="stroke:'+sClr+';"/></svg>';
+dash += '<div class="fs-ring-num" style="color:'+sClr+';">'+sc+'</div>';
+dash += '<div class="fs-ring-sub">/100</div>';
+dash += '</div>';
+dash += '<div class="fs-bars">';
+var dims = [
+  {l:'CADENCE',v:result.cadence,w:'30%'},
+  {l:'END RHYME',v:result.endRhyme,w:'30%'},
+  {l:'INTERNAL',v:result.internal,w:'15%'},
+  {l:'VOCAB',v:result.vocab,w:'15%'},
+  {l:'PUNCH',v:result.punch,w:'10%'}
+];
+dims.forEach(function(d){
+  var dc = d.v>=70?'#30d158':d.v>=40?'#f0c040':'#ff453a';
+  dash += '<div class="fs-bar-row">';
+  dash += '<span class="fs-bar-lbl">'+d.l+'</span>';
+  dash += '<div class="fs-bar-track"><div class="fs-bar-fill" style="width:'+d.v+'%;background:'+dc+';"></div></div>';
+  dash += '<span class="fs-bar-val" style="color:'+dc+';">'+d.v+'</span>';
+  dash += '<span class="fs-bar-wt">'+d.w+'</span>';
+  dash += '</div>';
 });
-header += '</div></div>';
+dash += '</div></div>';
+dash += '<div class="fs-verdict" style="color:'+sClr+';">'+verdict+'</div>';
+
+var dashEl = document.getElementById('flowScoreDash');
+if(dashEl) dashEl.innerHTML = dash;
 
 var lineRows = lines.slice(0,8).map(function(line){
 var n   = lineSyl(line);
@@ -6516,7 +6557,7 @@ return '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.22r
 + '</div>';
 }).join('');
 
-el.innerHTML = header + lineRows;
+el.innerHTML = lineRows;
 }
 
 function showExportMenu(btn){
