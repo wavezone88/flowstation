@@ -2001,8 +2001,18 @@ text-decoration:none;
 </p>
 
 <div class="gh-actions">
-  <button class="btn-gold" onclick="gscroll('gPlans')">START FOR FREE →</button>
-  <button class="btn-ghost" onclick="gscroll('gAuth')">ALREADY SUBSCRIBED? SIGN IN</button>
+  <button class="btn-gold" onclick="gscroll('gAuth')">START FOR FREE →</button>
+  <button class="btn-ghost" onclick="gscroll('gAuth');setTimeout(function(){switchAuthTab('signin')},400)">ALREADY SUBSCRIBED? SIGN IN</button>
+</div>
+
+<div style="max-width:480px;margin:2rem auto 0;position:relative;z-index:2;">
+  <div style="background:rgba(255,252,240,.94);border-radius:10px;padding:2px 12px;border:1px solid rgba(240,192,64,.2);box-shadow:0 4px 20px rgba(0,0,0,.3);">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span id="heroSylCount" style="font-family:'Saira',sans-serif;font-size:.7rem;font-weight:700;color:rgba(240,192,64,.7);min-width:20px;text-align:center;">0</span>
+      <input id="heroTryInput" type="text" placeholder="Type a bar and watch the syllables count..." style="flex:1;border:none;background:transparent;font-family:'Saira',sans-serif;font-size:.95rem;color:#1a1a12;padding:10px 0;outline:none;" oninput="document.getElementById('heroSylCount').textContent=this.value.trim()?this.value.trim().replace(/[^a-zA-Z]/g,' ').split(/\s+/).filter(function(w){return w}).reduce(function(t,w){var c=0;w=w.toLowerCase();if(w.length<=3)return t+1;w=w.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/,'');w=w.replace(/^y/,'');var m=w.match(/[aeiouy]{1,2}/g);return t+(m?m.length:1)},0):0">
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:.4rem;font-family:'Saira',sans-serif;font-size:.65rem;font-weight:500;letter-spacing:.08em;color:rgba(242,239,233,.25);">TRY IT — TYPE A BAR ABOVE</div>
 </div>
 
 <div class="gh-stats">
@@ -2084,6 +2094,66 @@ text-decoration:none;
 </div>
 
   </section>
+
+<section class="gsec" id="gAuth" style="padding:3rem 1.5rem 4rem;">
+    <span class="g-label">FREE TO START</span>
+    <h2 class="g-h2" style="font-size:clamp(1.8rem,4vw,2.8rem);">CREATE YOUR FREE ACCOUNT.</h2>
+    <p class="g-p" style="max-width:420px;margin:0 auto .8rem;">Start writing in seconds. No credit card required.</p>
+    <div class="g-auth-wrap">
+      <div class="g-auth-card">
+        <div class="g-auth-tabs">
+          <button class="g-auth-tab" id="tabSignin" onclick="switchAuthTab('signin')">SIGN IN</button>
+          <button class="g-auth-tab on" id="tabSignup" onclick="switchAuthTab('signup')">CREATE ACCOUNT</button>
+        </div>
+
+    <div class="g-auth-form off" id="formSignin">
+      <div>
+        <label class="g-auth-label">EMAIL</label>
+        <input class="g-field" id="siEmail" type="email" placeholder="you@email.com" autocomplete="email">
+      </div>
+      <div>
+        <label class="g-auth-label">PASSWORD</label>
+        <input class="g-field" id="siPass" type="password" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')authSignin()">
+      </div>
+      <button class="g-auth-submit" id="btnSignin" onclick="authSignin()">SIGN IN →</button>
+      <div class="g-auth-msg" id="msgSignin"></div>
+      <p class="g-auth-hint">Forgot password? <a href="#" onclick="authReset();return false">Reset via email</a></p>
+      <p class="g-auth-hint" style="margin-top:.5rem;padding-top:.5rem;border-top:1px solid rgba(255,255,255,.06);">
+        Already purchased? <a href="javascript:void(0)" onclick="showRestorePlan()" style="color:var(--gold);">Restore your plan →</a>
+      </p>
+    </div>
+
+    <div class="g-auth-form" id="formSignup">
+      <div>
+        <label class="g-auth-label">EMAIL</label>
+        <input class="g-field" id="suEmail" type="email" placeholder="you@email.com" autocomplete="email">
+      </div>
+      <div>
+        <label class="g-auth-label">PASSWORD</label>
+        <input class="g-field" id="suPass" type="password" placeholder="Min. 6 characters" autocomplete="new-password"
+          onkeydown="if(event.key==='Enter')authSignup()">
+      </div>
+      <input type="hidden" id="suFirst" value="">
+      <input type="hidden" id="suLast" value="">
+      <input type="hidden" id="suPass2" value="">
+      <button class="g-auth-submit" id="btnSignup" onclick="authSignup()">CREATE FREE ACCOUNT →</button>
+      <div class="g-auth-msg" id="msgSignup"></div>
+    </div>
+
+    <div class="g-auth-divider"><span>OR</span></div>
+    <button onclick="authGoogle()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.75rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:.9rem;cursor:pointer;font-family:'Saira',sans-serif;font-size:1.08rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(242,239,233,.7);transition:all .2s;margin-bottom:.75rem;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      CONTINUE WITH GOOGLE
+    </button>
+    <p class="g-auth-hint" style="text-align:center">Already paid? <a href="#" onclick="switchAuthTab('signin')">Sign in</a> — your tier loads automatically.</p>
+  </div>
+
+  <div class="g-setup-notice" id="setupNotice" style="display:none">
+    <p>⚙️ <strong>One-time setup needed:</strong> FlowStation uses Supabase for secure accounts.</p>
+  </div>
+</div>
+</section>
 
   <!-- FEATURES SHOWCASE -->
 
@@ -2526,84 +2596,6 @@ text-decoration:none;
     <div style="margin-top:2rem;">
       <a href="#gAuth" style="display:inline-block;padding:.9rem 2.6rem;background:linear-gradient(135deg,#f0c040,#e0a020);color:#060606;font-family:'Saira',sans-serif;font-weight:700;font-size:1.05rem;letter-spacing:.08em;border-radius:8px;text-decoration:none;text-transform:uppercase;transition:transform .2s,box-shadow .2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 30px rgba(240,192,64,.35)'" onmouseout="this.style.transform='';this.style.boxShadow=''">START WRITING FREE</a>
     </div>
-  </section>
-  <div style="padding:0;overflow:hidden;margin-bottom:-2px;">
-  <canvas class="sw-canvas short" data-color="rgba(48,209,88," data-waves="3" data-speed="1.2"></canvas>
-</div>
-<section class="gsec" id="gAuth">
-    <span class="g-label">YOUR ACCOUNT</span>
-    <h2 class="g-h2">SIGN IN OR SIGN UP.</h2>
-    <p class="g-p">Create your account, then choose a plan. Your tier unlocks instantly after payment.</p>
-    <div class="g-auth-wrap">
-      <div class="g-auth-card">
-        <div class="g-auth-tabs">
-          <button class="g-auth-tab on" id="tabSignin" onclick="switchAuthTab('signin')">SIGN IN</button>
-          <button class="g-auth-tab" id="tabSignup" onclick="switchAuthTab('signup')">CREATE ACCOUNT</button>
-        </div>
-
-    <!-- SIGN IN FORM -->
-    <div class="g-auth-form" id="formSignin">
-      <div>
-        <label class="g-auth-label">EMAIL</label>
-        <input class="g-field" id="siEmail" type="email" placeholder="you@email.com" autocomplete="email">
-      </div>
-      <div>
-        <label class="g-auth-label">PASSWORD</label>
-        <input class="g-field" id="siPass" type="password" placeholder="••••••••" autocomplete="current-password"
-          onkeydown="if(event.key==='Enter')authSignin()">
-      </div>
-      <button class="g-auth-submit" id="btnSignin" onclick="authSignin()">SIGN IN →</button>
-      <div class="g-auth-msg" id="msgSignin"></div>
-      <p class="g-auth-hint">Forgot password? <a href="#" onclick="authReset();return false">Reset via email</a></p>
-      <p class="g-auth-hint" style="margin-top:.5rem;padding-top:.5rem;border-top:1px solid rgba(255,255,255,.06);">
-        Already purchased? <a href="javascript:void(0)" onclick="showRestorePlan()" style="color:var(--gold);">Restore your plan →</a>
-      </p>
-    </div>
-
-    <!-- SIGN UP FORM -->
-    <div class="g-auth-form off" id="formSignup">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;">
-        <div>
-          <label class="g-auth-label">FIRST NAME</label>
-          <input class="g-field" id="suFirst" type="text" placeholder="First" autocomplete="given-name">
-        </div>
-        <div>
-          <label class="g-auth-label">LAST NAME</label>
-          <input class="g-field" id="suLast" type="text" placeholder="Last" autocomplete="family-name">
-        </div>
-      </div>
-      <div>
-        <label class="g-auth-label">EMAIL</label>
-        <input class="g-field" id="suEmail" type="email" placeholder="you@email.com" autocomplete="email">
-      </div>
-      <div>
-        <label class="g-auth-label">PASSWORD</label>
-        <input class="g-field" id="suPass" type="password" placeholder="Min. 6 characters" autocomplete="new-password">
-      </div>
-      <div>
-        <label class="g-auth-label">CONFIRM PASSWORD</label>
-        <input class="g-field" id="suPass2" type="password" placeholder="Repeat password" autocomplete="new-password"
-          onkeydown="if(event.key==='Enter')authSignup()">
-      </div>
-      <button class="g-auth-submit" id="btnSignup" onclick="authSignup()">CREATE ACCOUNT →</button>
-      <div class="g-auth-msg" id="msgSignup"></div>
-      <p class="g-auth-hint">After creating your account, <a href="#" onclick="gscroll('gPlans');return false">choose a plan above</a> to unlock pro features.</p>
-    </div>
-
-    <div class="g-auth-divider"><span>OR</span></div>
-    <button onclick="authGoogle()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.75rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:.9rem;cursor:pointer;font-family:'Saira',sans-serif;font-size:1.08rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(242,239,233,.7);transition:all .2s;margin-bottom:.75rem;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">
-      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-      CONTINUE WITH GOOGLE
-    </button>
-    <p class="g-auth-hint" style="text-align:center">Already paid? <a href="#" onclick="switchAuthTab('signin')">Sign in</a>  -  your tier will load automatically.</p>
-  </div>
-
-  <!-- Supabase setup notice  -  shown when not configured -->
-  <div class="g-setup-notice" id="setupNotice" style="display:none">
-    <p>⚙️ <strong>One-time setup needed:</strong> FlowStation uses Supabase for secure accounts. Add your project URL and anon key to the top of the page script to enable sign in. See the setup guide below.</p>
-  </div>
-</div>
-
   </section>
 
   <footer class="g-foot">
@@ -3295,9 +3287,7 @@ const pass2 = document.getElementById('suPass2').value;
 const msg   = document.getElementById('msgSignup');
 const btn   = document.getElementById('btnSignup');
 msg.className='g-auth-msg';msg.textContent='';
-if(!first||!last){ msg.textContent='Please enter your first and last name.';msg.className='g-auth-msg err';return; }
-if(!email||!pass){ msg.textContent='Please fill in all fields.';msg.className='g-auth-msg err';return; }
-if(pass!==pass2){ msg.textContent='Passwords do not match.';msg.className='g-auth-msg err';return; }
+if(!email||!pass){ msg.textContent='Please enter your email and password.';msg.className='g-auth-msg err';return; }
 if(pass.length<6){ msg.textContent='Password must be at least 6 characters.';msg.className='g-auth-msg err';return; }
 if(!sb){ demoLaunch('basic',email); return; }
 btn.disabled=true; btn.textContent='CREATING ACCOUNT...';
