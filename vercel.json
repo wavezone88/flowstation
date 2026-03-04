@@ -26,6 +26,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/((?!api|about|how-it-works|promo|demo|flow-score-demo|terms|refund-policy|robots|sitemap|flowstation-artist).*)", "destination": "/index.html" }
+    { "source": "/((?!api|about|how-it-works|promo|demo|demo-video|flow-score-demo|terms|refund-policy|robots|sitemap|flowstation-artist).*)", "destination": "/index.html" }
   ]
 }

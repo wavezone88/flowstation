@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowStation Demo — AI Songwriting Suite</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-K8KLZMJ4C4"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-K8KLZMJ4C4');</script>
+<link href="https://fonts.googleapis.com/css2?family=Saira:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#060606;color:#f2efe9;font-family:'Saira',sans-serif;overflow:hidden;height:100vh;width:100vw;}
+.demo-wrap{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
+.demo-stage{position:relative;width:min(900px,94vw);height:min(560px,80vh);background:#0d0d0d;border-radius:16px;border:1px solid rgba(240,192,64,.12);overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.6);}
+.notepad-mock{position:absolute;top:44px;left:0;right:0;bottom:48px;display:flex;}
+.pad-gutter{width:72px;background:rgba(240,192,64,.03);border-right:1px solid rgba(240,192,64,.08);display:flex;flex-direction:column;padding-top:12px;}
+.gut-row{display:flex;height:28px;align-items:center;font-size:.72rem;opacity:0;}
+.gut-ln{width:36px;text-align:right;color:rgba(242,239,233,.2);font-weight:300;}
+.gut-syl{width:36px;text-align:center;color:rgba(240,192,64,.5);font-weight:600;font-size:.7rem;}
+.pad-area{flex:1;padding:12px 16px;position:relative;}
+.pad-line{height:28px;line-height:28px;font-size:.95rem;color:#1a1a12;font-weight:400;white-space:nowrap;overflow:hidden;opacity:0;background:rgba(255,252,240,.92);padding:0 8px;border-bottom:1px solid rgba(180,170,140,.12);}
+.pad-line:first-child{border-radius:4px 4px 0 0;}
+.pad-empty{height:28px;background:rgba(255,252,240,.92);border-bottom:1px solid rgba(180,170,140,.08);}
+.cursor-blink{display:inline-block;width:2px;height:16px;background:#f0c040;animation:blink .6s infinite;vertical-align:middle;margin-left:1px;}
+@keyframes blink{0%,50%{opacity:1;}51%,100%{opacity:0;}}
+.top-bar{height:44px;background:rgba(240,192,64,.04);border-bottom:1px solid rgba(240,192,64,.1);display:flex;align-items:center;padding:0 16px;gap:12px;}
+.top-logo{font-weight:800;font-size:1rem;color:#f0c040;letter-spacing:.04em;}
+.top-tools{display:flex;gap:6px;margin-left:auto;}
+.top-tool{padding:4px 10px;border-radius:6px;font-size:.65rem;font-weight:700;letter-spacing:.06em;background:rgba(240,192,64,.08);color:rgba(240,192,64,.6);border:1px solid rgba(240,192,64,.1);}
+.top-tool.active{background:rgba(240,192,64,.2);color:#f0c040;border-color:rgba(240,192,64,.3);}
+.bottom-bar{position:absolute;bottom:0;left:0;right:0;height:48px;background:rgba(240,192,64,.03);border-top:1px solid rgba(240,192,64,.08);display:flex;align-items:center;padding:0 16px;gap:16px;}
+.flow-ring{width:32px;height:32px;}
+.flow-ring-bg{fill:none;stroke:rgba(240,192,64,.1);stroke-width:3;}
+.flow-ring-fg{fill:none;stroke:#f0c040;stroke-width:3;stroke-linecap:round;stroke-dasharray:82;stroke-dashoffset:82;transition:stroke-dashoffset 1.5s ease;}
+.flow-num{fill:#f0c040;font-size:8px;font-weight:800;font-family:'Saira',sans-serif;}
+.bot-stat{font-size:.7rem;color:rgba(242,239,233,.35);font-weight:500;letter-spacing:.04em;}
+.floyd-panel{position:absolute;top:44px;right:0;bottom:48px;width:280px;background:rgba(10,10,10,.97);border-left:1px solid rgba(48,209,88,.15);transform:translateX(100%);transition:transform .5s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;z-index:10;}
+.floyd-panel.open{transform:translateX(0);}
+.floyd-top{height:40px;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid rgba(48,209,88,.1);gap:8px;}
+.floyd-dot{width:7px;height:7px;border-radius:50%;background:#30d158;box-shadow:0 0 8px rgba(48,209,88,.5);}
+.floyd-title{font-size:.78rem;font-weight:700;color:rgba(48,209,88,.8);letter-spacing:.06em;}
+.floyd-msgs{flex:1;overflow:hidden;padding:12px;}
+.floyd-msg{padding:10px 12px;border-radius:10px;font-size:.78rem;line-height:1.5;margin-bottom:8px;opacity:0;transform:translateY(8px);}
+.floyd-msg.bot{background:rgba(48,209,88,.06);border:1px solid rgba(48,209,88,.1);color:rgba(242,239,233,.85);}
+.floyd-msg.user{background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.12);color:rgba(242,239,233,.8);margin-left:20px;}
+.floyd-msg.show{opacity:1;transform:translateY(0);transition:all .4s ease;}
+.robot-wrap{position:absolute;bottom:20px;left:20px;display:flex;align-items:flex-end;gap:12px;z-index:20;pointer-events:none;}
+.robot{width:64px;height:64px;filter:drop-shadow(0 0 12px rgba(48,209,88,.3));}
+.caption-box{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);max-width:600px;width:80%;text-align:center;z-index:20;pointer-events:none;}
+.caption{background:rgba(0,0,0,.85);border:1px solid rgba(240,192,64,.15);border-radius:10px;padding:10px 20px;font-size:.9rem;font-weight:500;color:rgba(242,239,233,.9);letter-spacing:.02em;line-height:1.5;opacity:0;transform:translateY(10px);transition:all .4s ease;}
+.caption.show{opacity:1;transform:translateY(0);}
+.caption strong{color:#f0c040;font-weight:700;}
+.caption .green{color:#30d158;}
+.progress-bar{position:absolute;top:0;left:0;height:3px;background:linear-gradient(90deg,#f0c040,#30d158);width:0%;transition:width .3s linear;z-index:30;}
+.play-btn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:50;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:12px;}
+.play-circle{width:80px;height:80px;border-radius:50%;background:rgba(240,192,64,.1);border:2px solid rgba(240,192,64,.4);display:flex;align-items:center;justify-content:center;transition:all .3s;}
+.play-circle:hover{background:rgba(240,192,64,.2);border-color:#f0c040;transform:scale(1.05);}
+.play-circle svg{width:32px;height:32px;fill:#f0c040;margin-left:4px;}
+.play-label{font-size:.8rem;font-weight:600;color:rgba(240,192,64,.6);letter-spacing:.1em;text-transform:uppercase;}
+.play-btn.hidden{display:none;}
+.replay-btn{position:absolute;top:12px;right:12px;z-index:50;cursor:pointer;padding:6px 14px;border-radius:6px;background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.2);color:#f0c040;font-family:'Saira',sans-serif;font-size:.7rem;font-weight:600;letter-spacing:.06em;opacity:0;pointer-events:none;transition:opacity .3s;}
+.replay-btn.show{opacity:1;pointer-events:auto;}
+.replay-btn:hover{background:rgba(240,192,64,.2);}
+.rhyme-hl{background:rgba(147,112,219,.25);border-radius:3px;padding:0 2px;}
+.rhyme-hl2{background:rgba(0,180,255,.2);border-radius:3px;padding:0 2px;}
+.score-flash{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:25;text-align:center;opacity:0;transition:opacity .5s;}
+.score-flash.show{opacity:1;}
+.score-big{font-size:4rem;font-weight:900;color:#f0c040;text-shadow:0 0 30px rgba(240,192,64,.4);}
+.score-label{font-size:1.1rem;font-weight:700;color:#30d158;letter-spacing:.12em;margin-top:4px;}
+.cta-end{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);z-index:25;text-align:center;opacity:0;transition:opacity .5s;}
+.cta-end.show{opacity:1;}
+.cta-end a{display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#f0c040,#e0a020);color:#060606;font-family:'Saira',sans-serif;font-weight:700;font-size:1rem;letter-spacing:.08em;border-radius:8px;text-decoration:none;text-transform:uppercase;transition:transform .2s,box-shadow .2s;}
+.cta-end a:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(240,192,64,.35);}
+</style>
+</head>
+<body>
+<div class="demo-wrap">
+<div class="demo-stage" id="stage">
+<div class="progress-bar" id="progBar"></div>
+<div class="top-bar">
+<span class="top-logo">FLOWSTATION</span>
+<div class="top-tools">
+<span class="top-tool" id="ttRhyme">RHYME</span>
+<span class="top-tool" id="ttFlow">FLOW</span>
+<span class="top-tool" id="ttFloyd">FLOYD</span>
+</div>
+</div>
+<div class="notepad-mock" id="notepad">
+<div class="pad-gutter" id="gutter"></div>
+<div class="pad-area" id="padArea"></div>
+</div>
+<div class="bottom-bar">
+<svg class="flow-ring" viewBox="0 0 32 32">
+<circle class="flow-ring-bg" cx="16" cy="16" r="13"/>
+<circle class="flow-ring-fg" id="flowRing" cx="16" cy="16" r="13" transform="rotate(-90 16 16)"/>
+<text class="flow-num" id="flowNum" x="16" y="19" text-anchor="middle">--</text>
+</svg>
+<span class="bot-stat" id="lineCount">LINES: 0</span>
+<span class="bot-stat" id="sylCount">SYLLABLES: 0</span>
+<span class="bot-stat" id="wordCount">WORDS: 0</span>
+</div>
+<div class="floyd-panel" id="floydPanel">
+<div class="floyd-top">
+<span class="floyd-dot"></span>
+<span class="floyd-title">FLOYD AI COACH</span>
+</div>
+<div class="floyd-msgs" id="floydMsgs"></div>
+</div>
+<div class="score-flash" id="scoreFlash">
+<div class="score-big" id="scoreBig">84</div>
+<div class="score-label">STRONG FLOW</div>
+</div>
+<div class="caption-box">
+<div class="caption" id="caption"></div>
+</div>
+<div class="play-btn" id="playBtn" onclick="startDemo()">
+<div class="play-circle">
+<svg viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
+</div>
+<span class="play-label">Watch Demo</span>
+</div>
+<button class="replay-btn" id="replayBtn" onclick="location.reload()">REPLAY</button>
+<div class="cta-end" id="ctaEnd">
+<a href="https://www.myflowstation.com" target="_blank">START WRITING FREE</a>
+</div>
+</div>
+</div>
+<svg style="position:absolute;width:0;height:0;">
+<defs>
+<symbol id="robotIcon" viewBox="0 0 64 64">
+<rect x="14" y="22" width="36" height="30" rx="8" fill="#1a3a1a" stroke="#30d158" stroke-width="2"/>
+<rect x="22" y="12" width="20" height="14" rx="6" fill="#1a3a1a" stroke="#30d158" stroke-width="2"/>
+<circle cx="28" cy="19" r="3" fill="#30d158">
+<animate attributeName="opacity" values="1;.4;1" dur="2s" repeatCount="indefinite"/>
+</circle>
+<circle cx="36" cy="19" r="3" fill="#30d158">
+<animate attributeName="opacity" values="1;.4;1" dur="2s" begin=".3s" repeatCount="indefinite"/>
+</circle>
+<rect x="29" y="8" width="6" height="6" rx="2" fill="#30d158" opacity=".5"/>
+<line x1="32" y1="4" x2="32" y2="8" stroke="#30d158" stroke-width="2" stroke-linecap="round"/>
+<circle cx="32" cy="3" r="2" fill="#30d158" opacity=".7">
+<animate attributeName="opacity" values=".3;1;.3" dur="1.5s" repeatCount="indefinite"/>
+</circle>
+<rect x="24" y="36" width="5" height="4" rx="1" fill="#30d158" opacity=".6"/>
+<rect x="35" y="36" width="5" height="4" rx="1" fill="#30d158" opacity=".6"/>
+<line x1="26" y1="42" x2="26" y2="52" stroke="#30d158" stroke-width="2" stroke-linecap="round"/>
+<line x1="38" y1="42" x2="38" y2="52" stroke="#30d158" stroke-width="2" stroke-linecap="round"/>
+<rect x="8" y="30" width="6" height="3" rx="1" fill="#30d158" opacity=".4"/>
+<rect x="50" y="30" width="6" height="3" rx="1" fill="#30d158" opacity=".4"/>
+</symbol>
+</defs>
+</svg>
+<script>
+var lines = [
+"I been grinding in the dark, no one saw the flame",
+"Now they calling out my name, but it don't feel the same",
+"Every bar I write is like a step up out the mud",
+"Built this from the ground, yeah, I came up from the blood",
+"They said I wouldn't make it, now they watching from the side",
+"Station on my desk, pen loaded, amplified",
+"Flow so automatic, every syllable collide",
+"King of my own lane and I ain't need a ride"
+];
+var syls = [12,14,13,12,13,11,12,11];
+var totalDur = 52000;
+var t = 0;
+var scenes = [];
+function cap(text,dur){scenes.push({type:'caption',text:text,time:t,dur:dur});t+=dur;}
+function typeLine(i,dur){scenes.push({type:'line',index:i,time:t,dur:dur});}
+function showFloyd(dur){scenes.push({type:'floyd-open',time:t,dur:dur});}
+function floydMsg(text,cls,dur){scenes.push({type:'floyd-msg',text:text,cls:cls,time:t,dur:dur});}
+function toolHl(id,dur){scenes.push({type:'tool-hl',id:id,time:t,dur:dur});}
+function flowScore(score,dur){scenes.push({type:'flow-score',score:score,time:t,dur:dur});}
+function scoreFlash(dur){scenes.push({type:'score-flash',time:t,dur:dur});}
+function rhymeHl(dur){scenes.push({type:'rhyme-hl',time:t,dur:dur});}
+function showCta(dur){scenes.push({type:'cta',time:t,dur:dur});}
+function wait(d){t+=d;}
+
+cap("Welcome to <strong>FlowStation</strong> — the AI-powered songwriting suite.",2500);
+wait(500);
+cap("Let me show you how it works. Watch as we write some bars...",2500);
+wait(500);
+
+typeLine(0,1200);wait(300);
+typeLine(1,1200);wait(300);
+cap("Notice the <strong>syllable counter</strong> tracking each line in real-time.",2200);
+wait(200);
+typeLine(2,1200);wait(300);
+typeLine(3,1200);wait(300);
+
+cap("The <strong>line counter</strong> and <strong>word count</strong> update as you write.",2000);
+wait(200);
+
+typeLine(4,1200);wait(300);
+typeLine(5,1200);wait(300);
+typeLine(6,1200);wait(300);
+typeLine(7,1200);wait(300);
+
+toolHl('ttFlow',500);
+cap("Now let's check the <strong>Flow Score</strong>...",1800);
+wait(400);
+flowScore(84,2000);
+wait(500);
+scoreFlash(2500);
+wait(500);
+cap("84 out of 100 — <strong class=\"green\">STRONG FLOW</strong>. Cadence, rhymes, and vocab all analyzed.",2800);
+wait(500);
+
+toolHl('ttRhyme',500);
+cap("The <strong>Rhyme Map</strong> highlights your rhyme patterns...",2000);
+wait(200);
+rhymeHl(3000);
+wait(500);
+cap("Purple = end rhymes. Blue = internal rhymes. All <strong>color-coded</strong>.",2500);
+wait(800);
+
+toolHl('ttFloyd',500);
+cap("Now let's ask <strong class=\"green\">Floyd</strong> — your AI songwriting coach.",2200);
+wait(400);
+showFloyd(500);
+wait(600);
+floydMsg("How's my flow looking?","user",800);
+wait(1200);
+floydMsg("Yo, this is solid work. Your cadence is locked in — lines 1-4 got that rhythmic consistency. The end rhymes (flame/same, mud/blood) hit clean. I'd push the internal rhymes harder on lines 5-6 to keep that density up. Overall? You're cooking. 84/100.","bot",1500);
+wait(3500);
+cap("<strong class=\"green\">Floyd</strong> reads your notepad and gives real feedback — not generic tips.",2800);
+wait(1000);
+
+floydMsg("What about my word choice?","user",800);
+wait(1200);
+floydMsg("Your vocab range is strong — 'amplified,' 'automatic,' 'collide' show range. Try swapping 'feel the same' for something more vivid. Paint the picture. You got the skill, now flex the details.","bot",1500);
+wait(3500);
+
+cap("Floyd is a coach, not a ghostwriter. <strong>Your bars. Your voice.</strong>",2500);
+wait(1000);
+cap("<strong>FlowStation</strong> — Write smarter. Flow better.",2500);
+wait(300);
+showCta(5000);
+
+totalDur = t;
+
+var running = false;
+var startTime = 0;
+
+function startDemo(){
+document.getElementById('playBtn').classList.add('hidden');
+running = true;
+startTime = performance.now();
+buildPad();
+requestAnimationFrame(tick);
+}
+
+function buildPad(){
+var g = document.getElementById('gutter');
+var p = document.getElementById('padArea');
+g.innerHTML = '';
+p.innerHTML = '';
+for(var i = 0; i < 12; i++){
+var gr = document.createElement('div');
+gr.className = 'gut-row';
+gr.id = 'gr'+i;
+gr.innerHTML = '<span class="gut-ln">'+(i+1)+'</span><span class="gut-syl" id="gs'+i+'"></span>';
+g.appendChild(gr);
+if(i < lines.length){
+var pl = document.createElement('div');
+pl.className = 'pad-line';
+pl.id = 'pl'+i;
+p.appendChild(pl);
+} else {
+var pe = document.createElement('div');
+pe.className = 'pad-empty';
+p.appendChild(pe);
+}
+}
+}
+
+var triggered = {};
+var typingTimers = {};
+var totalSyl = 0;
+var totalWords = 0;
+var linesWritten = 0;
+
+function tick(now){
+if(!running) return;
+var elapsed = now - startTime;
+var pct = Math.min(100, (elapsed / totalDur) * 100);
+document.getElementById('progBar').style.width = pct + '%';
+
+for(var i = 0; i < scenes.length; i++){
+var s = scenes[i];
+var key = i;
+if(triggered[key]) continue;
+if(elapsed >= s.time){
+triggered[key] = true;
+execScene(s);
+}
+}
+
+if(elapsed < totalDur) requestAnimationFrame(tick);
+}
+
+function execScene(s){
+switch(s.type){
+case 'caption':
+var el = document.getElementById('caption');
+el.innerHTML = s.text;
+el.classList.add('show');
+setTimeout(function(){ el.classList.remove('show'); }, s.dur);
+break;
+case 'line':
+typeLineAnim(s.index, s.dur);
+break;
+case 'floyd-open':
+document.getElementById('floydPanel').classList.add('open');
+break;
+case 'floyd-msg':
+var m = document.createElement('div');
+m.className = 'floyd-msg ' + s.cls;
+m.innerHTML = s.text;
+document.getElementById('floydMsgs').appendChild(m);
+setTimeout(function(){ m.classList.add('show'); }, 50);
+document.getElementById('floydMsgs').scrollTop = 99999;
+break;
+case 'tool-hl':
+var tools = document.querySelectorAll('.top-tool');
+tools.forEach(function(t){ t.classList.remove('active'); });
+document.getElementById(s.id).classList.add('active');
+break;
+case 'flow-score':
+animateFlowScore(s.score, s.dur);
+break;
+case 'score-flash':
+var sf = document.getElementById('scoreFlash');
+sf.classList.add('show');
+setTimeout(function(){ sf.classList.remove('show'); }, s.dur);
+break;
+case 'rhyme-hl':
+highlightRhymes();
+setTimeout(clearRhymes, s.dur);
+break;
+case 'cta':
+document.getElementById('ctaEnd').classList.add('show');
+document.getElementById('replayBtn').classList.add('show');
+break;
+}
+}
+
+function typeLineAnim(idx, dur){
+var el = document.getElementById('pl'+idx);
+var gr = document.getElementById('gr'+idx);
+var gs = document.getElementById('gs'+idx);
+if(!el) return;
+el.style.opacity = '1';
+gr.style.opacity = '1';
+var text = lines[idx];
+var chars = text.split('');
+var perChar = dur / chars.length;
+var ci = 0;
+function addChar(){
+if(ci < chars.length){
+el.textContent = text.substring(0, ci+1);
+ci++;
+setTimeout(addChar, perChar);
+} else {
+gs.textContent = syls[idx];
+linesWritten++;
+totalSyl += syls[idx];
+totalWords += text.split(/\s+/).length;
+document.getElementById('lineCount').textContent = 'LINES: ' + linesWritten;
+document.getElementById('sylCount').textContent = 'SYLLABLES: ' + totalSyl;
+document.getElementById('wordCount').textContent = 'WORDS: ' + totalWords;
+}
+}
+addChar();
+}
+
+function animateFlowScore(target, dur){
+var ring = document.getElementById('flowRing');
+var num = document.getElementById('flowNum');
+var circ = 2 * Math.PI * 13;
+var steps = 30;
+var perStep = dur / steps;
+var cur = 0;
+function step(){
+if(cur <= target){
+var offset = circ - (circ * cur / 100);
+ring.style.strokeDashoffset = offset;
+num.textContent = cur;
+cur += Math.ceil(target / steps);
+if(cur > target) cur = target;
+setTimeout(step, perStep);
+}
+}
+step();
+}
+
+function highlightRhymes(){
+var pairs = [[0,1],[2,3],[4,5],[6,7]];
+for(var i = 0; i < pairs.length; i++){
+var a = document.getElementById('pl'+pairs[i][0]);
+var b = document.getElementById('pl'+pairs[i][1]);
+if(a && b){
+var aWords = a.textContent.split(' ');
+var bWords = b.textContent.split(' ');
+var lastA = aWords[aWords.length-1];
+var lastB = bWords[bWords.length-1];
+aWords[aWords.length-1] = '<span class="rhyme-hl">'+lastA+'</span>';
+bWords[bWords.length-1] = '<span class="rhyme-hl">'+lastB+'</span>';
+if(aWords.length > 4){
+aWords[3] = '<span class="rhyme-hl2">'+aWords[3]+'</span>';
+}
+if(bWords.length > 4){
+bWords[3] = '<span class="rhyme-hl2">'+bWords[3]+'</span>';
+}
+a.innerHTML = aWords.join(' ');
+b.innerHTML = bWords.join(' ');
+}
+}
+}
+
+function clearRhymes(){
+for(var i = 0; i < lines.length; i++){
+var el = document.getElementById('pl'+i);
+if(el) el.textContent = lines[i];
+}
+}
+</script>
+</body>
+</html>
