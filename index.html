@@ -1595,22 +1595,17 @@ border-top:1px solid rgba(255,255,255,.1)!important;
 .g-grid{grid-template-columns:1fr;max-width:100%;}
 .g-grid .pc{margin:0;}
 
-/* Pricing cards on mobile  -  horizontal scroll */
-#gPlans > div:last-of-type{
+/* Pricing cards on mobile - stack vertically */
+#gPlans .pc-grid{
 display:flex!important;
-flex-wrap:nowrap!important;
-overflow-x:auto!important;
-gap:.9rem!important;
-padding:.5rem .2rem 1.2rem!important;
-scroll-snap-type:x mandatory;
--webkit-overflow-scrolling:touch;
-scrollbar-width:none;
+flex-direction:column!important;
+gap:1.2rem!important;
+padding:0!important;
 }
-#gPlans > div:last-of-type > div{
-min-width:280px!important;
-max-width:280px!important;
-flex-shrink:0!important;
-scroll-snap-align:start;
+#gPlans .pc-grid > div{
+min-width:0!important;
+max-width:100%!important;
+width:100%!important;
 }
 
 /* ── TESTIMONIAL ── */
@@ -2196,7 +2191,7 @@ text-decoration:none;
       <canvas class="sw-canvas short" data-color="rgba(240,192,64," data-waves="2" data-speed="0.7" style="margin-top:1.2rem;opacity:.3;"></canvas>
     </div>
 
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.4rem;align-items:start;">
+<div class="pc-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.4rem;align-items:start;">
 
   <!-- ── BASIC ── -->
   <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:2rem 1.8rem 1.8rem;position:relative;overflow:hidden;">
