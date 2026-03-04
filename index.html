@@ -2665,7 +2665,7 @@ text-decoration:none;
       <div class="acct-dd-tier basic" id="ddTier">BASIC</div>
     </div>
     <div class="acct-dd-items">
-      <div class="acct-dd-item" onclick="showGate();closeAcctDD()">📋 VIEW PLANS &amp; UPGRADE</div>
+      <div class="acct-dd-item" onclick="showGate('gPlans');closeAcctDD()">📋 VIEW PLANS &amp; UPGRADE</div>
       <a class="acct-dd-item" href="mailto:flowstationai@gmail.com">💬 CONTACT SUPPORT</a>
       <a class="acct-dd-item" id="ddBilling" href="#" onclick="openBilling();return false;" style="display:none">💳 MANAGE BILLING</a>
       <div class="acct-dd-sep"></div>
@@ -3279,7 +3279,7 @@ const top = el.getBoundingClientRect().top
 + gate.scrollTop;
 gate.scrollTo({top: top - 20, behavior:'smooth'});
 }
-function showGate(){ document.getElementById('gate').classList.remove('off'); document.getElementById('theApp').style.display='none'; const ex=document.getElementById('upgradeModal');if(ex)ex.remove(); }
+function showGate(scrollTo){ var g=document.getElementById('gate'); g.classList.remove('off'); document.getElementById('theApp').style.display='none'; const ex=document.getElementById('upgradeModal');if(ex)ex.remove(); if(scrollTo){ setTimeout(function(){ var t=document.getElementById(scrollTo); if(t){ var top=t.getBoundingClientRect().top - g.getBoundingClientRect().top + g.scrollTop; g.scrollTo({top:top-20,behavior:'smooth'}); } },120); } }
 function showApp(){ document.getElementById('gate').classList.add('off'); document.getElementById('theApp').style.display=''; document.querySelectorAll('.gn-page-link').forEach(el=>el.style.display='none'); const bwEl=document.getElementById('basicWelcome'); if(bwEl) bwEl.style.display='none'; }
 
 // ── Auth tab switching ──
