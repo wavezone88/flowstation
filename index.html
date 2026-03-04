@@ -2012,6 +2012,7 @@ text-decoration:none;
       <span id="heroLineCount" style="font-family:'Saira',sans-serif;font-size:.6rem;font-weight:600;color:rgba(242,239,233,.2);">0 LINES</span>
     </div>
     <textarea id="heroTryPad" rows="4" placeholder="Type 2+ lines to see your Flow Score...&#10;&#10;Example:&#10;I been grinding in the dark no one saw the flame" style="width:100%;box-sizing:border-box;border:none;background:rgba(255,255,255,.04);border-radius:8px;font-family:'Saira',sans-serif;font-size:.92rem;color:#f2efe9;padding:10px 12px;outline:none;resize:none;line-height:1.65;letter-spacing:.01em;" oninput="updateHeroTeaser()"></textarea>
+    <div id="heroRhymeMap" style="display:none;margin-top:.5rem;padding:.5rem .6rem;background:rgba(255,255,255,.02);border-radius:6px;font-family:'Saira',sans-serif;font-size:.82rem;line-height:1.7;color:rgba(242,239,233,.55);"></div>
     <div id="heroScoreDash" style="display:none;margin-top:.7rem;padding-top:.7rem;border-top:1px solid rgba(255,255,255,.06);">
       <div style="display:flex;align-items:center;gap:.9rem;">
         <div style="width:68px;height:68px;position:relative;flex-shrink:0;">
@@ -4864,13 +4865,19 @@ return w.slice(last);
 }
 
 function wordsRhyme(a,b){
+if(!a||!b) return false;
+a=a.toLowerCase().replace(/[^a-z]/g,'');
+b=b.toLowerCase().replace(/[^a-z]/g,'');
 if(a===b) return false;
+if(a.length<2||b.length<2) return false;
 var pa = phoneticEnd(a), pb = phoneticEnd(b);
-if(pa.length<2 && pb.length<2) return pa===pb;
-if(pa===pb) return true;
-if(pa.length>=2 && pb.length>=2 && pa.slice(-2)===pb.slice(-2)) return true;
-var va=pa.replace(/[^aeiouy]/g,''), vb=pb.replace(/[^aeiouy]/g,'');
-if(va.length>=2 && va===vb) return true;
+if(pa.length<2||pb.length<2) return false;
+if(pa===pb && pa.length>=2) return true;
+if(pa.length>=3 && pb.length>=3 && pa.slice(-3)===pb.slice(-3)) return true;
+if(pa.length>=2 && pb.length>=2 && pa.slice(-2)===pb.slice(-2)){
+  var vc=pa.replace(/[^aeiouy]/g,'');
+  if(vc.length>=1) return true;
+}
 return false;
 }
 
@@ -4952,6 +4959,67 @@ return {score:score,cadence:Math.round(cadence),endRhyme:Math.round(endRhyme),in
 }
 
 var _heroTeaserTimer = null;
+var HERO_RH_COLORS = ['#f0c040','#2997ff','#30d158','#ff9f0a','#ff453a','#bf5af2','#64d2ff'];
+function heroEsc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function buildHeroRhymeMap(lines){
+var rm = document.getElementById('heroRhymeMap');
+if(!rm) return;
+if(lines.length<2){ rm.style.display='none'; rm.innerHTML=''; return; }
+var endWords = lines.map(function(l){
+  var m=l.trim().match(/[\w']+(?=[^\w']*$)/);
+  return m?m[0].toLowerCase():'';
+});
+var groups={}, gi=0;
+endWords.forEach(function(w){ if(w){ var c=phoneticEnd(w.replace(/[^a-z]/g,'')); if(!(c in groups)) groups[c]=gi++; }});
+var groupCount={};
+endWords.forEach(function(w){ if(w){ var c=phoneticEnd(w.replace(/[^a-z]/g,'')); groupCount[c]=(groupCount[c]||0)+1; }});
+var intColors = ['#bf5af2','#64d2ff','#ff9f0a','#30d158','#2997ff','#f0c040'];
+var html = lines.map(function(line, i){
+  var endW = endWords[i];
+  if(!line.trim()) return '';
+  var words = line.trim().split(/(\s+)/);
+  var wordTokens = [];
+  words.forEach(function(tok){
+    if(/^\s+$/.test(tok)){ wordTokens.push({text:tok,isWord:false}); }
+    else { wordTokens.push({text:tok,isWord:true,clean:tok.toLowerCase().replace(/[^a-z']/g,'')}); }
+  });
+  var internalPairs = [];
+  var cleanWords = wordTokens.filter(function(t){return t.isWord && t.clean.length>2;});
+  for(var a=0;a<cleanWords.length;a++){
+    for(var b=a+2;b<cleanWords.length;b++){
+      if(wordsRhyme(cleanWords[a].clean,cleanWords[b].clean)){
+        var ic = intColors[(a+b)%intColors.length];
+        cleanWords[a].intColor = ic;
+        cleanWords[b].intColor = ic;
+      }
+    }
+  }
+  var rendered = wordTokens.map(function(tok){
+    if(!tok.isWord) return tok.text;
+    var isEnd = endW && tok.clean === endW && tok === wordTokens.filter(function(t){return t.isWord;}).slice(-1)[0];
+    if(isEnd){
+      var c = phoneticEnd(endW.replace(/[^a-z]/g,''));
+      if((groupCount[c]||0)>=2){
+        var grp = groups[c];
+        var clr = HERO_RH_COLORS[grp % HERO_RH_COLORS.length];
+        var label = String.fromCharCode(65+(grp%26));
+        return '<span style="background:'+clr+'28;color:'+clr+';border-bottom:2px solid '+clr+';border-radius:3px;padding:0 .15em;font-weight:700;">'+heroEsc(tok.text)+'</span>'
+          +'<span style="font-size:.55rem;font-weight:800;color:'+clr+';margin-left:.2rem;vertical-align:super;">'+label+'</span>';
+      }
+    }
+    if(tok.intColor){
+      return '<span style="background:'+tok.intColor+'18;color:'+tok.intColor+';border-bottom:1px dashed '+tok.intColor+'66;border-radius:2px;padding:0 .1em;">'+heroEsc(tok.text)+'</span>';
+    }
+    return heroEsc(tok.text);
+  }).join('');
+  return '<div style="display:flex;align-items:baseline;gap:.4rem;margin-bottom:.1rem;">'
+    +'<span style="font-size:.65rem;color:rgba(242,239,233,.18);width:14px;text-align:right;flex-shrink:0;">'+(i+1)+'</span>'
+    +'<span style="flex:1;">'+rendered+'</span>'
+    +'</div>';
+}).filter(Boolean).join('');
+rm.style.display = '';
+rm.innerHTML = '<div style="font-size:.5rem;font-weight:700;letter-spacing:.1em;color:rgba(240,192,64,.35);margin-bottom:.3rem;text-transform:uppercase;">RHYME MAP</div>' + html;
+}
 function updateHeroTeaser(){
 var pad = document.getElementById('heroTryPad');
 var dash = document.getElementById('heroScoreDash');
@@ -4969,10 +5037,13 @@ if(lines.length < 2){
   document.getElementById('heroRingFill').style.stroke = '#f0c040';
   document.getElementById('heroBars').innerHTML = '';
   document.getElementById('heroVerdict').textContent = '';
+  var rm = document.getElementById('heroRhymeMap');
+  if(rm){ rm.style.display='none'; rm.innerHTML=''; }
   return;
 }
 if(prompt) prompt.style.display = 'none';
 dash.style.display = '';
+buildHeroRhymeMap(lines);
 if(_heroTeaserTimer) clearTimeout(_heroTeaserTimer);
 _heroTeaserTimer = setTimeout(function(){
   var result = calcCompositeFlow(lines);
@@ -5083,7 +5154,7 @@ const trimmed = l.trim().replace(/[- - \s]+$/, '');
 const m = trimmed.match(/[\w']+$/);
 return m ? m[0].toLowerCase() : '';
 });
-const code = w => w.replace(/[^a-z]/g,'').slice(-4);
+const code = w => phoneticEnd(w.replace(/[^a-z]/g,''));
 const groups = {};
 let gi = 0;
 endWords.forEach(w => { if (w && !(code(w) in groups)) groups[code(w)] = gi++; });
@@ -7389,11 +7460,7 @@ const lines = text.split('\n');
 
 // Build rhyme groups from end words
 // Match from last vowel onwards: day/way→"ay", night/light→"ight", fly/sky→"y"
-const code = w => {
-const clean = w.replace(/[^a-z]/g,'');
-const vi = clean.search(/[aeiou][^aeiou]*$/);
-return vi >= 0 ? clean.slice(vi) : clean.slice(-2);
-};
+const code = w => phoneticEnd(w.replace(/[^a-z]/g,''));
 const groups = {};
 let gi = 0;
 const endWords = lines.map(l => {
