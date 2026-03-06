@@ -3525,6 +3525,15 @@ return;
 tier = user.user_metadata?.tier || 'basic';
 }
 tier = getEffectiveTier(user, tier);
+if(tier === 'basic' && sb){
+  try{
+    const { data: profile } = await sb.from('profiles').select('tier').eq('id', user.id).single();
+    if(profile && profile.tier && profile.tier !== 'basic'){
+      tier = profile.tier;
+      try{ await sb.auth.updateUser({data:{tier}}); }catch(e){}
+    }
+  }catch(e){}
+}
 currentTier = tier;
 try{ localStorage.setItem('fs_tier_cache', tier); }catch(e){}
 if(sb && PRO_EMAILS.includes((user.email||'').toLowerCase()) && tier === 'regular'){
@@ -8075,7 +8084,6 @@ return;
 }
 
 try{
-// Re-fetch the current session to get latest user metadata
 const { data:{ session }, error } = await sb.auth.refreshSession();
 if(error || !session){
 if(msg){ msg.textContent='Not signed in. Sign in first, then try again.'; msg.style.color='#ff453a'; }
@@ -8083,11 +8091,22 @@ return;
 }
 
 const user = session.user;
-const tier = getEffectiveTier(user, user.user_metadata?.tier || 'basic');
+let tier = getEffectiveTier(user, user.user_metadata?.tier || 'basic');
+
+if(tier === 'basic'){
+  try{
+    const { data: profile } = await sb.from('profiles').select('tier').eq('id', user.id).single();
+    if(profile && profile.tier && profile.tier !== 'basic'){
+      tier = profile.tier;
+      await sb.auth.updateUser({data:{tier}});
+    }
+  }catch(e){}
+}
 
 if(tier !== 'basic'){
-  // They have a tier  -  launch the app
   if(msg){ msg.textContent='✅ Plan found! Loading...'; msg.style.color='#30d158'; }
+  currentTier = tier;
+  try{ localStorage.setItem('fs_tier_cache', tier); }catch(e){}
   setTimeout(()=>{
     document.getElementById('restoreModal')?.remove();
     launch(tier, user.email);
