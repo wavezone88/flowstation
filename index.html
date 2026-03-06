@@ -6932,7 +6932,7 @@ if(ignore.some(i=>msg.toLowerCase().includes(i.toLowerCase()))) return;
 if(typeof showToast==='function') showToast('Something went wrong  -  email flowstationai@gmail.com if this keeps happening');
 });
 // ── PROFILES TABLE  -  write/update on every signup and sign-in ──
-async function upsertProfile(user, extra){
+async function upsertProfile(user, extra, resolvedTier){
 if(!sb || !user) return;
 try{
 const meta = user.user_metadata || {};
@@ -6941,7 +6941,7 @@ id:         user.id,
 email:      user.email,
 first_name: extra?.first || meta.first_name || '',
 last_name:  extra?.last  || meta.last_name  || '',
-tier:       meta.tier    || 'basic',
+tier:       resolvedTier || currentTier || meta.tier || 'basic',
 created_at: user.created_at || new Date().toISOString(),
 updated_at: new Date().toISOString(),
 };

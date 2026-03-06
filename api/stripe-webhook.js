@@ -15,6 +15,12 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
+function mapPriceToTier(unitAmount) {
+  if (unitAmount === 999) return { tier: 'pro', tierInternal: 'regular' }
+  if (unitAmount === 1499) return { tier: 'elite', tierInternal: 'premium' }
+  return null
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).send('Method Not Allowed')
@@ -48,37 +54,28 @@ export default async function handler(req, res) {
       return res.status(200).json({ received: true })
     }
 
-    let tier = 'basic'
-    let tierInternal = 'basic'
+    let result = mapPriceToTier(session.amount_total)
 
-    if (session.amount_total === 999) {
-      tier = 'pro'
-      tierInternal = 'regular'
-    } else if (session.amount_total === 1499) {
-      tier = 'elite'
-      tierInternal = 'premium'
-    } else if (session.amount_total === 0 && session.subscription) {
+    if (!result && session.subscription) {
       try {
         const subscription = await stripe.subscriptions.retrieve(session.subscription, {
           expand: ['items.data.price']
         })
         const unitAmount = subscription.items?.data?.[0]?.price?.unit_amount
-        if (unitAmount === 999) {
-          tier = 'pro'
-          tierInternal = 'regular'
-        } else if (unitAmount === 1499) {
-          tier = 'elite'
-          tierInternal = 'premium'
+        if (unitAmount) {
+          result = mapPriceToTier(unitAmount)
         }
       } catch (e) {
         console.error('Failed to retrieve subscription:', e.message)
       }
     }
 
-    if (tierInternal === 'basic') {
+    if (!result) {
       console.log(`Checkout completed for ${email} but could not determine tier (amount_total: ${session.amount_total})`)
       return res.status(200).json({ received: true })
     }
+
+    const { tierInternal } = result
 
     const { error: profileError } = await supabase
       .from('profiles')
@@ -89,10 +86,13 @@ export default async function handler(req, res) {
       console.error('Supabase profile update error:', profileError)
     }
 
-    const { data: users, error: listError } = await supabase.auth.admin.listUsers()
+    const { data: userList, error: listError } = await supabase.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000
+    })
 
-    if (!listError && users?.users) {
-      const user = users.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
+    if (!listError && userList?.users) {
+      const user = userList.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
       if (user) {
         const { error: metaError } = await supabase.auth.admin.updateUserById(user.id, {
           user_metadata: { tier: tierInternal }
@@ -100,10 +100,10 @@ export default async function handler(req, res) {
         if (metaError) {
           console.error('Supabase user_metadata update error:', metaError)
         } else {
-          console.log(`Upgraded ${email} to ${tierInternal} (${tier}) in both profiles and user_metadata`)
+          console.log(`Upgraded ${email} to ${tierInternal} in both profiles and user_metadata`)
         }
       } else {
-        console.log(`User ${email} not found in auth - profile table updated to ${tierInternal}`)
+        console.log(`User ${email} not found in auth users - profile table updated to ${tierInternal}`)
       }
     }
   }
