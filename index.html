@@ -3099,7 +3099,7 @@ text-decoration:none;
   <div class="hrp-chips" id="hrpChips"><span class="hrp-loading">Loading...</span></div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js">
+<script>
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  HERO CANVAS  -  AUDIO WAVEFORM ANIMATION
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -6957,7 +6957,7 @@ if(_coUser){
 var stripeUrl = plan === 'elite' ? STRIPE_ELITE : STRIPE_PRO;
 var email = _coUser.email || '';
 var _sUtm = {}; try{ _sUtm = JSON.parse(sessionStorage.getItem('fs_utm')||'{}'); }catch(e){}
-var _sParams = '?prefilled_email=' + encodeURIComponent(email);
+var _sParams = '?prefilled_email=' + encodeURIComponent(email) + '&allow_promotion_codes=true';
 if(_sUtm.gclid) _sParams += '&client_reference_id=' + encodeURIComponent(_sUtm.gclid);
 if(_sUtm.utm_source) _sParams += '&utm_source=' + encodeURIComponent(_sUtm.utm_source);
 showToast('Heading to checkout...');
@@ -7087,7 +7087,7 @@ if(data.user) upsertProfile(data.user, {first, last});
 // Redirect to Stripe with email prefilled
 const stripeUrl = _checkoutPlan === 'elite' ? STRIPE_ELITE : STRIPE_PRO;
 var _coUtm2 = {}; try{ _coUtm2 = JSON.parse(sessionStorage.getItem('fs_utm')||'{}'); }catch(e){}
-var _coParams = '?prefilled_email=' + encodeURIComponent(email);
+var _coParams = '?prefilled_email=' + encodeURIComponent(email) + '&allow_promotion_codes=true';
 if(_coUtm2.gclid) _coParams += '&client_reference_id=' + encodeURIComponent(_coUtm2.gclid);
 _coMsg('Account created! Heading to checkout...', false);
 setTimeout(()=>{ window.location.href = stripeUrl + _coParams; }, 800);
@@ -7111,7 +7111,7 @@ const firstName = data.user?.user_metadata?.first_name || '';
 try{ localStorage.setItem('fs_pending_name', firstName); }catch(e){}
 const stripeUrl = _checkoutPlan === 'elite' ? STRIPE_ELITE : STRIPE_PRO;
 var _siUtm = {}; try{ _siUtm = JSON.parse(sessionStorage.getItem('fs_utm')||'{}'); }catch(e){}
-var _siParams = '?prefilled_email=' + encodeURIComponent(email);
+var _siParams = '?prefilled_email=' + encodeURIComponent(email) + '&allow_promotion_codes=true';
 if(_siUtm.gclid) _siParams += '&client_reference_id=' + encodeURIComponent(_siUtm.gclid);
 _coMsg('Signed in! Heading to checkout...', false);
 setTimeout(()=>{ window.location.href = stripeUrl + _siParams; }, 800);
