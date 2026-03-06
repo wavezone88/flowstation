@@ -6235,7 +6235,7 @@ tease.className = 'floyd-tease';
 tease.innerHTML = '<div class="ft-icon">🤖</div>'
 + '<div class="ft-title">FLOYD AI COACH</div>'
 + '<div class="ft-sub">Get real-time rhyme density scores, flow analysis, and punchline critiques  -  all without an API key.</div>'
-+ '<button class="ft-btn" onclick="su("floyd")">UNLOCK FLOYD  -  ARTIST ELITE →</button>'
++ '<button class="ft-btn" onclick="su(\'floyd\')">UNLOCK FLOYD  -  ARTIST ELITE →</button>'
 + '<div class="ft-elite">Artist Elite gets full rewrite engine, tone shifting & bar restructuring</div>';
 fp.appendChild(tease);
 }
@@ -6247,7 +6247,7 @@ const demoHeader = document.createElement('div');
 demoHeader.className = 'floyd-demo-header';
 demoHeader.innerHTML = '<span class="fdh-badge">DEMO ENGINE</span>'
 + '<span class="fdh-hint">Pattern analysis · no API key required</span>'
-+ '<button class="fdh-elite" onclick="su("floyd-elite")">Upgrade to Elite for full AI rewrites →</button>';
++ '<button class="fdh-elite" onclick="su(\'floyd-elite\')">Upgrade to Elite for full AI rewrites →</button>';
 fp.insertBefore(demoHeader, fp.firstChild);
 }
 } else if(cfg.floyd === 'elite'){
