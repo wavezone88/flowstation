@@ -46,12 +46,12 @@ export default async function handler(req, res) {
   try {
     const sig = req.headers['stripe-signature']
 
-    if (!process.env.STRIPE_SECRET_KEY || !process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET || !process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       console.error('Missing env vars:', {
         hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
+        hasWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET,
         hasSupabaseUrl: !!process.env.SUPABASE_URL,
-        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-        hasWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET
+        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
       })
       return res.status(500).json({ error: 'Server configuration error' })
     }
