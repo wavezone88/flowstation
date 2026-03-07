@@ -1965,8 +1965,8 @@ text-decoration:none;
       <a href="/about.html" class="gn-page-link">ABOUT</a>
       <a href="/promo.html" class="gn-page-link">PROMO</a>
       <a href="mailto:flowstationai@gmail.com" class="gn-page-link">CONTACT</a>
-      <button class="gn-lnk" onclick="gscroll('gAuth')">SIGN IN</button>
-      <button class="gn-cta" onclick="gscroll('gPlans')">GET STARTED</button>
+      <button class="gn-lnk" onclick="gscroll('gAuth');setTimeout(function(){switchAuthTab('signin')},400)">SIGN IN</button>
+      <button class="gn-cta" onclick="gscroll('gAuth')">GET STARTED</button>
     </div>
     <button class="gn-burger" id="gnBurger" onclick="toggleGnMenu()" aria-label="Open navigation menu" aria-expanded="false">&#9776;</button>
     <div class="gn-mobile-menu" id="gnMobileMenu">
@@ -1975,8 +1975,8 @@ text-decoration:none;
       <a href="/promo.html" class="gn-mm-item">PROMO</a>
       <a href="mailto:flowstationai@gmail.com" class="gn-mm-item">CONTACT</a>
       <div style="height:1px;background:rgba(255,255,255,.07);margin:.3rem 0;"></div>
-      <button class="gn-mm-item" onclick="gscroll('gAuth');toggleGnMenu()">SIGN IN</button>
-      <button class="gn-mm-cta" onclick="gscroll('gPlans');toggleGnMenu()">GET STARTED</button>
+      <button class="gn-mm-item" onclick="gscroll('gAuth');setTimeout(function(){switchAuthTab('signin')},400);toggleGnMenu()">SIGN IN</button>
+      <button class="gn-mm-cta" onclick="gscroll('gAuth');toggleGnMenu()">GET STARTED</button>
     </div>
   </nav>
 
