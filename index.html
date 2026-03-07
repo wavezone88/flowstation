@@ -1680,12 +1680,12 @@ background:rgba(255,255,255,.12);border-radius:2px;
 
 /* ── Sticky mobile CTA bar ── */
 .g-mobile-cta{
-display:block;position:fixed;bottom:0;left:0;right:0;z-index:99998;
+display:none;position:fixed;bottom:0;left:0;right:0;z-index:100000;
 background:linear-gradient(to top,rgba(6,6,6,.98) 70%,transparent);
 padding:.6rem 1rem .8rem;text-align:center;
-transform:translateY(100%);transition:transform .3s ease;
+opacity:0;transition:opacity .3s ease;pointer-events:none;
 }
-.g-mobile-cta.visible{transform:translateY(0);}
+.g-mobile-cta.visible{display:block;opacity:1;pointer-events:auto;}
 .g-mobile-cta button{
 width:100%;max-width:400px;
 background:linear-gradient(135deg,#c8940e,#f0c040,#ffe599);
@@ -2726,10 +2726,6 @@ text-decoration:none;
     </div>
   </section>
 
-  <div class="g-mobile-cta" id="gMobileCta">
-    <button onclick="gscroll('gAuth')">START FREE — NO CARD NEEDED</button>
-  </div>
-
   <footer class="g-foot">
     © 2025 FLOWSTATION &nbsp;·&nbsp; <a href="mailto:flowstationai@gmail.com">SUPPORT</a> &nbsp;·&nbsp; 7-DAY MONEY-BACK GUARANTEE
   </footer>
@@ -2746,6 +2742,10 @@ text-decoration:none;
   </div>
 
 </div><!-- end #gate -->
+
+<div class="g-mobile-cta" id="gMobileCta">
+  <button onclick="gscroll('gAuth')">START FREE — NO CARD NEEDED</button>
+</div>
 
 <!-- /gate -->
 
@@ -3411,13 +3411,12 @@ if(!gate) return;
 var shown = false;
 function update(){
   if(window.innerWidth > 768){if(shown){shown=false;bar.classList.remove('visible');}return;}
-  var hero = document.querySelector('.gh');
   var auth = document.getElementById('gAuth');
-  if(!hero || !auth) return;
-  var scrollPos = gate.scrollTop;
-  var heroBottom = hero.offsetTop + hero.offsetHeight;
-  var authTop = auth.offsetTop - gate.offsetHeight;
-  var shouldShow = scrollPos > heroBottom && scrollPos < authTop;
+  if(!auth) return;
+  var scrolled = gate.scrollTop > 300;
+  var authRect = auth.getBoundingClientRect();
+  var authVisible = authRect.top < window.innerHeight;
+  var shouldShow = scrolled && !authVisible;
   if(shouldShow !== shown){
     shown = shouldShow;
     bar.classList.toggle('visible', shouldShow);
