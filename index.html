@@ -1678,14 +1678,6 @@ background:rgba(255,255,255,.12);border-radius:2px;
 /* ── Auth card: reduce padding on mobile ── */
 .g-auth-card{padding:2rem 1.4rem;}
 
-/* ── Promote Google sign-in on mobile: show it first ── */
-.g-auth-card{display:flex;flex-direction:column;}
-.g-auth-tabs{order:1;}
-.g-google-btn{order:2;margin-top:.5rem;}
-.g-auth-divider{order:3;}
-.g-auth-form{order:4;}
-.g-auth-card > p.g-auth-hint:last-of-type{order:5;}
-
 /* ── Sticky mobile CTA bar ── */
 .g-mobile-cta{
 display:block;position:fixed;bottom:0;left:0;right:0;z-index:99998;
@@ -2123,6 +2115,13 @@ text-decoration:none;
           <button class="g-auth-tab on" id="tabSignup" onclick="switchAuthTab('signup')">CREATE ACCOUNT</button>
         </div>
 
+    <button onclick="authGoogle()" class="g-google-btn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.75rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:.9rem;cursor:pointer;font-family:'Saira',sans-serif;font-size:1.08rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(242,239,233,.7);transition:all .2s;margin-top:.75rem;margin-bottom:.25rem;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      CONTINUE WITH GOOGLE
+    </button>
+
+    <div class="g-auth-divider"><span>OR USE EMAIL</span></div>
+
     <div class="g-auth-form off" id="formSignin">
       <div>
         <label class="g-auth-label">EMAIL</label>
@@ -2158,12 +2157,7 @@ text-decoration:none;
       <div class="g-auth-msg" id="msgSignup"></div>
     </div>
 
-    <div class="g-auth-divider"><span>OR</span></div>
-    <button onclick="authGoogle()" class="g-google-btn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.75rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:.9rem;cursor:pointer;font-family:'Saira',sans-serif;font-size:1.08rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(242,239,233,.7);transition:all .2s;margin-bottom:.75rem;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">
-      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-      CONTINUE WITH GOOGLE
-    </button>
-    <p class="g-auth-hint" style="text-align:center">Already paid? <a href="#" onclick="switchAuthTab('signin')">Sign in</a> — your tier loads automatically.</p>
+    <p class="g-auth-hint" style="text-align:center;margin-top:.75rem;">Already paid? <a href="#" onclick="switchAuthTab('signin')">Sign in</a> — your tier loads automatically.</p>
   </div>
 
   <div class="g-setup-notice" id="setupNotice" style="display:none">
@@ -3415,7 +3409,8 @@ if(!bar) return;
 var gate = document.getElementById('gate');
 if(!gate) return;
 var shown = false;
-gate.addEventListener('scroll', function(){
+function update(){
+  if(window.innerWidth > 768){if(shown){shown=false;bar.classList.remove('visible');}return;}
   var hero = document.querySelector('.gh');
   var auth = document.getElementById('gAuth');
   if(!hero || !auth) return;
@@ -3427,7 +3422,11 @@ gate.addEventListener('scroll', function(){
     shown = shouldShow;
     bar.classList.toggle('visible', shouldShow);
   }
-}, {passive:true});
+}
+gate.addEventListener('scroll', update, {passive:true});
+window.addEventListener('resize', update, {passive:true});
+window.addEventListener('orientationchange', function(){setTimeout(update,150);});
+setTimeout(update, 200);
 }
 
 // ── Auth tab switching ──
