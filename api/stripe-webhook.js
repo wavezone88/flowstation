@@ -16,12 +16,18 @@ function getRawBody(req) {
   })
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+let stripe = null
+let supabase = null
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+function getStripe() {
+  if (!stripe) stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+  return stripe
+}
+
+function getSupabase() {
+  if (!supabase) supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  return supabase
+}
 
 function mapPriceToTier(unitAmount) {
   if (unitAmount === 999) return { tier: 'pro', tierInternal: 'regular' }
@@ -35,12 +41,14 @@ export default async function handler(req, res) {
   }
 
   const sig = req.headers['stripe-signature']
+  const st = getStripe()
+  const sb = getSupabase()
 
   let event
 
   try {
     const buf = await getRawBody(req)
-    event = stripe.webhooks.constructEvent(
+    event = st.webhooks.constructEvent(
       buf,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
@@ -66,7 +74,7 @@ export default async function handler(req, res) {
 
     if (!result && session.subscription) {
       try {
-        const subscription = await stripe.subscriptions.retrieve(session.subscription, {
+        const subscription = await st.subscriptions.retrieve(session.subscription, {
           expand: ['items.data.price']
         })
         const unitAmount = subscription.items?.data?.[0]?.price?.unit_amount
@@ -85,7 +93,7 @@ export default async function handler(req, res) {
 
     const { tierInternal } = result
 
-    const { error: profileError } = await supabase
+    const { error: profileError } = await sb
       .from('profiles')
       .update({ tier: tierInternal })
       .eq('email', email)
@@ -94,7 +102,7 @@ export default async function handler(req, res) {
       console.error('Supabase profile update error:', profileError)
     }
 
-    const { data: userList, error: listError } = await supabase.auth.admin.listUsers({
+    const { data: userList, error: listError } = await sb.auth.admin.listUsers({
       page: 1,
       perPage: 1000
     })
@@ -102,7 +110,7 @@ export default async function handler(req, res) {
     if (!listError && userList?.users) {
       const user = userList.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
       if (user) {
-        const { error: metaError } = await supabase.auth.admin.updateUserById(user.id, {
+        const { error: metaError } = await sb.auth.admin.updateUserById(user.id, {
           user_metadata: { tier: tierInternal }
         })
         if (metaError) {
