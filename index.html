@@ -3074,6 +3074,7 @@ text-decoration:none;
       <button class="rec-discard" onclick="discardRec()" title="Discard">&#10005;</button>
     </div>
   </div>
+</div><!-- /audioBar -->
 
 </div><!-- /app -->
 
@@ -5699,8 +5700,10 @@ if (isPlaying) {
 audioEl.pause(); isPlaying = false;
 document.getElementById('playBtn').textContent = '▶';
 } else {
-audioEl.play(); isPlaying = true;
+audioEl.play().then(function(){
+isPlaying = true;
 document.getElementById('playBtn').textContent = '⏸';
+}).catch(function(){});
 }
 }
 
@@ -5708,9 +5711,10 @@ function skipAudio(sec) { if (audioEl) audioEl.currentTime = Math.max(0, Math.mi
 
 function seekAudio(el) { if (audioEl && audioEl.duration) audioEl.currentTime = (el.value / 100) * audioEl.duration; }
 
-function setVol(el) {
-if (audioEl) audioEl.volume = el.value;
-el.style.setProperty('--v', (el.value * 100) + '%');
+function setVol(val) {
+if (audioEl) audioEl.volume = val;
+var slider = document.getElementById('vslider');
+if(slider) slider.style.setProperty('--v', (val * 100) + '%');
 }
 
 function updateAudioUI() {
@@ -7473,47 +7477,61 @@ const _dragCleanup = new WeakMap();
 
 function makeDraggable(el, handle){
 if(!el || !handle) return;
-removeDraggable(el); // clean up previous listeners
+removeDraggable(el);
 
 let ox=0, oy=0, startX=0, startY=0;
 
+function getXY(e){
+if(e.touches && e.touches.length) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+return { x: e.clientX, y: e.clientY };
+}
+
 function onDown(e){
-if(e.button !== 0) return;
-if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+if(e.type === 'mousedown' && e.button !== 0) return;
+var t = e.target;
+while(t && t !== handle){ if(t.tagName === 'BUTTON' || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') return; t = t.parentElement; }
 e.preventDefault();
-// Snapshot current position
-const rect = el.getBoundingClientRect();
+var pt = getXY(e);
+var rect = el.getBoundingClientRect();
 el.style.left   = rect.left + 'px';
 el.style.top    = rect.top  + 'px';
 el.style.right  = '';
 el.style.bottom = '';
-startX = e.clientX;
-startY = e.clientY;
+startX = pt.x;
+startY = pt.y;
 ox = rect.left;
 oy = rect.top;
 el.style.transition = 'none';
 document.addEventListener('mousemove', onMove);
 document.addEventListener('mouseup',   onUp, {once:true});
+document.addEventListener('touchmove', onMove, {passive:false});
+document.addEventListener('touchend',  onUp,  {once:true});
 }
 
 function onMove(e){
-const nx = ox + (e.clientX - startX);
-const ny = oy + (e.clientY - startY);
-// Clamp to viewport
-const maxX = window.innerWidth  - el.offsetWidth;
-const maxY = window.innerHeight - el.offsetHeight;
+e.preventDefault();
+var pt = getXY(e);
+var nx = ox + (pt.x - startX);
+var ny = oy + (pt.y - startY);
+var maxX = window.innerWidth  - el.offsetWidth;
+var maxY = window.innerHeight - el.offsetHeight;
 el.style.left = Math.max(0, Math.min(nx, maxX)) + 'px';
 el.style.top  = Math.max(0, Math.min(ny, maxY)) + 'px';
 }
 
 function onUp(){
 document.removeEventListener('mousemove', onMove);
+document.removeEventListener('touchmove', onMove);
 el.style.transition = '';
-saveStickies(); // persist position
+saveStickies();
 }
 
 handle.addEventListener('mousedown', onDown);
-_dragCleanup.set(el, () => handle.removeEventListener('mousedown', onDown));
+handle.addEventListener('touchstart', onDown, {passive:false});
+_dragCleanup.set(el, function(){
+handle.removeEventListener('mousedown', onDown);
+handle.removeEventListener('touchstart', onDown);
+});
 }
 
 function removeDraggable(el){
