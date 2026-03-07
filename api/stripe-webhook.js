@@ -1,11 +1,19 @@
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
-import { buffer } from 'micro'
 
 export const config = {
   api: {
     bodyParser: false,
   },
+}
+
+function getRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    req.on('data', chunk => chunks.push(chunk))
+    req.on('end', () => resolve(Buffer.concat(chunks)))
+    req.on('error', reject)
+  })
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -31,7 +39,7 @@ export default async function handler(req, res) {
   let event
 
   try {
-    const buf = await buffer(req)
+    const buf = await getRawBody(req)
     event = stripe.webhooks.constructEvent(
       buf,
       sig,
