@@ -8,6 +8,9 @@ export const config = {
 }
 
 function getRawBody(req) {
+  if (req.body) {
+    return Promise.resolve(typeof req.body === 'string' ? Buffer.from(req.body) : Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body)))
+  }
   return new Promise((resolve, reject) => {
     const chunks = []
     req.on('data', chunk => chunks.push(chunk))
