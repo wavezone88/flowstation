@@ -1,5 +1,4 @@
 {
-  "type": "module",
   "dependencies": {
     "@replit/connectors-sdk": "^0.2.0",
     "stripe": "^14.0.0",
