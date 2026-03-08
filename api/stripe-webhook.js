@@ -108,34 +108,29 @@ export default async function handler(req, res) {
 
       const { tierInternal } = result
 
-      const { error: profileError } = await sb
+      const { data: profileRows, error: profileError } = await sb
         .from('profiles')
         .update({ tier: tierInternal })
         .eq('email', email)
+        .select('id')
 
       if (profileError) {
         console.error('Supabase profile update error:', profileError)
       }
 
-      const { data: userList, error: listError } = await sb.auth.admin.listUsers({
-        page: 1,
-        perPage: 1000
-      })
+      const userId = profileRows?.[0]?.id
 
-      if (!listError && userList?.users) {
-        const user = userList.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
-        if (user) {
-          const { error: metaError } = await sb.auth.admin.updateUserById(user.id, {
-            user_metadata: { tier: tierInternal }
-          })
-          if (metaError) {
-            console.error('Supabase user_metadata update error:', metaError)
-          } else {
-            console.log(`Upgraded ${email} to ${tierInternal} in both profiles and user_metadata`)
-          }
+      if (userId) {
+        const { error: metaError } = await sb.auth.admin.updateUserById(userId, {
+          user_metadata: { tier: tierInternal }
+        })
+        if (metaError) {
+          console.error('Supabase user_metadata update error:', metaError)
         } else {
-          console.log(`User ${email} not found in auth users - profile table updated to ${tierInternal}`)
+          console.log(`Upgraded ${email} to ${tierInternal} (user ${userId}) in both profiles and user_metadata`)
         }
+      } else {
+        console.log(`User ${email} not found in profiles table - may not have signed up yet`)
       }
     }
 
