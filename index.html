@@ -2122,40 +2122,38 @@ text-decoration:none;
 
     <div class="g-auth-divider"><span>OR USE EMAIL</span></div>
 
-    <div class="g-auth-form off" id="formSignin">
+    <form class="g-auth-form off" id="formSignin" onsubmit="authSignin();return false;" autocomplete="on">
       <div>
         <label class="g-auth-label">EMAIL</label>
         <input class="g-field" id="siEmail" type="email" placeholder="you@email.com" autocomplete="email">
       </div>
       <div>
         <label class="g-auth-label">PASSWORD</label>
-        <input class="g-field" id="siPass" type="password" placeholder="••••••••" autocomplete="current-password"
-          onkeydown="if(event.key==='Enter')authSignin()">
+        <input class="g-field" id="siPass" type="password" placeholder="••••••••" autocomplete="current-password">
       </div>
-      <button class="g-auth-submit" id="btnSignin" onclick="authSignin()">SIGN IN →</button>
+      <button type="submit" class="g-auth-submit" id="btnSignin">SIGN IN →</button>
       <div class="g-auth-msg" id="msgSignin"></div>
       <p class="g-auth-hint">Forgot password? <a href="#" onclick="authReset();return false">Reset via email</a></p>
       <p class="g-auth-hint" style="margin-top:.5rem;padding-top:.5rem;border-top:1px solid rgba(255,255,255,.06);">
         Already purchased? <a href="javascript:void(0)" onclick="showRestorePlan()" style="color:var(--gold);">Restore your plan →</a>
       </p>
-    </div>
+    </form>
 
-    <div class="g-auth-form" id="formSignup">
+    <form class="g-auth-form" id="formSignup" onsubmit="authSignup();return false;" autocomplete="on">
       <div>
         <label class="g-auth-label">EMAIL</label>
         <input class="g-field" id="suEmail" type="email" placeholder="you@email.com" autocomplete="email">
       </div>
       <div>
         <label class="g-auth-label">PASSWORD</label>
-        <input class="g-field" id="suPass" type="password" placeholder="Min. 6 characters" autocomplete="new-password"
-          onkeydown="if(event.key==='Enter')authSignup()">
+        <input class="g-field" id="suPass" type="password" placeholder="Min. 6 characters" autocomplete="new-password">
       </div>
       <input type="hidden" id="suFirst" value="">
       <input type="hidden" id="suLast" value="">
       <input type="hidden" id="suPass2" value="">
-      <button class="g-auth-submit" id="btnSignup" onclick="authSignup()">CREATE FREE ACCOUNT →</button>
+      <button type="submit" class="g-auth-submit" id="btnSignup">CREATE FREE ACCOUNT →</button>
       <div class="g-auth-msg" id="msgSignup"></div>
-    </div>
+    </form>
 
     <p class="g-auth-hint" style="text-align:center;margin-top:.75rem;">Already paid? <a href="#" onclick="switchAuthTab('signin')">Sign in</a> — your tier loads automatically.</p>
   </div>
