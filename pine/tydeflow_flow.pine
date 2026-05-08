@@ -1,0 +1,487 @@
+//@version=6
+// =============================================================================
+// Tydeflow Flow — Institutional Footprint Scoring
+// Detects six institutional-style price/volume footprints, layers five
+// confluence factors, and surfaces high-confidence entry zones.
+//
+// Equities and major ETFs only. Best on 1H, 4H, Daily.
+// This indicator analyzes the visible tape — it does NOT access dark pool
+// data, off-exchange feeds, options flow, or 13F filings.
+// =============================================================================
+indicator(
+     "Tydeflow Flow — Institutional Footprint Scoring",
+     shorttitle = "TF Flow",
+     overlay = false,
+     max_boxes_count = 50,
+     max_labels_count = 100,
+     max_lines_count = 50)
+
+// =============================================================================
+// 1. INPUTS
+// =============================================================================
+
+var string G_STYLE   = "Style"
+var string G_SENS    = "Sensitivity"
+var string G_FP      = "Footprint detectors"
+var string G_VIS     = "Visual options"
+var string G_ALERTS  = "Alerts"
+
+i_style = input.string(
+     "Swing (3-30 day)",
+     "Style preset",
+     options = ["Swing (3-30 day)", "Position (1-6 month)", "Custom"],
+     group = G_STYLE,
+     tooltip = "Swing favours short-horizon flow. Position balances flow with confluence. Custom keeps the default weights and lets you toggle detectors below.")
+
+i_sensitivity = input.string(
+     "Balanced",
+     "Sensitivity",
+     options = ["Conservative", "Balanced", "Aggressive"],
+     group = G_SENS,
+     tooltip = "Conservative requires a +70 score for ENTRY. Balanced +60. Aggressive +50.")
+
+i_use_absorption = input.bool(true, "Volume Absorption",            group = G_FP)
+i_use_eod        = input.bool(true, "End-of-Day Volume Surge",      group = G_FP)
+i_use_vwap       = input.bool(true, "VWAP Magnetism",                group = G_FP)
+i_use_vap        = input.bool(true, "Volume-at-Price Clustering",   group = G_FP)
+i_use_orange     = input.bool(true, "Opening Range Stuffing",        group = G_FP)
+i_use_tick       = input.bool(true, "Up/Down Tick Volume Imbalance", group = G_FP)
+
+i_show_oscillator = input.bool(true, "Show oscillator panel", group = G_VIS)
+i_show_zones      = input.bool(true, "Show entry zones",      group = G_VIS)
+i_show_dashboard  = input.bool(true, "Show dashboard",        group = G_VIS)
+i_dash_position   = input.string(
+     "top-right",
+     "Dashboard position",
+     options = ["top-right", "top-left", "bottom-right", "bottom-left"],
+     group = G_VIS)
+i_theme = input.string("dark", "Color theme", options = ["dark", "light"], group = G_VIS)
+
+i_alert_entry = input.bool(true,  "Alert on ENTRY signal",  group = G_ALERTS)
+i_alert_exit  = input.bool(true,  "Alert on EXIT signal",   group = G_ALERTS)
+i_alert_state = input.bool(false, "Alert on state change",  group = G_ALERTS)
+
+// =============================================================================
+// 2. COLOR PALETTE — strict brand palette, do not deviate.
+// =============================================================================
+
+dark_theme = i_theme == "dark"
+
+C_BG_PANEL    = dark_theme ? color.new(#0a0a0a, 15)  : color.new(#f7f7f7, 15)
+C_TEXT_PRI    = dark_theme ? #ffffff                  : #1a1a1a
+C_TEXT_SEC    = dark_theme ? #9b9b9b                  : #5a5a5a
+C_TEXT_TER    = dark_theme ? #6b6b6b                  : #8a8a8a
+C_BULLISH     = #ff6b1a
+C_BEARISH     = #3a3a3a
+C_HAIRLINE    = dark_theme ? #2a2a2a                  : #d4d4d4
+C_HIST_POS    = #ff6b1a
+C_HIST_NEG    = #4a4a4a
+C_ZONE_HI     = color.new(#ff6b1a, 80)
+C_ZONE_MED    = color.new(#ff6b1a, 88)
+C_ZONE_BORDER = #ff6b1a
+C_ZONE_BEAR_HI  = color.new(#3a3a3a, 70)
+C_ZONE_BEAR_MED = color.new(#3a3a3a, 82)
+
+// =============================================================================
+// 3. STYLE / SENSITIVITY MAPPING
+// =============================================================================
+
+// Footprint base weights from the spec
+W_ABSORPTION_BASE = 1.2
+W_EOD_BASE        = 1.0
+W_VWAP_BASE       = 1.1
+W_VAP_BASE        = 1.0
+W_ORANGE_BASE     = 0.9
+W_TICK_BASE       = 1.3
+
+// Style preset multipliers
+fp_mult = i_style == "Swing (3-30 day)" ? 1.10 : i_style == "Position (1-6 month)" ? 1.00 : 1.00
+cf_mult = i_style == "Swing (3-30 day)" ? 0.85 : i_style == "Position (1-6 month)" ? 1.00 : 1.00
+
+W_ABSORPTION = W_ABSORPTION_BASE * fp_mult
+W_EOD        = W_EOD_BASE        * fp_mult
+W_VWAP       = W_VWAP_BASE       * fp_mult
+W_VAP        = W_VAP_BASE        * fp_mult
+W_ORANGE     = W_ORANGE_BASE     * fp_mult
+W_TICK       = W_TICK_BASE       * fp_mult
+
+// Sensitivity → score thresholds
+entry_threshold = i_sensitivity == "Conservative" ? 70.0 : i_sensitivity == "Aggressive" ? 50.0 : 60.0
+watch_threshold = entry_threshold - 20.0   // 30 / 40 / 50
+exit_threshold  = -entry_threshold         // mirror on the bearish side
+caution_threshold = -watch_threshold       // mirror on the bearish side
+
+// =============================================================================
+// 4. CONFLUENCE FACTORS
+// =============================================================================
+
+ma50  = ta.sma(close, 50)
+ma200 = ta.sma(close, 200)
+
+// 4.1 Trend (50 / 200 MA structure)
+trend_value = close > ma50 and ma50 > ma200 ?  1.0 :
+              close > ma50                  ?  0.6 :
+              close > ma200                 ? -0.4 :
+                                              -1.0
+
+// 4.2 RSI position
+rsi14 = ta.rsi(close, 14)
+rsi_value = rsi14 >= 50 and rsi14 <= 65                          ?  1.0 :
+            (rsi14 >= 40 and rsi14 < 50) or (rsi14 > 65 and rsi14 <= 70) ?  0.5 :
+            rsi14 >= 30 and rsi14 < 40                          ?  0.0 :
+            rsi14 > 70                                           ? -0.5 :
+                                                                  -0.7
+
+// 4.3 Relative volume confirmation
+avg_vol_30 = ta.sma(volume, 30)
+rel_vol    = avg_vol_30 > 0 ? volume / avg_vol_30 : 1.0
+price_up   = close > open
+rvol_value = rel_vol > 1.5 and price_up                  ?  0.8 :
+             rel_vol >= 1.0 and rel_vol <= 1.5 and price_up ?  0.4 :
+             rel_vol < 0.7                                ? -0.5 :
+                                                            0.0
+
+// 4.4 Relative strength vs SPY (30-day)
+spy_close = request.security("AMEX:SPY", timeframe.period, close, ignore_invalid_symbol = true)
+stock_30d_ret = ((close - nz(close[30], close)) / nz(close[30], close)) * 100
+spy_30d_ret   = ((spy_close - nz(spy_close[30], spy_close)) / nz(spy_close[30], spy_close)) * 100
+rs_diff       = stock_30d_ret - spy_30d_ret
+rs_value = rs_diff >=  10 ?  1.0 :
+           rs_diff >=   5 ?  0.5 :
+           rs_diff >=  -5 ?  0.0 :
+           rs_diff >= -10 ? -0.5 :
+                            -1.0
+
+// 4.5 Distance to 52-week high
+high_52w = ta.highest(high, 252)
+dist_pct = high_52w > 0 ? (high_52w - close) / high_52w * 100 : 0.0
+dist_value = dist_pct <=  5 ?  1.0 :
+             dist_pct <= 10 ?  0.5 :
+             dist_pct <= 20 ?  0.0 :
+             dist_pct <= 35 ? -0.5 :
+                              -1.0
+
+confluence_total = (trend_value + rsi_value + rvol_value + rs_value + dist_value) * cf_mult
+
+confluence_pos_count = (trend_value > 0 ? 1 : 0) +
+                       (rsi_value   > 0 ? 1 : 0) +
+                       (rvol_value  > 0 ? 1 : 0) +
+                       (rs_value    > 0 ? 1 : 0) +
+                       (dist_value  > 0 ? 1 : 0)
+
+confluence_neg_count = (trend_value < 0 ? 1 : 0) +
+                       (rsi_value   < 0 ? 1 : 0) +
+                       (rvol_value  < 0 ? 1 : 0) +
+                       (rs_value    < 0 ? 1 : 0) +
+                       (dist_value  < 0 ? 1 : 0)
+
+// =============================================================================
+// 5. FOOTPRINT DETECTORS
+// =============================================================================
+
+atr14 = ta.atr(14)
+
+// Session bookkeeping for the intraday-only detectors -------------------------
+in_session       = session.ismarket
+session_start    = in_session and not nz(in_session[1], false)
+var int session_bar_idx = na
+if session_start
+    session_bar_idx := 0
+else if in_session
+    session_bar_idx := nz(session_bar_idx, 0) + 1
+
+bar_secs       = timeframe.in_seconds()
+us_session_min = 390  // standard NYSE / NASDAQ regular session length
+total_session_bars = bar_secs > 0 ? int(math.floor(us_session_min * 60 / bar_secs)) : 0
+
+// Pre-computed series for footprints (must be called unconditionally) ---------
+sess_window     = math.max(total_session_bars, 5)
+sess_per_bar_avg = ta.sma(volume, sess_window)
+atr_daily       = request.security(syminfo.tickerid, "D", ta.atr(14), ignore_invalid_symbol = true, lookahead = barmerge.lookahead_off)
+
+// 5.1 Volume Absorption (all timeframes)
+fp_absorption = 0.0
+if i_use_absorption
+    cond_vol   = volume > 1.5 * avg_vol_30
+    cond_range = math.abs(close - open) < 0.5 * atr14
+    if cond_vol and cond_range and atr14 > 0
+        strength = math.min(rel_vol / 1.5, 3.0)        // capped 3x
+        fp_absorption := math.min(strength / 3.0 * 100, 100)
+
+// 5.2 End-of-Day Volume Surge (intraday <= 1H only, last 30 min)
+is_intraday_eod = timeframe.isintraday and bar_secs <= 3600
+fp_eod = 0.0
+if i_use_eod and is_intraday_eod and in_session and total_session_bars > 0
+    bars_left = total_session_bars - nz(session_bar_idx, 0)
+    in_last_30 = bars_left * bar_secs <= 30 * 60 and bars_left >= 0
+    if in_last_30 and sess_per_bar_avg > 0 and volume > 2 * sess_per_bar_avg
+        fp_eod := math.min(volume / sess_per_bar_avg / 2.0 * 100, 100)
+
+// 5.3 VWAP Magnetism — price hugs VWAP on heavy volume for >= 5 bars
+vw = ta.vwap
+cond_vwap_close = math.abs(close - vw) < 0.3 * atr14
+cond_vwap_vol   = volume > 1.2 * avg_vol_30
+cond_vwap_held  = cond_vwap_close and cond_vwap_vol
+var int vwap_hold_bars = 0
+vwap_hold_bars := cond_vwap_held ? vwap_hold_bars + 1 : 0
+fp_vwap = 0.0
+if i_use_vwap and vwap_hold_bars >= 5
+    // ramp from 5 bars (~30) to 20 bars (100)
+    fp_vwap := math.min(30.0 + (vwap_hold_bars - 5) / 15.0 * 70.0, 100.0)
+
+// 5.4 Volume-at-Price Clustering
+fp_vap = 0.0
+if i_use_vap
+    range10        = ta.highest(high, 10) - ta.lowest(low, 10)
+    avg_per_bar_100 = ta.sma(volume, 100)
+    total_vol_10    = math.sum(volume, 10)
+    if atr14 > 0 and avg_per_bar_100 > 0 and range10 < 1.5 * atr14 and total_vol_10 > 2.0 * avg_per_bar_100 * 10
+        compress     = (1.5 * atr14) / math.max(range10, atr14 * 0.1)
+        vol_strength = total_vol_10 / (avg_per_bar_100 * 10) / 2.0
+        fp_vap := math.min(compress * vol_strength * 30.0, 100.0)
+
+// 5.5 Opening Range Stuffing (intraday <= 30m only, first 15 min)
+is_intraday_or = timeframe.isintraday and bar_secs <= 1800
+fp_orange = 0.0
+if i_use_orange and is_intraday_or and in_session
+    in_first_15 = nz(session_bar_idx, 0) * bar_secs <= 15 * 60
+    baseline_or = avg_vol_30 > 0 ? avg_vol_30 : 1.0
+    if in_first_15 and not na(atr_daily) and atr_daily > 0 and volume > 2 * baseline_or and (high - low) < atr_daily / 4.0
+        fp_orange := math.min(volume / baseline_or / 2.0 * 100, 100)
+
+// 5.6 Up / Down Tick Volume Imbalance — signed (-100 to +100)
+fp_tick = 0.0
+if i_use_tick
+    up_vol  = close > open ? volume : 0.0
+    dn_vol  = close < open ? volume : 0.0
+    sum_up  = math.sum(up_vol, 20)
+    sum_dn  = math.sum(dn_vol, 20)
+    ratio   = sum_dn > 0 ? sum_up / sum_dn : (sum_up > 0 ? 10.0 : 1.0)
+    if ratio > 1.8
+        fp_tick :=  math.min(50.0 + (ratio - 1.8) / 2.0 * 100.0, 100.0)
+    else if ratio < 0.55
+        fp_tick := -math.min(50.0 + (0.55 - ratio) / 0.4 * 100.0, 100.0)
+
+// =============================================================================
+// 6. TIDEFLOW SCORE
+// =============================================================================
+// The unsigned footprints (5.1–5.5) measure activity strength only — they take
+// a sign from the dominant directional anchor (tick imbalance, falling back to
+// price-vs-50MA when the tick signal is muted).
+// fp_tick (5.6) is intrinsically signed and contributes directly.
+
+unsigned_strength = fp_absorption * W_ABSORPTION +
+                    fp_eod        * W_EOD        +
+                    fp_vwap       * W_VWAP       +
+                    fp_vap        * W_VAP        +
+                    fp_orange     * W_ORANGE
+
+direction = math.abs(fp_tick) >= 25 ? math.sign(fp_tick) : (close > ma50 ? 1 : close < ma50 ? -1 : 0)
+
+footprint_total = unsigned_strength * direction + fp_tick * W_TICK
+tideflow_raw    = footprint_total * 0.6 + confluence_total * 8.0
+tideflow_score  = math.max(math.min(tideflow_raw, 100.0), -100.0)
+
+// Active footprint flags (for dashboard & confidence rating)
+firing_absorption = fp_absorption >= 50
+firing_eod        = fp_eod        >= 50
+firing_vwap       = fp_vwap       >= 50
+firing_vap        = fp_vap        >= 50
+firing_orange     = fp_orange     >= 50
+firing_tick       = math.abs(fp_tick) >= 50
+firing_count      = (firing_absorption ? 1 : 0) + (firing_eod ? 1 : 0) +
+                    (firing_vwap ? 1 : 0) + (firing_vap ? 1 : 0) +
+                    (firing_orange ? 1 : 0) + (firing_tick ? 1 : 0)
+
+// =============================================================================
+// 7. SIGNAL STATE MACHINE
+// =============================================================================
+
+// Major bearish confluence override for CAUTION
+major_bearish = rsi14 > 75 or (close < open and rel_vol > 1.5)
+
+state = tideflow_score >  entry_threshold   and confluence_pos_count >= 3 ? "ENTRY"   :
+        tideflow_score >  watch_threshold   and confluence_pos_count >= 2 ? "WATCH"   :
+        tideflow_score <  exit_threshold                                   ? "EXIT"    :
+        tideflow_score <  caution_threshold or (tideflow_score > 0 and major_bearish) ? "CAUTION" :
+                                                                                        "WAIT"
+
+var string prev_state = "WAIT"
+state_changed = state != prev_state
+just_entered_entry = state == "ENTRY" and prev_state != "ENTRY"
+just_entered_exit  = state == "EXIT"  and prev_state != "EXIT"
+prev_state := state
+
+// =============================================================================
+// 8. OSCILLATOR — histogram + zones
+// =============================================================================
+
+hist_color = tideflow_score >= 0 ? C_HIST_POS : C_HIST_NEG
+plot(i_show_oscillator ? tideflow_score : na, "Tideflow Score", color = hist_color, style = plot.style_columns, linewidth = 2)
+
+// Zero line + threshold guides
+hl_display   = i_show_oscillator ? display.all : display.none
+hline_zero   = hline(   0, "Zero",  color = C_HAIRLINE,                   linestyle = hline.style_solid,  display = hl_display)
+hline_pos50  = hline(  50, "+50",   color = color.new(C_BULLISH, 65),     linestyle = hline.style_dotted, display = hl_display)
+hline_neg50  = hline( -50, "-50",   color = color.new(C_BEARISH, 50),     linestyle = hline.style_dotted, display = hl_display)
+hline_pos100 = hline( 100, "+100",  color = color.new(C_HAIRLINE, 50),    linestyle = hline.style_dotted, display = hl_display)
+hline_neg100 = hline(-100, "-100",  color = color.new(C_HAIRLINE, 50),    linestyle = hline.style_dotted, display = hl_display)
+
+// Shaded zones
+fill(hline_pos50,  hline_pos100, color = color.new(C_BULLISH, 92), title = "Bull zone")
+fill(hline_neg50,  hline_neg100, color = color.new(C_BEARISH, 80), title = "Bear zone")
+
+// =============================================================================
+// 9. ENTRY ZONES on the price chart (force_overlay = true)
+// =============================================================================
+
+var box[]   active_boxes  = array.new<box>()
+var label[] active_labels = array.new<label>()
+MAX_ZONES = 20
+
+cleanup_zones() =>
+    while array.size(active_boxes) > MAX_ZONES
+        b = array.shift(active_boxes)
+        box.delete(b)
+    while array.size(active_labels) > MAX_ZONES
+        l = array.shift(active_labels)
+        label.delete(l)
+
+if i_show_zones and (just_entered_entry or just_entered_exit) and barstate.isconfirmed
+    is_bull = just_entered_entry
+    high_conf = math.abs(tideflow_score) > 75 and (is_bull ? confluence_pos_count : confluence_neg_count) >= 3
+    med_conf  = math.abs(tideflow_score) >= 60 and (is_bull ? confluence_pos_count : confluence_neg_count) >= 2
+
+    fill_color   = is_bull ? (high_conf ? C_ZONE_HI : C_ZONE_MED) : (high_conf ? C_ZONE_BEAR_HI : C_ZONE_BEAR_MED)
+    border_color = is_bull and high_conf ? C_ZONE_BORDER : (not is_bull and high_conf ? C_BEARISH : color.new(color.black, 100))
+    border_w     = is_bull and high_conf ? 1 : 0
+
+    // Zone height: span of the last 3 confirmed bars
+    z_high = math.max(high, nz(high[1], high), nz(high[2], high))
+    z_low  = math.min(low,  nz(low[1],  low),  nz(low[2],  low))
+    z_left  = bar_index - 2
+    z_right = bar_index + 8
+
+    new_box = box.new(
+         left = z_left, top = z_high, right = z_right, bottom = z_low,
+         border_color = border_color, border_width = border_w,
+         bgcolor = fill_color, force_overlay = true)
+    array.push(active_boxes, new_box)
+
+    // Signal type label — pick the strongest active footprint
+    sig_type = firing_absorption ? "ABSORPTION" :
+               firing_vap        ? "VAP CLUSTER" :
+               firing_vwap       ? "VWAP MAGNET" :
+               firing_eod        ? "EOD SURGE"  :
+               firing_orange     ? "OPEN STUFF" :
+               firing_tick       ? (fp_tick > 0 ? "TICK IMBAL ↑" : "TICK IMBAL ↓") :
+                                   (is_bull ? "FLOW LONG" : "FLOW SHORT")
+    conf_tag = high_conf ? "HIGH" : (med_conf ? "MED" : "LOW")
+    txt = sig_type + " · " + conf_tag + "\n" + str.tostring(tideflow_score, "#") + " · " + str.format_time(time, "yyyy-MM-dd HH:mm", syminfo.timezone)
+
+    new_label = label.new(
+         x = bar_index, y = is_bull ? z_high : z_low,
+         text = txt,
+         style = is_bull ? label.style_label_down : label.style_label_up,
+         color = is_bull ? color.new(C_BULLISH, 20) : color.new(C_BEARISH, 20),
+         textcolor = #ffffff, size = size.small,
+         force_overlay = true)
+    array.push(active_labels, new_label)
+    cleanup_zones()
+
+// =============================================================================
+// 10. DASHBOARD TABLE
+// =============================================================================
+
+dash_pos = i_dash_position == "top-right"    ? position.top_right :
+           i_dash_position == "top-left"     ? position.top_left  :
+           i_dash_position == "bottom-right" ? position.bottom_right :
+                                               position.bottom_left
+
+var table dash = table.new(dash_pos, 2, 9, bgcolor = C_BG_PANEL, border_width = 1, border_color = C_HAIRLINE, frame_color = C_HAIRLINE, frame_width = 1)
+
+state_color = state == "ENTRY"   ? C_BULLISH :
+              state == "WATCH"   ? color.new(C_BULLISH, 30) :
+              state == "EXIT"    ? C_BEARISH :
+              state == "CAUTION" ? color.new(C_BEARISH, 20) :
+                                   C_TEXT_SEC
+
+score_color = tideflow_score >  entry_threshold   ? C_BULLISH :
+              tideflow_score >  watch_threshold   ? color.new(C_BULLISH, 30) :
+              tideflow_score <  exit_threshold    ? C_BEARISH :
+              tideflow_score <  caution_threshold ? color.new(C_BEARISH, 20) :
+                                                    C_TEXT_PRI
+
+// Bars-since for the last entry zone
+var int   last_zone_bar_index = na
+var float last_zone_mid       = na
+var bool  last_zone_bull      = false
+if just_entered_entry or just_entered_exit
+    last_zone_bar_index := bar_index
+    last_zone_mid := (high + low) / 2.0
+    last_zone_bull := just_entered_entry
+
+bars_ago     = na(last_zone_bar_index) ? na : bar_index - last_zone_bar_index
+zone_pl_pct  = na(last_zone_mid) ? na : (close - last_zone_mid) / last_zone_mid * 100 * (last_zone_bull ? 1 : -1)
+
+if i_show_dashboard and barstate.islast
+    // Row 0 — header
+    table.cell(dash, 0, 0, "TYDEFLOW FLOW", text_color = C_BULLISH, bgcolor = C_BG_PANEL, text_size = size.small, text_halign = text.align_left)
+    table.cell(dash, 1, 0, syminfo.ticker,  text_color = C_TEXT_SEC, bgcolor = C_BG_PANEL, text_size = size.tiny,  text_halign = text.align_right)
+
+    // Row 1 — score
+    table.cell(dash, 0, 1, "Score",         text_color = C_TEXT_SEC, bgcolor = C_BG_PANEL, text_size = size.tiny,   text_halign = text.align_left)
+    table.cell(dash, 1, 1, str.tostring(tideflow_score, "#"), text_color = score_color, bgcolor = C_BG_PANEL, text_size = size.large, text_halign = text.align_right)
+
+    // Row 2 — state
+    table.cell(dash, 0, 2, "Signal",        text_color = C_TEXT_SEC, bgcolor = C_BG_PANEL, text_size = size.tiny,   text_halign = text.align_left)
+    table.cell(dash, 1, 2, state,           text_color = state_color, bgcolor = C_BG_PANEL, text_size = size.normal, text_halign = text.align_right)
+
+    // Row 3 — confluence
+    table.cell(dash, 0, 3, "Confluence",    text_color = C_TEXT_SEC, bgcolor = C_BG_PANEL, text_size = size.tiny,   text_halign = text.align_left)
+    table.cell(dash, 1, 3, str.tostring(confluence_pos_count) + " / 5", text_color = C_TEXT_PRI, bgcolor = C_BG_PANEL, text_size = size.small, text_halign = text.align_right)
+
+    // Row 4 — footprints firing (compact pill row)
+    fp_text = (firing_absorption ? "ABS " : "") +
+              (firing_eod        ? "EOD " : "") +
+              (firing_vwap       ? "VWP " : "") +
+              (firing_vap        ? "VAP " : "") +
+              (firing_orange     ? "OPN " : "") +
+              (firing_tick       ? (fp_tick > 0 ? "TCK↑" : "TCK↓") : "")
+    fp_text := fp_text == "" ? "—" : fp_text
+    table.cell(dash, 0, 4, "Footprints",    text_color = C_TEXT_SEC, bgcolor = C_BG_PANEL, text_size = size.tiny,   text_halign = text.align_left)
+    table.cell(dash, 1, 4, fp_text,         text_color = firing_count > 0 ? C_BULLISH : C_TEXT_TER, bgcolor = C_BG_PANEL, text_size = size.tiny, text_halign = text.align_right)
+
+    // Row 5 — RSI / RVol
+    table.cell(dash, 0, 5, "RSI · RVol",    text_color = C_TEXT_SEC, bgcolor = C_BG_PANEL, text_size = size.tiny,   text_halign = text.align_left)
+    table.cell(dash, 1, 5, str.tostring(rsi14, "#.0") + " · " + str.tostring(rel_vol, "#.0") + "x", text_color = C_TEXT_PRI, bgcolor = C_BG_PANEL, text_size = size.tiny, text_halign = text.align_right)
+
+    // Row 6 — RS vs SPY / 52w distance
+    table.cell(dash, 0, 6, "RS · 52wH",     text_color = C_TEXT_SEC, bgcolor = C_BG_PANEL, text_size = size.tiny,   text_halign = text.align_left)
+    table.cell(dash, 1, 6, str.tostring(rs_diff, "+#.0;-#.0") + "% · -" + str.tostring(dist_pct, "#.0") + "%", text_color = C_TEXT_PRI, bgcolor = C_BG_PANEL, text_size = size.tiny, text_halign = text.align_right)
+
+    // Row 7 — last zone reference
+    last_zone_text = na(bars_ago) ? "—" :
+                     str.tostring(bars_ago) + " bars · " + str.tostring(zone_pl_pct, "+#.0;-#.0") + "%"
+    table.cell(dash, 0, 7, "Last zone",     text_color = C_TEXT_SEC, bgcolor = C_BG_PANEL, text_size = size.tiny,   text_halign = text.align_left)
+    table.cell(dash, 1, 7, last_zone_text,  text_color = C_TEXT_TER, bgcolor = C_BG_PANEL, text_size = size.tiny,   text_halign = text.align_right)
+
+    // Row 8 — footer / disclaimer hint
+    table.cell(dash, 0, 8, "tydeflow.io",   text_color = C_TEXT_TER, bgcolor = C_BG_PANEL, text_size = size.tiny,   text_halign = text.align_left)
+    table.cell(dash, 1, 8, "v1.0",          text_color = C_TEXT_TER, bgcolor = C_BG_PANEL, text_size = size.tiny,   text_halign = text.align_right)
+
+// =============================================================================
+// 11. ALERTS
+// =============================================================================
+
+alertcondition(just_entered_entry and i_alert_entry, title = "Tydeflow Flow — ENTRY",
+     message = "Tydeflow Flow ENTRY on {{ticker}} ({{interval}}) · score {{plot_0}}")
+alertcondition(just_entered_exit and i_alert_exit, title = "Tydeflow Flow — EXIT",
+     message = "Tydeflow Flow EXIT on {{ticker}} ({{interval}}) · score {{plot_0}}")
+alertcondition(state_changed and i_alert_state, title = "Tydeflow Flow — State change",
+     message = "Tydeflow Flow state change on {{ticker}} ({{interval}}) · new state, score {{plot_0}}")
+
+// =============================================================================
+// END.
+// "Read the tide before the wave." — tydeflow.io
+// =============================================================================
