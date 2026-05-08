@@ -113,9 +113,9 @@ cf_neg = ((trend_val < 0 ? 1 : 0) + (rsi_val < 0 ? 1 : 0) +
 // --- FOOTPRINT DETECTORS ---──────────────────────────────────────────────────
 atr14 = ta.atr(14)
 
-in_sess  = session.ismarket
+in_sess  = not na(time(timeframe.period, "0930-1600", "America/New_York"))
 ss       = in_sess and not nz(in_sess[1], false)
-var int sbar = na
+var int sbar = 0
 if ss
     sbar := 0
 else if in_sess
@@ -194,7 +194,7 @@ ustr = (fp_abs  * WA
      +  fp_orn  * WO)
 
 dir  = math.abs(fp_tick) >= 25 ? math.sign(fp_tick) :
-       close > ma50 ? 1 : close < ma50 ? -1 : 0
+       close >= ma50 ? 1 : -1
 
 tscore = math.max(math.min(
      (ustr * dir + fp_tick * WT) * 0.6 + cf_tot * 8.0,
