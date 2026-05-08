@@ -119,70 +119,34 @@ ma50  = ta.sma(close, 50)
 ma200 = ta.sma(close, 200)
 
 // 4.1 Trend (50 / 200 MA structure)
-trend_value = if close > ma50 and ma50 > ma200
-     1.0
-else if close > ma50
-     0.6
-else if close > ma200
-    -0.4
-else
-    -1.0
+trend_value = close > ma50 and ma50 > ma200 ? 1.0 : close > ma50 ? 0.6 : close > ma200 ? -0.4 : -1.0
 
 // 4.2 RSI position
 rsi14 = ta.rsi(close, 14)
-rsi_value = if rsi14 >= 50 and rsi14 <= 65
-     1.0
-else if (rsi14 >= 40 and rsi14 < 50) or (rsi14 > 65 and rsi14 <= 70)
-     0.5
-else if rsi14 >= 30 and rsi14 < 40
-     0.0
-else if rsi14 > 70
-    -0.5
-else
-    -0.7
+rsi_in_sweet  = rsi14 >= 50 and rsi14 <= 65
+rsi_in_mid    = (rsi14 >= 40 and rsi14 < 50) or (rsi14 > 65 and rsi14 <= 70)
+rsi_in_low    = rsi14 >= 30 and rsi14 < 40
+rsi_value = rsi_in_sweet ? 1.0 : rsi_in_mid ? 0.5 : rsi_in_low ? 0.0 : rsi14 > 70 ? -0.5 : -0.7
 
 // 4.3 Relative volume confirmation
 avg_vol_30 = ta.sma(volume, 30)
 rel_vol    = avg_vol_30 > 0 ? volume / avg_vol_30 : 1.0
 price_up   = close > open
-rvol_value = if rel_vol > 1.5 and price_up
-     0.8
-else if rel_vol >= 1.0 and rel_vol <= 1.5 and price_up
-     0.4
-else if rel_vol < 0.7
-    -0.5
-else
-     0.0
+rvol_hi    = rel_vol > 1.5 and price_up
+rvol_mid   = rel_vol >= 1.0 and rel_vol <= 1.5 and price_up
+rvol_value = rvol_hi ? 0.8 : rvol_mid ? 0.4 : rel_vol < 0.7 ? -0.5 : 0.0
 
 // 4.4 Relative strength vs SPY (30-day)
 spy_close = request.security("AMEX:SPY", timeframe.period, close, ignore_invalid_symbol = true)
 stock_30d_ret = ((close - nz(close[30], close)) / nz(close[30], close)) * 100
 spy_30d_ret   = ((spy_close - nz(spy_close[30], spy_close)) / nz(spy_close[30], spy_close)) * 100
 rs_diff       = stock_30d_ret - spy_30d_ret
-rs_value = if rs_diff >= 10
-     1.0
-else if rs_diff >= 5
-     0.5
-else if rs_diff >= -5
-     0.0
-else if rs_diff >= -10
-    -0.5
-else
-    -1.0
+rs_value = rs_diff >= 10 ? 1.0 : rs_diff >= 5 ? 0.5 : rs_diff >= -5 ? 0.0 : rs_diff >= -10 ? -0.5 : -1.0
 
 // 4.5 Distance to 52-week high
 high_52w = ta.highest(high, 252)
-dist_pct = high_52w > 0 ? (high_52w - close) / high_52w * 100 : 0.0
-dist_value = if dist_pct <= 5
-     1.0
-else if dist_pct <= 10
-     0.5
-else if dist_pct <= 20
-     0.0
-else if dist_pct <= 35
-    -0.5
-else
-    -1.0
+dist_pct   = high_52w > 0 ? (high_52w - close) / high_52w * 100 : 0.0
+dist_value = dist_pct <= 5 ? 1.0 : dist_pct <= 10 ? 0.5 : dist_pct <= 20 ? 0.0 : dist_pct <= 35 ? -0.5 : -1.0
 
 confluence_total = (trend_value + rsi_value + rvol_value + rs_value + dist_value) * cf_mult
 
@@ -323,16 +287,11 @@ firing_count      = (firing_absorption ? 1 : 0) + (firing_eod ? 1 : 0) +
 // Major bearish confluence override for CAUTION
 major_bearish = rsi14 > 75 or (close < open and rel_vol > 1.5)
 
-state = if tideflow_score > entry_threshold and confluence_pos_count >= 3
-    "ENTRY"
-else if tideflow_score > watch_threshold and confluence_pos_count >= 2
-    "WATCH"
-else if tideflow_score < exit_threshold
-    "EXIT"
-else if tideflow_score < caution_threshold or (tideflow_score > 0 and major_bearish)
-    "CAUTION"
-else
-    "WAIT"
+entry_cond   = tideflow_score > entry_threshold and confluence_pos_count >= 3
+watch_cond   = tideflow_score > watch_threshold and confluence_pos_count >= 2
+exit_cond    = tideflow_score < exit_threshold
+caution_cond = tideflow_score < caution_threshold or (tideflow_score > 0 and major_bearish)
+state = entry_cond ? "ENTRY" : watch_cond ? "WATCH" : exit_cond ? "EXIT" : caution_cond ? "CAUTION" : "WAIT"
 
 var string prev_state = "WAIT"
 state_changed = state != prev_state
@@ -396,21 +355,10 @@ if i_show_zones and (just_entered_entry or just_entered_exit) and barstate.iscon
          bgcolor = fill_color, force_overlay = true)
     array.push(active_boxes, new_box)
 
-    // Signal type label -pick the strongest active footprint
-    sig_type = if firing_absorption
-        "ABSORPTION"
-    else if firing_vap
-        "VAP CLUSTER"
-    else if firing_vwap
-        "VWAP MAGNET"
-    else if firing_eod
-        "EOD SURGE"
-    else if firing_orange
-        "OPEN STUFF"
-    else if firing_tick
-        fp_tick > 0 ? "TICK IMBAL +" : "TICK IMBAL -"
-    else
-        is_bull ? "FLOW LONG" : "FLOW SHORT"
+    // Signal type label -- pick the strongest active footprint
+    sig_tick = fp_tick > 0 ? "TICK IMBAL +" : "TICK IMBAL -"
+    sig_flow = is_bull ? "FLOW LONG" : "FLOW SHORT"
+    sig_type = firing_absorption ? "ABSORPTION" : firing_vap ? "VAP CLUSTER" : firing_vwap ? "VWAP MAGNET" : firing_eod ? "EOD SURGE" : firing_orange ? "OPEN STUFF" : firing_tick ? sig_tick : sig_flow
     conf_tag = high_conf ? "HIGH" : med_conf ? "MED" : "LOW"
     txt = sig_type + " | " + conf_tag + "\n" + str.tostring(tideflow_score, "#") + " | " + str.format_time(time, "yyyy-MM-dd HH:mm", syminfo.timezone)
 
@@ -428,38 +376,13 @@ if i_show_zones and (just_entered_entry or just_entered_exit) and barstate.iscon
 // 10. DASHBOARD TABLE
 // =============================================================================
 
-dash_pos = if i_dash_position == "top-right"
-    position.top_right
-else if i_dash_position == "top-left"
-    position.top_left
-else if i_dash_position == "bottom-right"
-    position.bottom_right
-else
-    position.bottom_left
+dash_pos = i_dash_position == "top-right" ? position.top_right : i_dash_position == "top-left" ? position.top_left : i_dash_position == "bottom-right" ? position.bottom_right : position.bottom_left
 
 var table dash = table.new(dash_pos, 2, 9, bgcolor = C_BG_PANEL, border_width = 1, border_color = C_HAIRLINE, frame_color = C_HAIRLINE, frame_width = 1)
 
-state_color = if state == "ENTRY"
-    C_BULLISH
-else if state == "WATCH"
-    color.new(C_BULLISH, 30)
-else if state == "EXIT"
-    C_BEARISH
-else if state == "CAUTION"
-    color.new(C_BEARISH, 20)
-else
-    C_TEXT_SEC
+state_color = state == "ENTRY" ? C_BULLISH : state == "WATCH" ? color.new(C_BULLISH, 30) : state == "EXIT" ? C_BEARISH : state == "CAUTION" ? color.new(C_BEARISH, 20) : C_TEXT_SEC
 
-score_color = if tideflow_score > entry_threshold
-    C_BULLISH
-else if tideflow_score > watch_threshold
-    color.new(C_BULLISH, 30)
-else if tideflow_score < exit_threshold
-    C_BEARISH
-else if tideflow_score < caution_threshold
-    color.new(C_BEARISH, 20)
-else
-    C_TEXT_PRI
+score_color = tideflow_score > entry_threshold ? C_BULLISH : tideflow_score > watch_threshold ? color.new(C_BULLISH, 30) : tideflow_score < exit_threshold ? C_BEARISH : tideflow_score < caution_threshold ? color.new(C_BEARISH, 20) : C_TEXT_PRI
 
 // Bars-since for the last entry zone
 var int   last_zone_bar_index = na
