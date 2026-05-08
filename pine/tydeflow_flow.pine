@@ -1,7 +1,7 @@
 //@version=6
 indicator("Tydeflow Flow - Institutional Footprint Scoring",
      shorttitle = "TF Flow", overlay = false,
-     max_boxes_count = 50, max_labels_count = 100, max_lines_count = 50)
+     max_boxes_count = 50, max_labels_count = 50, max_lines_count = 50)
 
 // --- INPUTS ---───────────────────────────────────────────────────────────────
 var string GS = "Style"
@@ -44,11 +44,9 @@ C_BEAR = #3a3a3a
 C_HAIR = dk ? #2a2a2a : #d4d4d4
 C_HP   = #ff6b1a
 C_HN   = #4a4a4a
-C_ZHI  = color.new(#ff6b1a, 80)
-C_ZMD  = color.new(#ff6b1a, 88)
+C_ZHI  = color.new(#ff6b1a, 92)
 C_ZBD  = #ff6b1a
-C_ZBH  = color.new(#3a3a3a, 70)
-C_ZBM  = color.new(#3a3a3a, 82)
+C_ZBH  = color.new(#3a3a3a, 92)
 
 // --- WEIGHTS & THRESHOLDS ---─────────────────────────────────────────────────
 fmul = i_style == "Swing (3-30 day)" ? 1.10 : 1.00
@@ -60,7 +58,7 @@ WP = 1.0 * fmul
 WO = 0.9 * fmul
 WT = 1.3 * fmul
 
-ethr = i_sens == "Conservative" ? 70.0 : i_sens == "Aggressive" ? 50.0 : 60.0
+ethr = i_sens == "Conservative" ? 80.0 : i_sens == "Aggressive" ? 60.0 : 70.0
 wthr = ethr - 20.0
 xthr = -ethr
 cthr = -wthr
@@ -129,39 +127,39 @@ savg     = ta.sma(volume, math.max(tsb, 5))
 atrd     = request.security(syminfo.tickerid, "D", ta.atr(14),
      ignore_invalid_symbol = true, lookahead = barmerge.lookahead_off)
 
-// 1. Volume Absorption
+// 1. Volume Absorption — tightened: 2.0x avg, body < 0.35 ATR
 fp_abs = 0.0
 if i_abs
-    if volume > 1.5 * avg30 and math.abs(close - open) < 0.5 * atr14
+    if volume > 2.0 * avg30 and math.abs(close - open) < 0.35 * atr14
          and atr14 > 0
         fp_abs := math.min(math.min(rvol / 1.5, 3.0) / 3.0 * 100, 100)
 
-// 2. End-of-Day Volume Surge
+// 2. End-of-Day Volume Surge — tightened: 3x session avg
 fp_eod = 0.0
 is_eod = timeframe.isintraday and bsec <= 3600
 if i_eod and is_eod and in_sess and tsb > 0
     bl = tsb - sbar
-    if bl * bsec <= 30 * 60 and bl >= 0 and savg > 0 and volume > 2 * savg
-        fp_eod := math.min(volume / savg / 2.0 * 100, 100)
+    if bl * bsec <= 30 * 60 and bl >= 0 and savg > 0 and volume > 3 * savg
+        fp_eod := math.min(volume / savg / 3.0 * 100, 100)
 
-// 3. VWAP Magnetism
+// 3. VWAP Magnetism — tightened: 8 consecutive bars
 vw      = ta.vwap
 vn      = math.abs(close - vw) < 0.3 * atr14
 vvol    = volume > 1.2 * avg30
 var int vbars = 0
 vbars  := vn and vvol ? vbars + 1 : 0
 fp_vwap = 0.0
-if i_vwap and vbars >= 5
-    fp_vwap := math.min(30.0 + (vbars - 5) / 15.0 * 70.0, 100.0)
+if i_vwap and vbars >= 8
+    fp_vwap := math.min(30.0 + (vbars - 8) / 15.0 * 70.0, 100.0)
 
-// 4. Volume-at-Price Clustering
+// 4. Volume-at-Price Clustering — tightened: 2.5x avg volume
 fp_vap = 0.0
 if i_vap
     rng10 = ta.highest(high, 10) - ta.lowest(low, 10)
     a100  = ta.sma(volume, 100)
     v10   = math.sum(volume, 10)
     if atr14 > 0 and a100 > 0 and rng10 < 1.5 * atr14
-         and v10 > 2.0 * a100 * 10
+         and v10 > 2.5 * a100 * 10
         fp_vap := math.min(
              (1.5 * atr14) / math.max(rng10, atr14 * 0.1)
              * (v10 / (a100 * 10) / 2.0) * 30.0, 100.0)
@@ -175,7 +173,7 @@ if i_orn and is_or and in_sess
          and volume > 2 * base and (high - low) < atrd / 4.0
         fp_orn := math.min(volume / base / 2.0 * 100, 100)
 
-// 6. Up/Down Tick Imbalance (signed)
+// 6. Up/Down Tick Imbalance — tightened: ratio 2.2 / 0.45
 fp_tick = 0.0
 if i_tick
     uv    = close > open ? volume : 0.0
@@ -183,10 +181,10 @@ if i_tick
     su    = math.sum(uv, 20)
     sd    = math.sum(dv, 20)
     rat   = sd > 0 ? su / sd : (su > 0 ? 10.0 : 1.0)
-    if rat > 1.8
-        fp_tick :=  math.min(50.0 + (rat - 1.8) / 2.0 * 100.0, 100.0)
-    else if rat < 0.55
-        fp_tick := -math.min(50.0 + (0.55 - rat) / 0.4 * 100.0, 100.0)
+    if rat > 2.2
+        fp_tick :=  math.min(50.0 + (rat - 2.2) / 2.0 * 100.0, 100.0)
+    else if rat < 0.45
+        fp_tick := -math.min(50.0 + (0.45 - rat) / 0.4 * 100.0, 100.0)
 
 // --- TIDEFLOW SCORE ---───────────────────────────────────────────────────────
 ustr = (fp_abs  * WA
@@ -212,9 +210,9 @@ fc = (fa?1:0)+(fe?1:0)+(fv?1:0)+(fp?1:0)+(fo?1:0)+(ft?1:0)
 
 // --- STATE MACHINE ---────────────────────────────────────────────────────────
 mbear  = rsi14 > 75 or (close < open and rvol > 1.5)
-ec     = tscore > ethr and cf_pos >= 3
+ec     = tscore > ethr and cf_pos >= 4
 wc     = tscore > wthr and cf_pos >= 2
-xc     = tscore < xthr
+xc     = tscore < xthr and cf_neg >= 4
 cc     = tscore < cthr or (tscore > 0 and mbear)
 state  = ec ? "ENTRY" : wc ? "WATCH" : xc ? "EXIT" : cc ? "CAUTION" : "WAIT"
 
@@ -238,49 +236,51 @@ ln1  = hline(-100, "-100", color = color.new(C_HAIR, 50),   linestyle = hline.st
 fill(l50,  l100, color = color.new(C_BULL, 92), title = "Bull zone")
 fill(ln50, ln1,  color = color.new(C_BEAR, 80), title = "Bear zone")
 
-// --- ENTRY ZONES ---──────────────────────────────────────────────────────────
+// --- ENTRY ZONES & MARKERS ---────────────────────────────────────────────────
+// Boxes: single-bar wide, alpha-92 fill, border only on high-confidence.
+// Markers: force_overlay triangle on price chart, no text.
 var box[]   zb = array.new<box>()
-var label[] zl = array.new<label>()
+var label[] zm = array.new<label>()
 MZ = 20
 f_clean() =>
     while array.size(zb) > MZ
         box.delete(array.shift(zb))
-    while array.size(zl) > MZ
-        label.delete(array.shift(zl))
+    while array.size(zm) > MZ
+        label.delete(array.shift(zm))
 
 if i_shzon and (jent or jex) and barstate.isconfirmed
-    bull    = jent
-    hic     = math.abs(tscore) > 75  and (bull ? cf_pos : cf_neg) >= 3
-    mic     = math.abs(tscore) >= 60 and (bull ? cf_pos : cf_neg) >= 2
-    zfill   = bull ? (hic ? C_ZHI : C_ZMD) : (hic ? C_ZBH : C_ZBM)
-    zbord   = bull and hic ? C_ZBD :
-              not bull and hic ? C_BEAR :
-              color.new(color.black, 100)
-    zbw     = bull and hic ? 1 : 0
-    zh      = math.max(high, nz(high[1],high), nz(high[2],high))
-    zlo     = math.min(low,  nz(low[1], low),  nz(low[2], low))
+    bull  = jent
+    hic   = math.abs(tscore) > 75 and (bull ? cf_pos : cf_neg) >= 3
+    zfill = bull ? C_ZHI : C_ZBH
+    zbord = bull and hic ? C_ZBD : not bull and hic ? C_BEAR :
+            color.new(color.black, 100)
+    zbw   = hic ? 1 : 0
     nb = box.new(
-         left = bar_index - 2, top = zh,
-         right = bar_index + 8, bottom = zlo,
+         left = bar_index, top = high,
+         right = bar_index + 1, bottom = low,
          border_color = zbord, border_width = zbw,
          bgcolor = zfill, force_overlay = true)
     array.push(zb, nb)
-    stk  = fp_tick > 0 ? "TICK IMBAL +" : "TICK IMBAL -"
-    sfl  = bull ? "FLOW LONG" : "FLOW SHORT"
-    stp  = fa ? "ABSORPTION" : fp ? "VAP CLUSTER" : fv ? "VWAP MAGNET" :
-           fe ? "EOD SURGE" : fo ? "OPEN STUFF" : ft ? stk : sfl
-    ctg  = hic ? "HIGH" : mic ? "MED" : "LOW"
-    ts   = str.format_time(time, "yyyy-MM-dd HH:mm", syminfo.timezone)
-    txt  = stp + " | " + ctg + "\n" + str.tostring(tscore,"#") + " | " + ts
-    nl = label.new(
-         x = bar_index, y = bull ? zh : zlo,
-         text = txt,
-         style = bull ? label.style_label_down : label.style_label_up,
-         color = bull ? color.new(C_BULL,20) : color.new(C_BEAR,20),
-         textcolor = #ffffff, size = size.small,
+    mk = label.new(
+         x = bar_index,
+         y = bull ? low : high,
+         text = "",
+         style = bull ? label.style_triangleup : label.style_triangledown,
+         color = bull ? C_BULL : C_BEAR,
+         size = size.tiny,
          force_overlay = true)
-    array.push(zl, nl)
+    array.push(zm, mk)
     f_clean()
+
+// --- LAST SIGNAL TRACKING ---─────────────────────────────────────────────────
+var string lsig_type = "--"
+var string lsig_time = "--"
+if jent
+    lsig_type := "ENTRY"
+    lsig_time := str.format_time(time, "MM/dd HH:mm", syminfo.timezone)
+else if jex
+    lsig_type := "EXIT"
+    lsig_time := str.format_time(time, "MM/dd HH:mm", syminfo.timezone)
 
 // --- DASHBOARD ---───────────────────────────────────────────────────────────
 dpos = i_dpos == "top-right" ? position.top_right :
@@ -288,7 +288,7 @@ dpos = i_dpos == "top-right" ? position.top_right :
        i_dpos == "bottom-right" ? position.bottom_right :
        position.bottom_left
 
-var table dash = table.new(dpos, 2, 9,
+var table dash = table.new(dpos, 2, 10,
      bgcolor = C_BG, border_width = 1,
      border_color = C_HAIR, frame_color = C_HAIR, frame_width = 1)
 
@@ -310,10 +310,10 @@ zpl  = na(lzm) ? na : (close-lzm)/lzm*100*(lzbu?1:-1)
 if i_shdsh and barstate.islast
     table.cell(dash,0,0,"TYDEFLOW FLOW",
          text_color=C_BULL, bgcolor=C_BG,
-         text_size=size.small, text_halign=text.align_left)
+         text_size=size.small, text_halign=text.align_left, width=7)
     table.cell(dash,1,0,syminfo.ticker,
          text_color=C_SEC, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_right)
+         text_size=size.tiny, text_halign=text.align_right, width=10)
     table.cell(dash,0,1,"Score",
          text_color=C_SEC, bgcolor=C_BG,
          text_size=size.tiny, text_halign=text.align_left)
@@ -356,18 +356,26 @@ if i_shdsh and barstate.islast
          str.tostring(rsdiff,"+#.0;-#.0")+"% / -"+str.tostring(dpct,"#.0")+"%",
          text_color=C_PRI, bgcolor=C_BG,
          text_size=size.tiny, text_halign=text.align_right)
-    zplstr = str.tostring(zpl, "+#.0;-#.0")
-    lzt = na(bag) ? "--" : str.tostring(bag) + " bars / " + zplstr + "%"
-    table.cell(dash,0,7,"Last zone",
+    lsig_c   = lsig_type == "ENTRY" ? C_BULL : lsig_type == "EXIT" ? C_BEAR : C_TER
+    lsig_txt = lsig_type == "--" ? "--" : lsig_type + "  " + lsig_time
+    table.cell(dash,0,7,"Last Signal",
          text_color=C_SEC, bgcolor=C_BG,
          text_size=size.tiny, text_halign=text.align_left)
-    table.cell(dash,1,7,lzt,
+    table.cell(dash,1,7,lsig_txt,
+         text_color=lsig_c, bgcolor=C_BG,
+         text_size=size.tiny, text_halign=text.align_right)
+    zplstr = str.tostring(zpl, "+#.0;-#.0")
+    lzt = na(bag) ? "--" : str.tostring(bag) + " bars / " + zplstr + "%"
+    table.cell(dash,0,8,"Last zone",
+         text_color=C_SEC, bgcolor=C_BG,
+         text_size=size.tiny, text_halign=text.align_left)
+    table.cell(dash,1,8,lzt,
          text_color=C_TER, bgcolor=C_BG,
          text_size=size.tiny, text_halign=text.align_right)
-    table.cell(dash,0,8,"tydeflow.io",
+    table.cell(dash,0,9,"tydeflow.io",
          text_color=C_TER, bgcolor=C_BG,
          text_size=size.tiny, text_halign=text.align_left)
-    table.cell(dash,1,8,"v1.0",
+    table.cell(dash,1,9,"v1.1",
          text_color=C_TER, bgcolor=C_BG,
          text_size=size.tiny, text_halign=text.align_right)
 
