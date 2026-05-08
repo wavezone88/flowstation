@@ -114,12 +114,14 @@ cf_neg = ((trend_val < 0 ? 1 : 0) + (rsi_val < 0 ? 1 : 0) +
 atr14 = ta.atr(14)
 
 in_sess  = not na(time(timeframe.period, "0930-1600", "America/New_York"))
-ss       = in_sess and not nz(in_sess[1], false)
+var bool prev_in_sess = false
+ss       = in_sess and not prev_in_sess
+prev_in_sess := in_sess
 var int sbar = 0
 if ss
     sbar := 0
 else if in_sess
-    sbar := nz(sbar, 0) + 1
+    sbar := sbar + 1
 
 bsec     = timeframe.in_seconds()
 tsb      = bsec > 0 ? int(math.floor(390 * 60 / bsec)) : 0
@@ -138,7 +140,7 @@ if i_abs
 fp_eod = 0.0
 is_eod = timeframe.isintraday and bsec <= 3600
 if i_eod and is_eod and in_sess and tsb > 0
-    bl = tsb - nz(sbar, 0)
+    bl = tsb - sbar
     if bl * bsec <= 30 * 60 and bl >= 0 and savg > 0 and volume > 2 * savg
         fp_eod := math.min(volume / savg / 2.0 * 100, 100)
 
@@ -169,7 +171,7 @@ fp_orn = 0.0
 is_or  = timeframe.isintraday and bsec <= 1800
 if i_orn and is_or and in_sess
     base = avg30 > 0 ? avg30 : 1.0
-    if nz(sbar, 0) * bsec <= 15 * 60 and not na(atrd) and atrd > 0
+    if sbar * bsec <= 15 * 60 and not na(atrd) and atrd > 0
          and volume > 2 * base and (high - low) < atrd / 4.0
         fp_orn := math.min(volume / base / 2.0 * 100, 100)
 
@@ -330,9 +332,9 @@ if i_shdsh and barstate.islast
     table.cell(dash,1,3,str.tostring(cf_pos)+" / 5",
          text_color=C_PRI, bgcolor=C_BG,
          text_size=size.small, text_halign=text.align_right)
-    fpt = (fa?"ABS ":"")+(fe?"EOD ":"")+(fv?"VWP ":"")
-         +(fp?"VAP ":"")+(fo?"OPN ":"")
-         +(ft?(fp_tick>0?"TCK+":"TCK-"):"")
+    fpt = ((fa?"ABS ":"") + (fe?"EOD ":"") + (fv?"VWP ":"") +
+           (fp?"VAP ":"") + (fo?"OPN ":"") +
+           (ft?(fp_tick>0?"TCK+":"TCK-"):""))
     fpt := fpt=="" ? "--" : fpt
     table.cell(dash,0,4,"Footprints",
          text_color=C_SEC, bgcolor=C_BG,
