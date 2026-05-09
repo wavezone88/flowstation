@@ -50,10 +50,10 @@ i_alst  = input.bool(false, "Alert on state change", group = GA)
 dk     = i_theme == "dark"
 C_BG   = dk ? color.new(#0a0a0a, 15) : color.new(#f7f7f7, 15)
 C_SEC  = dk ? #9b9b9b : #5a5a5a
-C_BULL = #ff6b1a
+C_BULL = #5ec896
 C_BEAR = #3a3a3a
 C_HAIR = dk ? #2a2a2a : #d4d4d4
-C_HP   = #ff6b1a
+C_HP   = #5ec896
 C_HN   = #4a4a4a
 // Dashboard — always dark regardless of chart theme
 D_BG  = color.new(#0a0a0a, 10)
@@ -293,7 +293,7 @@ if trade_count > 0
 
 // --- DISPLAY HELPERS ---──────────────────────────────────────────────────────
 score_str = tscore > 0 ? "+" + str.tostring(tscore, "#") : tscore < 0 ? str.tostring(tscore, "#") : "0"
-score_c   = tscore > 0 ? #ff6b1a : tscore < 0 ? #3a3a3a : #9b9b9b
+score_c   = tscore > 0 ? #5ec896 : tscore < 0 ? #3a3a3a : #9b9b9b
 sc        = state == "ENTRY" ? C_BULL : state == "WATCH" ? color.new(C_BULL, 30) : state == "EXIT" ? C_BEAR : state == "CAUTION" ? color.new(C_BEAR, 20) : C_SEC
 
 // Why explanation — split into two chains to stay readable as single lines
@@ -319,7 +319,7 @@ fill(ln50, ln1,  color = color.new(C_BEAR, 80), title = "Bear zone")
 // --- SIGNAL MARKERS ---───────────────────────────────────────────────────────
 plotshape(i_shzon and jent, title = "ENTRY signal",
      location = location.belowbar, style = shape.labeldown,
-     size = size.small, color = #ff6b1a, textcolor = color.white,
+     size = size.small, color = #5ec896, textcolor = color.white,
      text = "ENTRY", force_overlay = true)
 plotshape(i_shzon and jex, title = "EXIT signal",
      location = location.abovebar, style = shape.labelup,
@@ -376,7 +376,7 @@ if i_shdsh and barstate.islast
     // Row 7: Cumulative P/L
     pnl_str   = cum_pnl > 0 ? "+" + str.tostring(cum_pnl, "0.0") + "%" : str.tostring(cum_pnl, "0.0") + "%"
     pnl_label = "Last " + str.tostring(i_lookback) + ": " + pnl_str
-    pnl_color = cum_pnl > 1.0 ? #ff6b1a : cum_pnl < -1.0 ? #e05555 : #9b9b9b
+    pnl_color = cum_pnl > 1.0 ? #5ec896 : cum_pnl < -1.0 ? #e05555 : #9b9b9b
     table.cell(dash, 0, 7, pnl_label,
          text_color = pnl_color, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_center)
