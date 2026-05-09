@@ -270,6 +270,7 @@ var array<int>   entry_bars      = array.new<int>()
 var array<float> trade_pnl       = array.new<float>()  // holds unrealized P/L for open trades, realized for closed
 var array<bool>  trade_closed    = array.new<bool>()
 var array<int>   entry_bar_index = array.new<int>()
+var array<int>   close_bar_idx   = array.new<int>()    // bar_index when trade was closed (0 while open)
 var array<line>  connect_lines   = array.new<line>()
 
 if jent
@@ -281,14 +282,19 @@ if jent
     array.push(trade_pnl,       0.0)
     array.push(trade_closed,    false)
     array.push(entry_bar_index, bar_index)
+    array.push(close_bar_idx,   0)
     if array.size(entry_prices) > 20
         array.shift(entry_prices)
         array.shift(entry_bars)
         array.shift(trade_pnl)
         array.shift(trade_closed)
         array.shift(entry_bar_index)
+        array.shift(close_bar_idx)
 
 // Update P/L for all open trades each bar
+// When OVERHEATED fires (jex), all open trades close at this bar's price.
+// This simulates a disciplined trader taking profit on the indicator's signal.
+// Trades also close at i_timeout_bars elapsed if no OVERHEATED fired before then.
 if array.size(entry_prices) > 0
     for i = 0 to array.size(entry_prices) - 1
         if not array.get(trade_closed, i)
@@ -297,8 +303,9 @@ if array.size(entry_prices) > 0
             bars_held = bar_index - entry_b
             pnl_pct   = (close - entry_p) / entry_p * 100
             if jex or bars_held >= i_timeout_bars
-                array.set(trade_pnl,    i, pnl_pct)
-                array.set(trade_closed, i, true)
+                array.set(trade_pnl,      i, pnl_pct)
+                array.set(trade_closed,   i, true)
+                array.set(close_bar_idx,  i, bar_index)
             else
                 array.set(trade_pnl, i, pnl_pct)
 
@@ -309,6 +316,18 @@ if trade_count > 0
     start_idx = array.size(trade_pnl) - trade_count
     for i = start_idx to array.size(trade_pnl) - 1
         cum_pnl := cum_pnl + array.get(trade_pnl, i)
+
+// Average bars held for last N entries (closed trades use recorded close bar; open trades use current bar)
+avg_hold_val = 0.0
+if trade_count > 0
+    start_h = array.size(entry_bars) - trade_count
+    for i = start_h to array.size(entry_bars) - 1
+        eb   = array.get(entry_bars, i)
+        clsd = array.get(trade_closed, i)
+        cb   = clsd ? array.get(close_bar_idx, i) : bar_index
+        avg_hold_val := avg_hold_val + float(cb - eb)
+    avg_hold_val := avg_hold_val / trade_count
+avg_hold_str = trade_count > 0 ? "Avg hold: " + str.tostring(int(math.round(avg_hold_val))) + " bars" : "Avg hold: —"
 
 // Total P/L + win rate across ALL tracked trades
 total_pnl  = 0.0
@@ -369,7 +388,7 @@ plotshape(i_shzon and is_tracked_entry, title = "Tracked entry",
 // --- DASHBOARD ---───────────────────────────────────────────────────────────
 dpos = i_dpos == "top-right" ? position.top_right : i_dpos == "top-left" ? position.top_left : i_dpos == "bottom-right" ? position.bottom_right : position.bottom_left
 
-var table dash = table.new(dpos, 1, 10,
+var table dash = table.new(dpos, 1, 11,
      bgcolor = D_BG, frame_color = D_DIV, frame_width = 1,
      border_color = D_DIV, border_width = 0)
 
@@ -402,20 +421,24 @@ if i_shdsh and barstate.islast
     table.cell(dash, 0, 6, why_str,
          text_color = #9b9b9b, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_center)
-    // Row 7: Cumulative P/L — trade_count reflects actual entries available
+    // Row 7: Avg hold
+    table.cell(dash, 0, 7, avg_hold_str,
+         text_color = #9b9b9b, bgcolor = D_BG,
+         text_size = size.tiny, text_halign = text.align_center)
+    // Row 8: Cumulative P/L — trade_count reflects actual entries available
     pnl_str   = cum_pnl > 0 ? "+" + str.tostring(cum_pnl, "0.0") + "%" : str.tostring(cum_pnl, "0.0") + "%"
     pnl_label = trade_count == 0 ? "No entries tracked" : "Last " + str.tostring(trade_count) + ": " + pnl_str
     pnl_color = cum_pnl > 1.0 ? #5ec896 : cum_pnl < -1.0 ? #e05555 : #9b9b9b
-    table.cell(dash, 0, 7, pnl_label,
+    table.cell(dash, 0, 8, pnl_label,
          text_color = pnl_color, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_center)
-    // Row 8: Divider
-    table.cell(dash, 0, 8, " ",
+    // Row 9: Divider
+    table.cell(dash, 0, 9, " ",
          text_color = D_DIV, bgcolor = D_DIV,
          text_size = size.tiny, text_halign = text.align_center)
-    // Row 9: Footer
+    // Row 10: Footer
     bar_time = str.format_time(time, "HH:mm", syminfo.timezone)
-    table.cell(dash, 0, 9, "Follow @tydeflowapp on X   " + bar_time,
+    table.cell(dash, 0, 10, "Follow @tydeflowapp on X   " + bar_time,
          text_color = #6b6b6b, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_left)
 
