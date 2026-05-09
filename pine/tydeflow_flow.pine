@@ -397,6 +397,10 @@ why_p1  = fc >= 3 ? "Multi-signal accumulation" : fa and fv ? "Absorption with V
 why_p2  = fa ? "Absorption at key level" : fv ? "VWAP accumulation" : fe ? "Late-session flow" : fo ? "Opening range accumulation" : fp ? "Volume cluster support" : "Score + confluence aligned"
 why_ent = why_p1 != "" ? why_p1 : why_p2
 why_str = state == "ENTRY" ? why_ent : state == "WATCH" ? "Conditions building" : state == "OVERHEATED" ? "Price extended, mean reversion risk" : state == "CAUTION" ? "Conflicting signals" : "No setup detected"
+if state == "ENTRY" and last_tier == "S"
+    why_str := "Multiple recent entries — likely shorter-term hold"
+if state == "ENTRY" and last_tier == "L"
+    why_str := "First entry in 30+ days — clean setup, longer hold"
 
 // --- OSCILLATOR ---──────────────────────────────────────────────────────────
 hc = tscore >= 0 ? C_HP : C_HN
