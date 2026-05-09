@@ -33,7 +33,7 @@ i_orn   = input.bool(true, "Opening Range Stuffing", group = GF,
 i_tick  = input.bool(true, "Up/Down Tick Volume Imbalance", group = GF,
      tooltip = "Up-volume vs down-volume ratio >2.2 over 20 bars — sustained accumulation pressure.")
 i_shosc = input.bool(true,  "Show oscillator panel",   group = GV)
-i_shzon = input.bool(true,  "Show BUY/SELL markers",    group = GV)
+i_shzon = input.bool(true,  "Show ENTRY/EXIT markers",  group = GV)
 i_shdsh = input.bool(true,  "Show dashboard",          group = GV)
 i_dpos  = input.string("top-right", "Dashboard position",
      options = ["top-right","top-left","bottom-right","bottom-left"], group = GV)
