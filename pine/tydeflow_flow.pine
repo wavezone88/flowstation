@@ -29,6 +29,9 @@ i_recent_window = input.int(50, "Signal P/L recent window (entries)", minval = 1
 i_timeout_hours = input.float(96.0, "P/L trade timeout (hours)", minval = 1.0, maxval = 8760.0, step = 1.0,
      group = GN,
      tooltip = "Maximum time a trade stays open for P/L tracking before being force-closed at current price. Same duration regardless of chart timeframe. Suggested: 24h (intraday/scalping), 96h (~4 days, swing 1H), 240h (10 days, daily-style), 720h (30 days, position).")
+i_gap_threshold = input.float(1.5, "Gap-down filter threshold (%)", minval = 0.5, maxval = 5.0, step = 0.1,
+     group = GN,
+     tooltip = "Minimum % gap-down required to suppress ENTRY signals. 1.5% catches significant overnight news gaps. Lower = more sensitive. Higher = only filters major gap events. Suppression lasts 3 bars after the gap.")
 i_abs   = input.bool(true, "Volume Absorption", group = GF,
      tooltip = "Detects bars with 2x+ normal volume but minimal price movement — a signature of institutions absorbing seller liquidity at a price level without revealing their hand.")
 i_eod   = input.bool(true, "End-of-Day Volume Surge", group = GF,
@@ -224,11 +227,26 @@ ft = math.abs(fp_tick) >= 50
 fc         = (fa?1:0)+(fe?1:0)+(fv?1:0)+(fp?1:0)+(fo?1:0)+(ft?1:0)
 rare_count = (fa?1:0) + (fe?1:0) + (fv?1:0) + (fp?1:0) + (fo?1:0)
 
+// --- GAP DETECTION ---────────────────────────────────────────────────────────
+// Suppresses ENTRY signals for 3 bars after a significant gap-down to avoid
+// catching falling knives when overnight news distorts signal interpretation.
+prev_close = nz(close[1], close)
+gap_pct    = prev_close > 0 ? (open - prev_close) / prev_close * 100 : 0.0
+gap_down   = gap_pct < -i_gap_threshold
+gap_up     = gap_pct >  i_gap_threshold
+
+var int bars_since_gap_down = 999
+var int bars_since_gap_up   = 999
+bars_since_gap_down := gap_down ? 0 : bars_since_gap_down + 1
+bars_since_gap_up   := gap_up   ? 0 : bars_since_gap_up   + 1
+
+gap_down_active = bars_since_gap_down <= 3
+
 // --- STATE MACHINE ---────────────────────────────────────────────────────────
 mbear           = rsi14 > 75 or (close < open and rvol > 1.5)
 stretched_above = rsi14 > 65 and ma50 > 0 and (close - ma50) / ma50 * 100 > 15
 overheated_cond = rsi14 > 68 and ma50 > 0 and (close - ma50) / ma50 * 100 > 8 and ta.vwap > 0 and (close - ta.vwap) / ta.vwap * 100 > 2
-ec    = tscore > ethr and cf_pos >= cf_thr and rsi14 < 70 and not stretched_above
+ec    = tscore > ethr and cf_pos >= cf_thr and rsi14 < 70 and not stretched_above and not gap_down_active
 wc    = tscore > wthr and cf_pos >= 2
 xc    = overheated_cond
 cc    = tscore < cthr or (tscore > 0 and mbear)
@@ -437,8 +455,9 @@ if i_shdsh and barstate.islast
     table.cell(dash, 1, 1, " " + hc_label + " ",
          text_color = hc_color, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_center)
-    table.cell(dash, 2, 1, "",
-         text_color = D_BG, bgcolor = D_BG, text_size = size.tiny)
+    table.cell(dash, 2, 1, gap_down_active ? " Gap-down filter active " : "",
+         text_color = #e05555, bgcolor = D_BG,
+         text_size = size.tiny, text_halign = text.align_center)
     table.cell(dash, 3, 1, "",
          text_color = D_BG, bgcolor = D_BG, text_size = size.tiny)
     table.cell(dash, 4, 1, " Follow @tydeflowapp on X ",
