@@ -400,7 +400,7 @@ plotshape(i_shzon and is_tracked_entry, title = "Tracked entry",
 // --- DASHBOARD ---───────────────────────────────────────────────────────────
 dpos = i_dpos == "top-right" ? position.top_right : i_dpos == "top-left" ? position.top_left : i_dpos == "bottom-right" ? position.bottom_right : position.bottom_left
 
-var table dash = table.new(dpos, 6, 2,
+var table dash = table.new(dpos, 6, 3,
      bgcolor = D_BG, frame_color = D_DIV, frame_width = 1,
      border_color = D_DIV, border_width = 1)
 
@@ -447,19 +447,25 @@ if i_shdsh and barstate.islast
     table.cell(dash, 5, 1, " " + bar_time + " ",
          text_color = #6b6b6b, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_right)
-
-// --- SIGNAL P/L COUNTER ---──────────────────────────────────────────────────
-var table pnl_tbl = table.new(position.middle_center, 1, 1,
-     bgcolor = color.new(#0a0a0a, 30), frame_color = #2a2a2a, frame_width = 1)
-
-if i_show_total and barstate.islast
-    if total_trds > 0
-        tpnl_str = total_pnl >= 0 ? "+" + str.tostring(total_pnl, "0.0") + "%" : str.tostring(total_pnl, "0.0") + "%"
-        wr_str   = str.tostring(math.round(win_rate), "0") + "%"
-        lbl      = "Signal P/L: " + tpnl_str + "  ·  Win: " + wr_str + "  ·  Trades: " + str.tostring(total_trds)
-        lbl_c    = total_pnl > 0.0 ? #5ec896 : total_pnl < 0.0 ? #e05555 : #9b9b9b
-        table.cell(pnl_tbl, 0, 0, lbl, text_color = lbl_c, bgcolor = color.new(#0a0a0a, 30),
-             text_size = size.tiny, text_halign = text.align_right)
+    // Row 2: Signal P/L — shown when i_show_total and at least one trade exists
+    show_pl  = i_show_total and total_trds > 0
+    tpnl_str = total_pnl >= 0 ? "+" + str.tostring(total_pnl, "0.0") + "%" : str.tostring(total_pnl, "0.0") + "%"
+    wr_str   = str.tostring(math.round(win_rate), "0") + "%"
+    lbl_c    = total_pnl > 0.0 ? #5ec896 : total_pnl < 0.0 ? #e05555 : #9b9b9b
+    table.cell(dash, 0, 2, show_pl ? " Signal P/L " : "",
+         text_color = #9b9b9b, bgcolor = D_BG,
+         text_size = size.small, text_halign = text.align_left)
+    table.cell(dash, 1, 2, show_pl ? " " + tpnl_str + " " : "",
+         text_color = show_pl ? lbl_c : D_BG, bgcolor = D_BG,
+         text_size = size.small, text_halign = text.align_center)
+    table.cell(dash, 2, 2, show_pl ? " Win: " + wr_str + " " : "",
+         text_color = #9b9b9b, bgcolor = D_BG,
+         text_size = size.small, text_halign = text.align_center)
+    table.cell(dash, 3, 2, show_pl ? " Trades: " + str.tostring(total_trds) + " " : "",
+         text_color = #9b9b9b, bgcolor = D_BG,
+         text_size = size.small, text_halign = text.align_center)
+    table.cell(dash, 4, 2, "", text_color = D_BG, bgcolor = D_BG, text_size = size.tiny)
+    table.cell(dash, 5, 2, "", text_color = D_BG, bgcolor = D_BG, text_size = size.tiny)
 
 // --- CONNECT TRACKED ENTRIES ---─────────────────────────────────────────────
 if i_connect and barstate.islast and array.size(entry_bar_index) >= 2
