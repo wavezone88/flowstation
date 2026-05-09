@@ -20,10 +20,10 @@ i_sens  = input.string("Balanced", "Sensitivity",
 i_cooldown_hours = input.float(24.0, "Signal cooldown (hours)", minval = 0.5, maxval = 240.0, step = 0.5,
      group = GN,
      tooltip = "Minimum time between consecutive ENTRY or OVERHEATED signals. Same duration regardless of chart timeframe. 4 hours = swing-friendly. 24 hours = daily-style holds. 1 hour = scalping.")
-i_lookback = input.int(3, "P/L lookback (entries)", options = [3, 5, 10],
+i_lookback = input.int(5, "P/L lookback (entries)", options = [3, 5, 10],
      group = GN,
      tooltip = "Number of recent ENTRY signals to include in cumulative P/L tracking. Shows whether the indicator has been performing well recently.")
-i_timeout_bars = input.int(60, "P/L trade timeout (bars)", minval = 10, maxval = 500, step = 10,
+i_timeout_bars = input.int(100, "P/L trade timeout (bars)", minval = 10, maxval = 500, step = 10,
      group = GN,
      tooltip = "Bars after entry before an open trade is force-closed for P/L. On 1H: 60 bars ≈ 9 trading days. On daily: 30 bars = 30 days. Increase on shorter timeframes to avoid premature exits.")
 i_abs   = input.bool(true, "Volume Absorption", group = GF,
