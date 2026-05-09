@@ -377,14 +377,14 @@ fill(ln50, ln1,  color = color.new(C_BEAR, 80), title = "Bear zone")
 
 // --- SIGNAL MARKERS ---───────────────────────────────────────────────────────
 plotshape(i_shzon and jent and not high_conviction, title = "ENTRY signal",
-     location = location.belowbar, style = shape.flag,
+     location = location.belowbar, style = shape.triangleup,
      size = size.small, color = #5ec896, force_overlay = true)
 plotshape(i_shzon and high_conviction, title = "HIGH CONVICTION ENTRY",
-     location = location.belowbar, style = shape.flag,
-     size = size.normal, color = #ffffff, force_overlay = true)
+     location = location.belowbar, style = shape.diamond,
+     size = size.normal, color = #00b4d8, force_overlay = true)
 plotshape(i_shzon and jex, title = "OVERHEATED signal",
      location = location.abovebar, style = shape.flag,
-     size = size.small, color = #3a3a3a, force_overlay = true)
+     size = size.small, color = #c0392b, force_overlay = true)
 
 // Small white dot marks the last N tracked entries
 is_tracked_entry = false
@@ -394,7 +394,7 @@ if array.size(entry_bar_index) > 0
         if array.get(entry_bar_index, i) == bar_index
             is_tracked_entry := true
 plotshape(i_shzon and is_tracked_entry, title = "Tracked entry",
-     location = location.belowbar, style = shape.circle,
+     location = location.belowbar, style = shape.cross,
      size = size.tiny, color = #ffffff, force_overlay = true)
 
 // --- DASHBOARD ---───────────────────────────────────────────────────────────
