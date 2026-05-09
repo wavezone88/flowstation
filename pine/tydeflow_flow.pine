@@ -23,9 +23,9 @@ i_cooldown_hours = input.float(24.0, "Signal cooldown (hours)", minval = 0.5, ma
 i_lookback = input.int(5, "P/L lookback (entries)", options = [3, 5, 10],
      group = GN,
      tooltip = "Number of recent ENTRY signals to include in cumulative P/L tracking. Shows whether the indicator has been performing well recently.")
-i_timeout_bars = input.int(100, "P/L trade timeout (bars)", minval = 10, maxval = 500, step = 10,
+i_timeout_hours = input.float(96.0, "P/L trade timeout (hours)", minval = 1.0, maxval = 8760.0, step = 1.0,
      group = GN,
-     tooltip = "Bars after entry before an open trade is force-closed for P/L. On 1H: 60 bars ≈ 9 trading days. On daily: 30 bars = 30 days. Increase on shorter timeframes to avoid premature exits.")
+     tooltip = "Maximum time a trade stays open for P/L tracking before being force-closed at current price. Same duration regardless of chart timeframe. Suggested: 24h (intraday/scalping), 96h (~4 days, swing 1H), 240h (10 days, daily-style), 720h (30 days, position).")
 i_abs   = input.bool(true, "Volume Absorption", group = GF,
      tooltip = "Detects bars with 2x+ normal volume but minimal price movement — a signature of institutions absorbing seller liquidity at a price level without revealing their hand.")
 i_eod   = input.bool(true, "End-of-Day Volume Surge", group = GF,
@@ -271,7 +271,8 @@ var array<int>   entry_bars      = array.new<int>()
 var array<float> trade_pnl       = array.new<float>()  // holds unrealized P/L for open trades, realized for closed
 var array<bool>  trade_closed    = array.new<bool>()
 var array<int>   entry_bar_index = array.new<int>()
-var array<int>   close_bar_idx   = array.new<int>()    // bar_index when trade was closed (0 while open)
+var array<int>   entry_times      = array.new<int>()    // Unix ms timestamp at entry
+var array<int>   close_times      = array.new<int>()    // Unix ms timestamp when trade closed (0 while open)
 var array<line>  connect_lines   = array.new<line>()
 
 if jent
@@ -283,30 +284,32 @@ if jent
     array.push(trade_pnl,       0.0)
     array.push(trade_closed,    false)
     array.push(entry_bar_index, bar_index)
-    array.push(close_bar_idx,   0)
+    array.push(entry_times,     time)
+    array.push(close_times,     0)
     if array.size(entry_prices) > 20
         array.shift(entry_prices)
         array.shift(entry_bars)
         array.shift(trade_pnl)
         array.shift(trade_closed)
         array.shift(entry_bar_index)
-        array.shift(close_bar_idx)
+        array.shift(entry_times)
+        array.shift(close_times)
 
 // Update P/L for all open trades each bar
 // When OVERHEATED fires (jex), all open trades close at this bar's price.
 // This simulates a disciplined trader taking profit on the indicator's signal.
-// Trades also close at i_timeout_bars elapsed if no OVERHEATED fired before then.
+// Trades also force-close after i_timeout_hours if no OVERHEATED fired before then.
+timeout_ms = int(i_timeout_hours * 3600 * 1000)
 if array.size(entry_prices) > 0
     for i = 0 to array.size(entry_prices) - 1
         if not array.get(trade_closed, i)
-            entry_p   = array.get(entry_prices, i)
-            entry_b   = array.get(entry_bars, i)
-            bars_held = bar_index - entry_b
-            pnl_pct   = (close - entry_p) / entry_p * 100
-            if jex or bars_held >= i_timeout_bars
-                array.set(trade_pnl,      i, pnl_pct)
-                array.set(trade_closed,   i, true)
-                array.set(close_bar_idx,  i, bar_index)
+            entry_p      = array.get(entry_prices, i)
+            pnl_pct      = (close - entry_p) / entry_p * 100
+            trade_age_ms = time - array.get(entry_times, i)
+            if jex or trade_age_ms >= timeout_ms
+                array.set(trade_pnl,    i, pnl_pct)
+                array.set(trade_closed, i, true)
+                array.set(close_times,  i, time)
             else
                 array.set(trade_pnl, i, pnl_pct)
 
@@ -318,17 +321,17 @@ if trade_count > 0
     for i = start_idx to array.size(trade_pnl) - 1
         cum_pnl := cum_pnl + array.get(trade_pnl, i)
 
-// Average bars held for last N entries (closed trades use recorded close bar; open trades use current bar)
+// Average hold time in hours for last N entries (closed trades use recorded close time; open trades use now)
 avg_hold_val = 0.0
 if trade_count > 0
-    start_h = array.size(entry_bars) - trade_count
-    for i = start_h to array.size(entry_bars) - 1
-        eb   = array.get(entry_bars, i)
+    start_h = array.size(entry_times) - trade_count
+    for i = start_h to array.size(entry_times) - 1
+        et   = array.get(entry_times, i)
         clsd = array.get(trade_closed, i)
-        cb   = clsd ? array.get(close_bar_idx, i) : bar_index
-        avg_hold_val := avg_hold_val + float(cb - eb)
+        ct   = clsd ? array.get(close_times, i) : time
+        avg_hold_val := avg_hold_val + (ct - et) / 3600000.0
     avg_hold_val := avg_hold_val / trade_count
-avg_hold_str = trade_count > 0 ? "Avg hold: " + str.tostring(int(math.round(avg_hold_val))) + " bars" : "Avg hold: —"
+avg_hold_str = trade_count > 0 ? "Avg hold: " + str.tostring(avg_hold_val, "0.0") + "h" : "Avg hold: —"
 
 // Total P/L + win rate across ALL tracked trades
 total_pnl  = 0.0
@@ -485,7 +488,7 @@ var table dbg_tbl = table.new(position.bottom_left, 5, 22,
 if i_debug and barstate.islast
     table.cell(dbg_tbl, 0, 0, "#",       text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
     table.cell(dbg_tbl, 1, 0, "entry $", text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
-    table.cell(dbg_tbl, 2, 0, "bars",    text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
+    table.cell(dbg_tbl, 2, 0, "hrs",     text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
     table.cell(dbg_tbl, 3, 0, "P/L%",    text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
     table.cell(dbg_tbl, 4, 0, "status",  text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
     n_ent = array.size(entry_prices)
@@ -493,16 +496,17 @@ if i_debug and barstate.islast
         dbg_idx = dbg_row - 1
         if dbg_idx < n_ent
             dbg_ep   = array.get(entry_prices, dbg_idx)
-            dbg_eb   = array.get(entry_bars,   dbg_idx)
             dbg_pnl  = array.get(trade_pnl,    dbg_idx)
             dbg_clsd = array.get(trade_closed,  dbg_idx)
-            dbg_bh   = bar_index - dbg_eb
+            dbg_et   = array.get(entry_times,   dbg_idx)
+            dbg_ct   = dbg_clsd ? array.get(close_times, dbg_idx) : time
+            dbg_bh   = (dbg_ct - dbg_et) / 3600000.0
             dbg_pc   = dbg_pnl > 0 ? #5ec896 : dbg_pnl < 0 ? #e05555 : #9b9b9b
             dbg_sc   = dbg_clsd ? #6b6b6b : #5ec896
             dbg_ps   = dbg_pnl >= 0 ? "+" + str.tostring(dbg_pnl, "0.0") + "%" : str.tostring(dbg_pnl, "0.0") + "%"
-            table.cell(dbg_tbl, 0, dbg_row, str.tostring(dbg_idx + 1),    text_color = #6b6b6b, bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
-            table.cell(dbg_tbl, 1, dbg_row, str.tostring(dbg_ep, "0.00"), text_color = #9b9b9b, bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
-            table.cell(dbg_tbl, 2, dbg_row, str.tostring(dbg_bh),         text_color = #9b9b9b, bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
+            table.cell(dbg_tbl, 0, dbg_row, str.tostring(dbg_idx + 1),      text_color = #6b6b6b, bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
+            table.cell(dbg_tbl, 1, dbg_row, str.tostring(dbg_ep, "0.00"),   text_color = #9b9b9b, bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
+            table.cell(dbg_tbl, 2, dbg_row, str.tostring(dbg_bh, "0.0"),    text_color = #9b9b9b, bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
             table.cell(dbg_tbl, 3, dbg_row, dbg_ps,                       text_color = dbg_pc,  bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
             table.cell(dbg_tbl, 4, dbg_row, dbg_clsd ? "closed" : "open", text_color = dbg_sc,  bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
         else
