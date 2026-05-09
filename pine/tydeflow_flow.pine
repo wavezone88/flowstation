@@ -20,6 +20,9 @@ i_sens  = input.string("Balanced", "Sensitivity",
 i_cooldown_hours = input.float(24.0, "Signal cooldown (hours)", minval = 0.5, maxval = 240.0, step = 0.5,
      group = GN,
      tooltip = "Minimum time between consecutive ENTRY or EXIT signals. Same duration regardless of chart timeframe. 4 hours = swing-friendly. 24 hours = daily-style holds. 1 hour = scalping.")
+i_lookback = input.int(3, "P/L lookback (entries)", options = [3, 5, 10],
+     group = GN,
+     tooltip = "Number of recent ENTRY signals to include in cumulative P/L tracking. Shows whether the indicator has been performing well recently.")
 i_abs   = input.bool(true, "Volume Absorption", group = GF,
      tooltip = "Detects bars with 2x+ normal volume but minimal price movement — a signature of institutions absorbing seller liquidity at a price level without revealing their hand.")
 i_eod   = input.bool(true, "End-of-Day Volume Surge", group = GF,
@@ -246,6 +249,48 @@ if jex
     exit_armed     := false
 pstate := state
 
+// --- TRADE TRACKING ---───────────────────────────────────────────────────────
+var array<float> entry_prices    = array.new<float>()
+var array<int>   entry_bars      = array.new<int>()
+var array<float> closed_pnl      = array.new<float>()
+var array<bool>  trade_closed    = array.new<bool>()
+var array<int>   entry_bar_index = array.new<int>()
+
+if jent
+    array.push(entry_prices,    close)
+    array.push(entry_bars,      bar_index)
+    array.push(closed_pnl,      0.0)
+    array.push(trade_closed,    false)
+    array.push(entry_bar_index, bar_index)
+    if array.size(entry_prices) > 20
+        array.shift(entry_prices)
+        array.shift(entry_bars)
+        array.shift(closed_pnl)
+        array.shift(trade_closed)
+        array.shift(entry_bar_index)
+
+// Update P/L for all open trades each bar
+if array.size(entry_prices) > 0
+    for i = 0 to array.size(entry_prices) - 1
+        if not array.get(trade_closed, i)
+            entry_p   = array.get(entry_prices, i)
+            entry_b   = array.get(entry_bars, i)
+            bars_held = bar_index - entry_b
+            pnl_pct   = (close - entry_p) / entry_p * 100
+            if jex or bars_held >= 30
+                array.set(closed_pnl,   i, pnl_pct)
+                array.set(trade_closed, i, true)
+            else
+                array.set(closed_pnl, i, pnl_pct)
+
+// Cumulative P/L over last N entries
+cum_pnl     = 0.0
+trade_count = math.min(array.size(closed_pnl), i_lookback)
+if trade_count > 0
+    start_idx = array.size(closed_pnl) - trade_count
+    for i = start_idx to array.size(closed_pnl) - 1
+        cum_pnl := cum_pnl + array.get(closed_pnl, i)
+
 // --- DISPLAY HELPERS ---──────────────────────────────────────────────────────
 score_str = tscore > 0 ? "+" + str.tostring(tscore, "#") : tscore < 0 ? str.tostring(tscore, "#") : "0"
 score_c   = tscore > 0 ? #ff6b1a : tscore < 0 ? #3a3a3a : #9b9b9b
@@ -281,10 +326,21 @@ plotshape(i_shzon and jex, title = "EXIT signal",
      size = size.small, color = #3a3a3a, textcolor = color.white,
      text = "EXIT", force_overlay = true)
 
+// Small white dot marks the last N tracked entries
+is_tracked_entry = false
+if array.size(entry_bar_index) > 0
+    start_t = math.max(0, array.size(entry_bar_index) - i_lookback)
+    for i = start_t to array.size(entry_bar_index) - 1
+        if array.get(entry_bar_index, i) == bar_index
+            is_tracked_entry := true
+plotshape(i_shzon and is_tracked_entry, title = "Tracked entry",
+     location = location.belowbar, style = shape.circle,
+     size = size.tiny, color = #ffffff, force_overlay = true)
+
 // --- DASHBOARD ---───────────────────────────────────────────────────────────
 dpos = i_dpos == "top-right" ? position.top_right : i_dpos == "top-left" ? position.top_left : i_dpos == "bottom-right" ? position.bottom_right : position.bottom_left
 
-var table dash = table.new(dpos, 1, 9,
+var table dash = table.new(dpos, 1, 10,
      bgcolor = D_BG, frame_color = D_DIV, frame_width = 1,
      border_color = D_DIV, border_width = 0)
 
@@ -317,13 +373,20 @@ if i_shdsh and barstate.islast
     table.cell(dash, 0, 6, why_str,
          text_color = #9b9b9b, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_center)
-    // Row 7: Divider
-    table.cell(dash, 0, 7, " ",
+    // Row 7: Cumulative P/L
+    pnl_str   = cum_pnl > 0 ? "+" + str.tostring(cum_pnl, "0.0") + "%" : str.tostring(cum_pnl, "0.0") + "%"
+    pnl_label = "Last " + str.tostring(i_lookback) + ": " + pnl_str
+    pnl_color = cum_pnl > 2.0 ? #ff6b1a : cum_pnl < -2.0 ? #3a3a3a : #9b9b9b
+    table.cell(dash, 0, 7, pnl_label,
+         text_color = pnl_color, bgcolor = D_BG,
+         text_size = size.tiny, text_halign = text.align_center)
+    // Row 8: Divider
+    table.cell(dash, 0, 8, " ",
          text_color = D_DIV, bgcolor = D_DIV,
          text_size = size.tiny, text_halign = text.align_center)
-    // Row 8: Footer
+    // Row 9: Footer
     bar_time = str.format_time(time, "HH:mm", syminfo.timezone)
-    table.cell(dash, 0, 8, "Follow @tydeflowapp on X   " + bar_time,
+    table.cell(dash, 0, 9, "Follow @tydeflowapp on X   " + bar_time,
          text_color = #6b6b6b, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_left)
 
