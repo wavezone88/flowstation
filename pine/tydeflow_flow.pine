@@ -428,11 +428,21 @@ plotshape(i_shzon and jent and not high_conviction and tier_long,
      style = shape.triangleup, size = size.normal,
      color = #5ec896, force_overlay = true,
      text = "L", textcolor = #ffffff)
-plotshape(i_shzon and high_conviction,
-     title = "HIGH CONVICTION ENTRY", location = location.belowbar,
+plotshape(i_shzon and high_conviction and tier_short,
+     title = "HIGH CONVICTION ENTRY (Short)", location = location.belowbar,
      style = shape.diamond, size = size.small,
      color = #00b4d8, force_overlay = true,
-     text = entry_tier, textcolor = #ffffff)
+     text = "S", textcolor = #ffffff)
+plotshape(i_shzon and high_conviction and tier_medium,
+     title = "HIGH CONVICTION ENTRY (Medium)", location = location.belowbar,
+     style = shape.diamond, size = size.small,
+     color = #00b4d8, force_overlay = true,
+     text = "M", textcolor = #ffffff)
+plotshape(i_shzon and high_conviction and tier_long,
+     title = "HIGH CONVICTION ENTRY (Long)", location = location.belowbar,
+     style = shape.diamond, size = size.small,
+     color = #00b4d8, force_overlay = true,
+     text = "L", textcolor = #ffffff)
 plotshape(i_shzon and jex, title = "OVERHEATED signal",
      location = location.abovebar, style = shape.flag,
      size = size.small, color = #c0392b, force_overlay = true)
