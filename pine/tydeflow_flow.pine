@@ -376,7 +376,7 @@ if i_shdsh and barstate.islast
     // Row 7: Cumulative P/L
     pnl_str   = cum_pnl > 0 ? "+" + str.tostring(cum_pnl, "0.0") + "%" : str.tostring(cum_pnl, "0.0") + "%"
     pnl_label = "Last " + str.tostring(i_lookback) + ": " + pnl_str
-    pnl_color = cum_pnl > 2.0 ? #ff6b1a : cum_pnl < -2.0 ? #3a3a3a : #9b9b9b
+    pnl_color = cum_pnl > 1.0 ? #ff6b1a : cum_pnl < -1.0 ? #e05555 : #9b9b9b
     table.cell(dash, 0, 7, pnl_label,
          text_color = pnl_color, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_center)
