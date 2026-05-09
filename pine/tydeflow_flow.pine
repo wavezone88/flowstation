@@ -349,13 +349,11 @@ fill(ln50, ln1,  color = color.new(C_BEAR, 80), title = "Bear zone")
 
 // --- SIGNAL MARKERS ---───────────────────────────────────────────────────────
 plotshape(i_shzon and jent, title = "ENTRY signal",
-     location = location.belowbar, style = shape.labeldown,
-     size = size.small, color = #5ec896, textcolor = color.white,
-     text = "ENTRY", force_overlay = true)
+     location = location.belowbar, style = shape.triangleup,
+     size = size.small, color = #5ec896, force_overlay = true)
 plotshape(i_shzon and jex, title = "EXIT signal",
-     location = location.abovebar, style = shape.labelup,
-     size = size.small, color = #3a3a3a, textcolor = color.white,
-     text = "EXIT", force_overlay = true)
+     location = location.abovebar, style = shape.flag,
+     size = size.small, color = #e05555, force_overlay = true)
 
 // Small white dot marks the last N tracked entries
 is_tracked_entry = false
