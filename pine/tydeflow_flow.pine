@@ -336,11 +336,11 @@ if i_shdsh and barstate.islast
     // Row 2: Score
     table.cell(dash, 0, 2, score_str,
          text_color = score_c, bgcolor = D_BG,
-         text_size = size.huge, text_halign = text.align_center)
+         text_size = size.large, text_halign = text.align_center)
 
     // Row 3: Gauge bar
     table.cell(dash, 0, 3,
-         f_gauge(tscore) + "  " + score_str,
+         f_gauge(tscore),
          text_color = score_c, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_center)
 
