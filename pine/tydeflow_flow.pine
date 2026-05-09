@@ -381,7 +381,7 @@ plotshape(i_shzon and jent and not high_conviction, title = "ENTRY signal",
      size = size.small, color = #5ec896, force_overlay = true)
 plotshape(i_shzon and high_conviction, title = "HIGH CONVICTION ENTRY",
      location = location.belowbar, style = shape.diamond,
-     size = size.normal, color = #00b4d8, force_overlay = true)
+     size = size.small, color = #00b4d8, force_overlay = true)
 plotshape(i_shzon and jex, title = "OVERHEATED signal",
      location = location.abovebar, style = shape.flag,
      size = size.small, color = #c0392b, force_overlay = true)
