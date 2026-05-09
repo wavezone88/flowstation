@@ -38,13 +38,17 @@ i_orn   = input.bool(true, "Opening Range Stuffing", group = GF,
      tooltip = "First 15 minutes of session showing huge volume but minimal price movement — institutions positioning before retail wakes up.")
 i_tick  = input.bool(true, "Up/Down Tick Volume Imbalance", group = GF,
      tooltip = "Up-volume vs down-volume ratio >2.2 over 20 bars — sustained accumulation pressure.")
+i_soldiers = input.bool(true, "Three White Soldiers boost", group = GF,
+     tooltip = "Adds modest score boost when three consecutive bullish bars appear with closes in upper half of range. Often precedes confirmed bottoms. Disable for purists.")
 i_shosc   = input.bool(true,  "Show oscillator panel",    group = GV)
 i_shzon   = input.bool(true,  "Show ENTRY/EXIT markers",  group = GV)
 i_shdsh   = input.bool(true,  "Show dashboard",           group = GV)
 i_connect = input.bool(false, "Connect tracked entries",  group = GV,
      tooltip = "Draws a thin dotted line connecting the last N tracked ENTRY signals to visualize the path of recent signals over time.")
-i_debug   = input.bool(false, "Show P/L debug table",     group = GV,
+i_debug      = input.bool(false, "Show P/L debug table",       group = GV,
      tooltip = "Renders a table showing every tracked entry: price, bars held, current P/L%, and open/closed status. Use to diagnose unexpected P/L readings.")
+i_show_total = input.bool(true,  "Show cumulative signal P/L", group = GV,
+     tooltip = "Bottom-right label showing total P/L across all tracked trades (closed + open unrealized), win rate, and trade count. Assumes equal position sizing.")
 i_dpos  = input.string("top-right", "Dashboard position",
      options = ["top-right","top-left","bottom-right","bottom-left"], group = GV)
 i_theme = input.string("dark", "Color theme",
@@ -208,7 +212,9 @@ ustr = (fp_abs * WA + fp_eod * WE + fp_vwap * WV + fp_vap * WP + fp_orn * WO)
 
 dir = math.abs(fp_tick) >= 25 ? math.sign(fp_tick) : close >= ma50 ? 1 : -1
 
-tscore = math.max(math.min((ustr * dir + fp_tick * WT) * 0.6 + cf_tot * 8.0, 100.0), -100.0)
+three_soldiers = close > close[1] and close[1] > close[2] and close > open and close[1] > open[1] and close[2] > open[2] and close > (high + low) / 2 and close[1] > (high[1] + low[1]) / 2 and close[2] > (high[2] + low[2]) / 2
+soldiers_boost = i_soldiers and three_soldiers ? 8.0 : 0.0
+tscore = math.max(math.min((ustr * dir + fp_tick * WT) * 0.6 + cf_tot * 8.0 + soldiers_boost, 100.0), -100.0)
 
 fa = fp_abs  >= 50
 fe = fp_eod  >= 50
@@ -303,6 +309,18 @@ if trade_count > 0
     start_idx = array.size(trade_pnl) - trade_count
     for i = start_idx to array.size(trade_pnl) - 1
         cum_pnl := cum_pnl + array.get(trade_pnl, i)
+
+// Total P/L + win rate across ALL tracked trades
+total_pnl  = 0.0
+tot_wins   = 0
+total_trds = array.size(trade_pnl)
+if total_trds > 0
+    for i = 0 to total_trds - 1
+        pv = array.get(trade_pnl, i)
+        total_pnl := total_pnl + pv
+        if pv > 0.0
+            tot_wins := tot_wins + 1
+win_rate = total_trds > 0 ? tot_wins * 100.0 / total_trds : 0.0
 
 // --- DISPLAY HELPERS ---──────────────────────────────────────────────────────
 score_str = tscore > 0 ? "+" + str.tostring(tscore, "#") : tscore < 0 ? str.tostring(tscore, "#") : "0"
@@ -403,6 +421,18 @@ if i_shdsh and barstate.islast
          text_color = #6b6b6b, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_left)
 
+// --- SIGNAL P/L COUNTER ---──────────────────────────────────────────────────
+var table pnl_tbl = table.new(position.bottom_right, 1, 1,
+     bgcolor = color.new(#0a0a0a, 30), frame_color = #2a2a2a, frame_width = 1)
+
+if i_show_total and barstate.islast
+    tpnl_str = total_pnl >= 0 ? "+" + str.tostring(total_pnl, "0.0") + "%" : str.tostring(total_pnl, "0.0") + "%"
+    wr_str   = str.tostring(math.round(win_rate), "0") + "%"
+    lbl      = "Signal P/L: " + tpnl_str + "  ·  Win: " + wr_str + "  ·  Trades: " + str.tostring(total_trds)
+    lbl_c    = total_pnl > 0.0 ? #5ec896 : total_pnl < 0.0 ? #e05555 : #9b9b9b
+    table.cell(pnl_tbl, 0, 0, lbl, text_color = lbl_c, bgcolor = color.new(#0a0a0a, 30),
+         text_size = size.tiny, text_halign = text.align_right)
+
 // --- CONNECT TRACKED ENTRIES ---─────────────────────────────────────────────
 if i_connect and barstate.islast and array.size(entry_bar_index) >= 2
     start_t = math.max(0, array.size(entry_bar_index) - i_lookback)
@@ -412,7 +442,7 @@ if i_connect and barstate.islast and array.size(entry_bar_index) >= 2
         x2 = array.get(entry_bar_index, i + 1)
         y2 = array.get(entry_prices,    i + 1)
         new_line = line.new(x1 = x1, y1 = y1, x2 = x2, y2 = y2,
-             color = color.new(#5ec896, 50), style = line.style_dotted,
+             color = color.new(#5ec896, 80), style = line.style_dotted,
              width = 1, force_overlay = true)
         array.push(connect_lines, new_line)
 
@@ -422,11 +452,11 @@ var table dbg_tbl = table.new(position.bottom_left, 5, 22,
      border_color = #1a1a1a, border_width = 1)
 
 if i_debug and barstate.islast
-    table.cell(dbg_tbl, 0, 0, "#",       text_color = #6b6b6b, bgcolor = #111111, text_size = size.tiny, text_halign = text.align_center)
-    table.cell(dbg_tbl, 1, 0, "entry $", text_color = #6b6b6b, bgcolor = #111111, text_size = size.tiny, text_halign = text.align_center)
-    table.cell(dbg_tbl, 2, 0, "bars",    text_color = #6b6b6b, bgcolor = #111111, text_size = size.tiny, text_halign = text.align_center)
-    table.cell(dbg_tbl, 3, 0, "P/L%",    text_color = #6b6b6b, bgcolor = #111111, text_size = size.tiny, text_halign = text.align_center)
-    table.cell(dbg_tbl, 4, 0, "status",  text_color = #6b6b6b, bgcolor = #111111, text_size = size.tiny, text_halign = text.align_center)
+    table.cell(dbg_tbl, 0, 0, "#",       text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
+    table.cell(dbg_tbl, 1, 0, "entry $", text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
+    table.cell(dbg_tbl, 2, 0, "bars",    text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
+    table.cell(dbg_tbl, 3, 0, "P/L%",    text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
+    table.cell(dbg_tbl, 4, 0, "status",  text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
     n_ent = array.size(entry_prices)
     for dbg_row = 1 to 21
         dbg_idx = dbg_row - 1
@@ -439,17 +469,17 @@ if i_debug and barstate.islast
             dbg_pc   = dbg_pnl > 0 ? #5ec896 : dbg_pnl < 0 ? #e05555 : #9b9b9b
             dbg_sc   = dbg_clsd ? #6b6b6b : #5ec896
             dbg_ps   = dbg_pnl >= 0 ? "+" + str.tostring(dbg_pnl, "0.0") + "%" : str.tostring(dbg_pnl, "0.0") + "%"
-            table.cell(dbg_tbl, 0, dbg_row, str.tostring(dbg_idx + 1),    text_color = #6b6b6b, bgcolor = #0a0a0a, text_size = size.tiny, text_halign = text.align_center)
-            table.cell(dbg_tbl, 1, dbg_row, str.tostring(dbg_ep, "0.00"), text_color = #9b9b9b, bgcolor = #0a0a0a, text_size = size.tiny, text_halign = text.align_center)
-            table.cell(dbg_tbl, 2, dbg_row, str.tostring(dbg_bh),         text_color = #9b9b9b, bgcolor = #0a0a0a, text_size = size.tiny, text_halign = text.align_center)
-            table.cell(dbg_tbl, 3, dbg_row, dbg_ps,                       text_color = dbg_pc,  bgcolor = #0a0a0a, text_size = size.tiny, text_halign = text.align_center)
-            table.cell(dbg_tbl, 4, dbg_row, dbg_clsd ? "closed" : "open", text_color = dbg_sc,  bgcolor = #0a0a0a, text_size = size.tiny, text_halign = text.align_center)
+            table.cell(dbg_tbl, 0, dbg_row, str.tostring(dbg_idx + 1),    text_color = #6b6b6b, bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
+            table.cell(dbg_tbl, 1, dbg_row, str.tostring(dbg_ep, "0.00"), text_color = #9b9b9b, bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
+            table.cell(dbg_tbl, 2, dbg_row, str.tostring(dbg_bh),         text_color = #9b9b9b, bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
+            table.cell(dbg_tbl, 3, dbg_row, dbg_ps,                       text_color = dbg_pc,  bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
+            table.cell(dbg_tbl, 4, dbg_row, dbg_clsd ? "closed" : "open", text_color = dbg_sc,  bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
         else
-            table.cell(dbg_tbl, 0, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.tiny)
-            table.cell(dbg_tbl, 1, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.tiny)
-            table.cell(dbg_tbl, 2, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.tiny)
-            table.cell(dbg_tbl, 3, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.tiny)
-            table.cell(dbg_tbl, 4, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.tiny)
+            table.cell(dbg_tbl, 0, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.small)
+            table.cell(dbg_tbl, 1, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.small)
+            table.cell(dbg_tbl, 2, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.small)
+            table.cell(dbg_tbl, 3, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.small)
+            table.cell(dbg_tbl, 4, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.small)
 
 // --- ALERTS ---───────────────────────────────────────────────────────────────
 alertcondition(jent and i_alent, title = "TF Flow - ENTRY",
