@@ -210,9 +210,9 @@ fc = (fa?1:0)+(fe?1:0)+(fv?1:0)+(fp?1:0)+(fo?1:0)+(ft?1:0)
 
 // --- STATE MACHINE ---────────────────────────────────────────────────────────
 mbear = rsi14 > 75 or (close < open and rvol > 1.5)
-ec    = tscore > ethr and cf_pos >= cf_thr
+ec    = tscore > ethr and cf_pos >= cf_thr and rsi14 < 70
 wc    = tscore > wthr and cf_pos >= 2
-xc    = tscore < xthr and cf_neg >= cf_thr
+xc    = tscore < xthr and cf_neg >= cf_thr and rsi14 > 35
 cc    = tscore < cthr or (tscore > 0 and mbear)
 state = ec ? "ENTRY" : wc ? "WATCH" : xc ? "EXIT" : cc ? "CAUTION" : "WAIT"
 
