@@ -87,9 +87,9 @@ cthr   = -wthr
 ma50  = ta.sma(close, 50)
 ma200 = ta.sma(close, 200)
 
-t_stk = close > ma50 and ma50 > ma200
-t_50  = close > ma50 and not (ma50 > ma200)
-t_200 = close > ma200 and not (close > ma50)
+t_stk     = close > ma50 and ma50 > ma200
+t_50      = close > ma50 and not (ma50 > ma200)
+t_200     = close > ma200 and not (close > ma50)
 trend_val = t_stk ? 1.0 : t_50 ? 0.6 : t_200 ? -0.4 : -1.0
 
 rsi14   = ta.rsi(close, 14)
@@ -112,21 +112,15 @@ s30     = nz(spy[30], spy)
 sr30    = c30 > 0 ? (close - c30) / c30 * 100 : 0.0
 sr30spy = s30 > 0 ? (spy - s30) / s30 * 100 : 0.0
 rsdiff  = sr30 - sr30spy
-rs_val  = rsdiff >= 10 ? 1.0 : rsdiff >= 5 ? 0.5 :
-          rsdiff >= -5 ? 0.0 : rsdiff >= -10 ? -0.5 : -1.0
+rs_val  = rsdiff >= 10 ? 1.0 : rsdiff >= 5 ? 0.5 : rsdiff >= -5 ? 0.0 : rsdiff >= -10 ? -0.5 : -1.0
 
 hi52     = ta.highest(high, 252)
 dpct     = hi52 > 0 ? (hi52 - close) / hi52 * 100 : 0.0
-dist_val = dpct <= 5 ? 1.0 : dpct <= 10 ? 0.5 :
-           dpct <= 20 ? 0.0 : dpct <= 35 ? -0.5 : -1.0
+dist_val = dpct <= 5 ? 1.0 : dpct <= 10 ? 0.5 : dpct <= 20 ? 0.0 : dpct <= 35 ? -0.5 : -1.0
 
 cf_tot = (trend_val + rsi_val + rvol_val + rs_val + dist_val) * cmul
-cf_pos = ((trend_val > 0 ? 1 : 0) + (rsi_val > 0 ? 1 : 0) +
-          (rvol_val > 0 ? 1 : 0) + (rs_val > 0 ? 1 : 0) +
-          (dist_val > 0 ? 1 : 0))
-cf_neg = ((trend_val < 0 ? 1 : 0) + (rsi_val < 0 ? 1 : 0) +
-          (rvol_val < 0 ? 1 : 0) + (rs_val < 0 ? 1 : 0) +
-          (dist_val < 0 ? 1 : 0))
+cf_pos = (trend_val > 0 ? 1 : 0) + (rsi_val > 0 ? 1 : 0) + (rvol_val > 0 ? 1 : 0) + (rs_val > 0 ? 1 : 0) + (dist_val > 0 ? 1 : 0)
+cf_neg = (trend_val < 0 ? 1 : 0) + (rsi_val < 0 ? 1 : 0) + (rvol_val < 0 ? 1 : 0) + (rs_val < 0 ? 1 : 0) + (dist_val < 0 ? 1 : 0)
 
 // --- FOOTPRINT DETECTORS ---──────────────────────────────────────────────────
 atr14 = ta.atr(14)
@@ -150,8 +144,7 @@ atrd = request.security(syminfo.tickerid, "D", ta.atr(14),
 // 1. Volume Absorption
 fp_abs = 0.0
 if i_abs
-    if volume > 2.0 * avg30 and math.abs(close - open) < 0.35 * atr14
-         and atr14 > 0
+    if volume > 2.0 * avg30 and math.abs(close - open) < 0.35 * atr14 and atr14 > 0
         fp_abs := math.min(math.min(rvol / 1.5, 3.0) / 3.0 * 100, 100)
 
 // 2. End-of-Day Volume Surge
@@ -178,19 +171,15 @@ if i_vap
     rng10 = ta.highest(high, 10) - ta.lowest(low, 10)
     a100  = ta.sma(volume, 100)
     v10   = math.sum(volume, 10)
-    if atr14 > 0 and a100 > 0 and rng10 < 1.5 * atr14
-         and v10 > 2.5 * a100 * 10
-        fp_vap := math.min(
-             (1.5 * atr14) / math.max(rng10, atr14 * 0.1)
-             * (v10 / (a100 * 10) / 2.0) * 30.0, 100.0)
+    if atr14 > 0 and a100 > 0 and rng10 < 1.5 * atr14 and v10 > 2.5 * a100 * 10
+        fp_vap := math.min((1.5 * atr14) / math.max(rng10, atr14 * 0.1) * (v10 / (a100 * 10) / 2.0) * 30.0, 100.0)
 
 // 5. Opening Range Stuffing
 fp_orn = 0.0
 is_or  = timeframe.isintraday and bsec <= 1800
 if i_orn and is_or and in_sess
     base = avg30 > 0 ? avg30 : 1.0
-    if sbar * bsec <= 15 * 60 and not na(atrd) and atrd > 0
-         and volume > 2 * base and (high - low) < atrd / 4.0
+    if sbar * bsec <= 15 * 60 and not na(atrd) and atrd > 0 and volume > 2 * base and (high - low) < atrd / 4.0
         fp_orn := math.min(volume / base / 2.0 * 100, 100)
 
 // 6. Up/Down Tick Imbalance
@@ -207,18 +196,11 @@ if i_tick
         fp_tick := -math.min(50.0 + (0.45 - rat) / 0.4 * 100.0, 100.0)
 
 // --- TIDEFLOW SCORE ---───────────────────────────────────────────────────────
-ustr = (fp_abs  * WA
-     +  fp_eod  * WE
-     +  fp_vwap * WV
-     +  fp_vap  * WP
-     +  fp_orn  * WO)
+ustr = (fp_abs * WA + fp_eod * WE + fp_vwap * WV + fp_vap * WP + fp_orn * WO)
 
-dir = math.abs(fp_tick) >= 25 ? math.sign(fp_tick) :
-      close >= ma50 ? 1 : -1
+dir = math.abs(fp_tick) >= 25 ? math.sign(fp_tick) : close >= ma50 ? 1 : -1
 
-tscore = math.max(math.min(
-     (ustr * dir + fp_tick * WT) * 0.6 + cf_tot * 8.0,
-     100.0), -100.0)
+tscore = math.max(math.min((ustr * dir + fp_tick * WT) * 0.6 + cf_tot * 8.0, 100.0), -100.0)
 
 fa = fp_abs  >= 50
 fe = fp_eod  >= 50
@@ -243,25 +225,15 @@ jex   = state == "EXIT"  and pstate != "EXIT"
 pstate := state
 
 // --- DISPLAY HELPERS ---──────────────────────────────────────────────────────
-score_str = tscore > 0 ? "+" + str.tostring(tscore, "#") :
-            tscore < 0 ? str.tostring(tscore, "#") : "0"
+score_str = tscore > 0 ? "+" + str.tostring(tscore, "#") : tscore < 0 ? str.tostring(tscore, "#") : "0"
 score_c   = tscore > 0 ? #ff6b1a : tscore < 0 ? #3a3a3a : #9b9b9b
+sc        = state == "ENTRY" ? C_BULL : state == "WATCH" ? color.new(C_BULL, 30) : state == "EXIT" ? C_BEAR : state == "CAUTION" ? color.new(C_BEAR, 20) : C_SEC
 
-sc = state == "ENTRY" ? C_BULL : state == "WATCH" ? color.new(C_BULL, 30) :
-     state == "EXIT"  ? C_BEAR : state == "CAUTION" ? color.new(C_BEAR, 20) : C_SEC
-
-why_ent = fc >= 3 ? "Multi-signal accumulation" :
-          fa and fv ? "Absorption with VWAP hold" :
-          ft and rs_val > 0 ? "Buying pressure leading market" :
-          fa ? "Absorption at key level" :
-          fv ? "VWAP accumulation" :
-          fe ? "Late-session flow" :
-          fo ? "Opening range accumulation" :
-          fp ? "Volume cluster support" : "Score + confluence aligned"
-why_str = state == "ENTRY"   ? why_ent :
-          state == "WATCH"   ? "Conditions building" :
-          state == "EXIT"    ? "Distribution pattern emerging" :
-          state == "CAUTION" ? "Conflicting signals" : "No setup detected"
+// Why explanation — split into two chains to stay readable as single lines
+why_p1  = fc >= 3 ? "Multi-signal accumulation" : fa and fv ? "Absorption with VWAP hold" : ft and rs_val > 0 ? "Buying pressure leading market" : ""
+why_p2  = fa ? "Absorption at key level" : fv ? "VWAP accumulation" : fe ? "Late-session flow" : fo ? "Opening range accumulation" : fp ? "Volume cluster support" : "Score + confluence aligned"
+why_ent = why_p1 != "" ? why_p1 : why_p2
+why_str = state == "ENTRY" ? why_ent : state == "WATCH" ? "Conditions building" : state == "EXIT" ? "Distribution pattern emerging" : state == "CAUTION" ? "Conflicting signals" : "No setup detected"
 
 // --- OSCILLATOR ---──────────────────────────────────────────────────────────
 hc = tscore >= 0 ? C_HP : C_HN
@@ -294,28 +266,21 @@ if i_shzon and (jent or jex) and barstate.isconfirmed
     zbord = bull and hic ? C_ZBD : not bull and hic ? C_BEAR : color.new(color.black, 100)
     zbw   = hic ? 1 : 0
     nb = box.new(
-         left = bar_index, top = high,
-         right = bar_index + 1, bottom = low,
+         left = bar_index, top = high, right = bar_index + 1, bottom = low,
          border_color = zbord, border_width = zbw,
          bgcolor = zfill, force_overlay = true)
     array.push(zb, nb)
     mk = label.new(
-         x = bar_index,
-         y = bull ? low : high,
+         x = bar_index, y = bull ? low : high,
          text = score_str,
          style = bull ? label.style_label_up : label.style_label_down,
-         color = color.new(#0a0a0a, 30),
-         textcolor = #ffffff,
-         size = size.tiny,
-         force_overlay = true)
+         color = color.new(#0a0a0a, 30), textcolor = #ffffff,
+         size = size.tiny, force_overlay = true)
     array.push(zm, mk)
     f_clean()
 
 // --- DASHBOARD ---───────────────────────────────────────────────────────────
-dpos = i_dpos == "top-right"    ? position.top_right :
-       i_dpos == "top-left"     ? position.top_left :
-       i_dpos == "bottom-right" ? position.bottom_right :
-       position.bottom_left
+dpos = i_dpos == "top-right" ? position.top_right : i_dpos == "top-left" ? position.top_left : i_dpos == "bottom-right" ? position.bottom_right : position.bottom_left
 
 var table dash = table.new(dpos, 1, 9,
      bgcolor = D_BG, frame_color = D_DIV, frame_width = 1,
@@ -323,51 +288,40 @@ var table dash = table.new(dpos, 1, 9,
 
 if i_shdsh and barstate.islast
     // Row 0: Brand
-    table.cell(dash, 0, 0,
-         "TYDEFLOW  " + syminfo.ticker,
+    table.cell(dash, 0, 0, "TYDEFLOW  " + syminfo.ticker,
          text_color = #6b6b6b, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_left)
-
     // Row 1: Divider
     table.cell(dash, 0, 1, " ",
          text_color = D_DIV, bgcolor = D_DIV,
          text_size = size.tiny, text_halign = text.align_center)
-
     // Row 2: Score
     table.cell(dash, 0, 2, score_str,
          text_color = score_c, bgcolor = D_BG,
          text_size = size.large, text_halign = text.align_center)
-
     // Row 3: Gauge bar
-    table.cell(dash, 0, 3,
-         f_gauge(tscore),
+    table.cell(dash, 0, 3, f_gauge(tscore),
          text_color = score_c, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_center)
-
     // Row 4: Divider
     table.cell(dash, 0, 4, " ",
          text_color = D_DIV, bgcolor = D_DIV,
          text_size = size.tiny, text_halign = text.align_center)
-
     // Row 5: State
     table.cell(dash, 0, 5, state,
          text_color = sc, bgcolor = D_BG,
          text_size = size.normal, text_halign = text.align_center)
-
     // Row 6: Why
     table.cell(dash, 0, 6, why_str,
          text_color = #9b9b9b, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_center)
-
     // Row 7: Divider
     table.cell(dash, 0, 7, " ",
          text_color = D_DIV, bgcolor = D_DIV,
          text_size = size.tiny, text_halign = text.align_center)
-
     // Row 8: Footer
     bar_time = str.format_time(time, "HH:mm", syminfo.timezone)
-    table.cell(dash, 0, 8,
-         "Follow @tydeflowapp on X   " + bar_time,
+    table.cell(dash, 0, 8, "Follow @tydeflowapp on X   " + bar_time,
          text_color = #6b6b6b, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_left)
 
