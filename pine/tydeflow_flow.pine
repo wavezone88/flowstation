@@ -10,35 +10,41 @@ var string GF = "Footprint detectors"
 var string GV = "Visual options"
 var string GA = "Alerts"
 
-i_style  = input.string("Swing (3-30 day)", "Style preset",
+i_style = input.string("Swing (3-30 day)", "Style preset",
      options = ["Swing (3-30 day)", "Position (1-6 month)", "Custom"],
-     group = GS)
-i_sens   = input.string("Balanced", "Sensitivity",
-     options = ["Conservative", "Balanced", "Aggressive"], group = GN)
-i_abs    = input.bool(true, "Volume Absorption",            group = GF)
-i_eod    = input.bool(true, "End-of-Day Volume Surge",      group = GF)
-i_vwap   = input.bool(true, "VWAP Magnetism",               group = GF)
-i_vap    = input.bool(true, "Volume-at-Price Clustering",   group = GF)
-i_orn    = input.bool(true, "Opening Range Stuffing",       group = GF)
-i_tick   = input.bool(true, "Up/Down Tick Volume Imbalance", group = GF)
-i_shosc  = input.bool(true, "Show oscillator panel", group = GV)
-i_shzon  = input.bool(true, "Show entry zones",      group = GV)
-i_shdsh  = input.bool(true, "Show dashboard",        group = GV)
-i_dpos   = input.string("top-right", "Dashboard position",
-     options = ["top-right","top-left","bottom-right","bottom-left"],
-     group = GV)
-i_theme  = input.string("dark", "Color theme",
+     group = GS,
+     tooltip = "Adjusts how strongly footprints vs. confluence factors are weighted. Swing weights footprint detectors heavier (catches faster entries). Position balances both. Custom unlocks individual sliders.")
+i_sens  = input.string("Balanced", "Sensitivity",
+     options = ["Conservative", "Balanced", "Aggressive"],
+     group = GN,
+     tooltip = "Conservative requires score >70 + 4 confluence for ENTRY (rare, high-quality signals). Balanced: >60 + 3. Aggressive: >50 + 2 (more signals, more noise).")
+i_abs   = input.bool(true, "Volume Absorption", group = GF,
+     tooltip = "Detects bars with 2x+ normal volume but minimal price movement — a signature of institutions absorbing seller liquidity at a price level without revealing their hand.")
+i_eod   = input.bool(true, "End-of-Day Volume Surge", group = GF,
+     tooltip = "Last 30 minutes of session showing 3x+ normal volume — institutional VWAP/closing-benchmark execution.")
+i_vwap  = input.bool(true, "VWAP Magnetism", group = GF,
+     tooltip = "8+ consecutive bars with price hugging VWAP on heavy volume — algorithmic VWAP-targeted execution.")
+i_vap   = input.bool(true, "Volume-at-Price Clustering", group = GF,
+     tooltip = "Heavy volume transacted in a tight price range over 10 bars — single institutional order being worked through algos.")
+i_orn   = input.bool(true, "Opening Range Stuffing", group = GF,
+     tooltip = "First 15 minutes of session showing huge volume but minimal price movement — institutions positioning before retail wakes up.")
+i_tick  = input.bool(true, "Up/Down Tick Volume Imbalance", group = GF,
+     tooltip = "Up-volume vs down-volume ratio >2.2 over 20 bars — sustained accumulation pressure.")
+i_shosc = input.bool(true,  "Show oscillator panel",   group = GV)
+i_shzon = input.bool(true,  "Show entry zones",        group = GV)
+i_shdsh = input.bool(true,  "Show dashboard",          group = GV)
+i_dpos  = input.string("top-right", "Dashboard position",
+     options = ["top-right","top-left","bottom-right","bottom-left"], group = GV)
+i_theme = input.string("dark", "Color theme",
      options = ["dark", "light"], group = GV)
-i_alent  = input.bool(true,  "Alert on ENTRY signal", group = GA)
-i_alex   = input.bool(true,  "Alert on EXIT signal",  group = GA)
-i_alst   = input.bool(false, "Alert on state change", group = GA)
+i_alent = input.bool(true,  "Alert on ENTRY signal", group = GA)
+i_alex  = input.bool(true,  "Alert on EXIT signal",  group = GA)
+i_alst  = input.bool(false, "Alert on state change", group = GA)
 
 // --- COLORS ---───────────────────────────────────────────────────────────────
-dk = i_theme == "dark"
+dk     = i_theme == "dark"
 C_BG   = dk ? color.new(#0a0a0a, 15) : color.new(#f7f7f7, 15)
-C_PRI  = dk ? #ffffff : #1a1a1a
 C_SEC  = dk ? #9b9b9b : #5a5a5a
-C_TER  = dk ? #6b6b6b : #8a8a8a
 C_BULL = #ff6b1a
 C_BEAR = #3a3a3a
 C_HAIR = dk ? #2a2a2a : #d4d4d4
@@ -48,9 +54,22 @@ C_ZHI  = color.new(#ff6b1a, 92)
 C_ZBD  = #ff6b1a
 C_ZBH  = color.new(#3a3a3a, 92)
 
+// Dashboard — always dark regardless of chart theme
+D_BG  = color.new(#0a0a0a, 10)
+D_DIV = #2a2a2a
+
+// --- GAUGE ---────────────────────────────────────────────────────────────────
+f_gauge(sc) =>
+    raw    = int(math.round((sc + 100.0) / 200.0 * 12.0))
+    filled = raw < 0 ? 0 : raw > 12 ? 12 : raw
+    g = ""
+    for i = 0 to 11
+        g := g + (i < filled ? "●" : "○")
+    g
+
 // --- WEIGHTS & THRESHOLDS ---─────────────────────────────────────────────────
-fmul = i_style == "Swing (3-30 day)" ? 1.10 : 1.00
-cmul = i_style == "Swing (3-30 day)" ? 0.85 : 1.00
+fmul   = i_style == "Swing (3-30 day)" ? 1.10 : 1.00
+cmul   = i_style == "Swing (3-30 day)" ? 0.85 : 1.00
 WA = 1.2 * fmul
 WE = 1.0 * fmul
 WV = 1.1 * fmul
@@ -58,10 +77,11 @@ WP = 1.0 * fmul
 WO = 0.9 * fmul
 WT = 1.3 * fmul
 
-ethr = i_sens == "Conservative" ? 80.0 : i_sens == "Aggressive" ? 60.0 : 70.0
-wthr = ethr - 20.0
-xthr = -ethr
-cthr = -wthr
+ethr   = i_sens == "Conservative" ? 70.0 : i_sens == "Aggressive" ? 50.0 : 60.0
+cf_thr = i_sens == "Conservative" ? 4    : i_sens == "Aggressive" ? 2    : 3
+wthr   = ethr - 20.0
+xthr   = -ethr
+cthr   = -wthr
 
 // --- CONFLUENCE ---───────────────────────────────────────────────────────────
 ma50  = ta.sma(close, 50)
@@ -72,31 +92,31 @@ t_50  = close > ma50 and not (ma50 > ma200)
 t_200 = close > ma200 and not (close > ma50)
 trend_val = t_stk ? 1.0 : t_50 ? 0.6 : t_200 ? -0.4 : -1.0
 
-rsi14     = ta.rsi(close, 14)
-r_sweet   = rsi14 >= 50 and rsi14 <= 65
-r_mid     = (rsi14 >= 40 and rsi14 < 50) or (rsi14 > 65 and rsi14 <= 70)
-r_low     = rsi14 >= 30 and rsi14 < 40
-rsi_val   = r_sweet ? 1.0 : r_mid ? 0.5 : r_low ? 0.0 : rsi14 > 70 ? -0.5 : -0.7
+rsi14   = ta.rsi(close, 14)
+r_sweet = rsi14 >= 50 and rsi14 <= 65
+r_mid   = (rsi14 >= 40 and rsi14 < 50) or (rsi14 > 65 and rsi14 <= 70)
+r_low   = rsi14 >= 30 and rsi14 < 40
+rsi_val = r_sweet ? 1.0 : r_mid ? 0.5 : r_low ? 0.0 : rsi14 > 70 ? -0.5 : -0.7
 
-avg30     = ta.sma(volume, 30)
-rvol      = avg30 > 0 ? volume / avg30 : 1.0
-pup       = close > open
-rv_hi     = rvol > 1.5 and pup
-rv_mid    = rvol >= 1.0 and rvol <= 1.5 and pup
-rvol_val  = rv_hi ? 0.8 : rv_mid ? 0.4 : rvol < 0.7 ? -0.5 : 0.0
+avg30    = ta.sma(volume, 30)
+rvol     = avg30 > 0 ? volume / avg30 : 1.0
+pup      = close > open
+rv_hi    = rvol > 1.5 and pup
+rv_mid   = rvol >= 1.0 and rvol <= 1.5 and pup
+rvol_val = rv_hi ? 0.8 : rv_mid ? 0.4 : rvol < 0.7 ? -0.5 : 0.0
 
-spy    = request.security("AMEX:SPY", timeframe.period, close,
+spy     = request.security("AMEX:SPY", timeframe.period, close,
      ignore_invalid_symbol = true)
-c30    = nz(close[30], close)
-s30    = nz(spy[30], spy)
-sr30   = c30 > 0 ? (close - c30) / c30 * 100 : 0.0
+c30     = nz(close[30], close)
+s30     = nz(spy[30], spy)
+sr30    = c30 > 0 ? (close - c30) / c30 * 100 : 0.0
 sr30spy = s30 > 0 ? (spy - s30) / s30 * 100 : 0.0
-rsdiff = sr30 - sr30spy
-rs_val = rsdiff >= 10 ? 1.0 : rsdiff >= 5 ? 0.5 :
-         rsdiff >= -5 ? 0.0 : rsdiff >= -10 ? -0.5 : -1.0
+rsdiff  = sr30 - sr30spy
+rs_val  = rsdiff >= 10 ? 1.0 : rsdiff >= 5 ? 0.5 :
+          rsdiff >= -5 ? 0.0 : rsdiff >= -10 ? -0.5 : -1.0
 
-hi52   = ta.highest(high, 252)
-dpct   = hi52 > 0 ? (hi52 - close) / hi52 * 100 : 0.0
+hi52     = ta.highest(high, 252)
+dpct     = hi52 > 0 ? (hi52 - close) / hi52 * 100 : 0.0
 dist_val = dpct <= 5 ? 1.0 : dpct <= 10 ? 0.5 :
            dpct <= 20 ? 0.0 : dpct <= 35 ? -0.5 : -1.0
 
@@ -121,20 +141,20 @@ if ss
 else if in_sess
     sbar := sbar + 1
 
-bsec     = timeframe.in_seconds()
-tsb      = bsec > 0 ? int(math.floor(390 * 60 / bsec)) : 0
-savg     = ta.sma(volume, math.max(tsb, 5))
-atrd     = request.security(syminfo.tickerid, "D", ta.atr(14),
+bsec = timeframe.in_seconds()
+tsb  = bsec > 0 ? int(math.floor(390 * 60 / bsec)) : 0
+savg = ta.sma(volume, math.max(tsb, 5))
+atrd = request.security(syminfo.tickerid, "D", ta.atr(14),
      ignore_invalid_symbol = true, lookahead = barmerge.lookahead_off)
 
-// 1. Volume Absorption — tightened: 2.0x avg, body < 0.35 ATR
+// 1. Volume Absorption
 fp_abs = 0.0
 if i_abs
     if volume > 2.0 * avg30 and math.abs(close - open) < 0.35 * atr14
          and atr14 > 0
         fp_abs := math.min(math.min(rvol / 1.5, 3.0) / 3.0 * 100, 100)
 
-// 2. End-of-Day Volume Surge — tightened: 3x session avg
+// 2. End-of-Day Volume Surge
 fp_eod = 0.0
 is_eod = timeframe.isintraday and bsec <= 3600
 if i_eod and is_eod and in_sess and tsb > 0
@@ -142,17 +162,17 @@ if i_eod and is_eod and in_sess and tsb > 0
     if bl * bsec <= 30 * 60 and bl >= 0 and savg > 0 and volume > 3 * savg
         fp_eod := math.min(volume / savg / 3.0 * 100, 100)
 
-// 3. VWAP Magnetism — tightened: 8 consecutive bars
-vw      = ta.vwap
-vn      = math.abs(close - vw) < 0.3 * atr14
-vvol    = volume > 1.2 * avg30
+// 3. VWAP Magnetism
+vw    = ta.vwap
+vn    = math.abs(close - vw) < 0.3 * atr14
+vvol  = volume > 1.2 * avg30
 var int vbars = 0
-vbars  := vn and vvol ? vbars + 1 : 0
+vbars := vn and vvol ? vbars + 1 : 0
 fp_vwap = 0.0
 if i_vwap and vbars >= 8
     fp_vwap := math.min(30.0 + (vbars - 8) / 15.0 * 70.0, 100.0)
 
-// 4. Volume-at-Price Clustering — tightened: 2.5x avg volume
+// 4. Volume-at-Price Clustering
 fp_vap = 0.0
 if i_vap
     rng10 = ta.highest(high, 10) - ta.lowest(low, 10)
@@ -173,14 +193,14 @@ if i_orn and is_or and in_sess
          and volume > 2 * base and (high - low) < atrd / 4.0
         fp_orn := math.min(volume / base / 2.0 * 100, 100)
 
-// 6. Up/Down Tick Imbalance — tightened: ratio 2.2 / 0.45
+// 6. Up/Down Tick Imbalance
 fp_tick = 0.0
 if i_tick
-    uv    = close > open ? volume : 0.0
-    dv    = close < open ? volume : 0.0
-    su    = math.sum(uv, 20)
-    sd    = math.sum(dv, 20)
-    rat   = sd > 0 ? su / sd : (su > 0 ? 10.0 : 1.0)
+    uv  = close > open ? volume : 0.0
+    dv  = close < open ? volume : 0.0
+    su  = math.sum(uv, 20)
+    sd  = math.sum(dv, 20)
+    rat = sd > 0 ? su / sd : (su > 0 ? 10.0 : 1.0)
     if rat > 2.2
         fp_tick :=  math.min(50.0 + (rat - 2.2) / 2.0 * 100.0, 100.0)
     else if rat < 0.45
@@ -193,8 +213,8 @@ ustr = (fp_abs  * WA
      +  fp_vap  * WP
      +  fp_orn  * WO)
 
-dir  = math.abs(fp_tick) >= 25 ? math.sign(fp_tick) :
-       close >= ma50 ? 1 : -1
+dir = math.abs(fp_tick) >= 25 ? math.sign(fp_tick) :
+      close >= ma50 ? 1 : -1
 
 tscore = math.max(math.min(
      (ustr * dir + fp_tick * WT) * 0.6 + cf_tot * 8.0,
@@ -209,36 +229,55 @@ ft = math.abs(fp_tick) >= 50
 fc = (fa?1:0)+(fe?1:0)+(fv?1:0)+(fp?1:0)+(fo?1:0)+(ft?1:0)
 
 // --- STATE MACHINE ---────────────────────────────────────────────────────────
-mbear  = rsi14 > 75 or (close < open and rvol > 1.5)
-ec     = tscore > ethr and cf_pos >= 4
-wc     = tscore > wthr and cf_pos >= 2
-xc     = tscore < xthr and cf_neg >= 4
-cc     = tscore < cthr or (tscore > 0 and mbear)
-state  = ec ? "ENTRY" : wc ? "WATCH" : xc ? "EXIT" : cc ? "CAUTION" : "WAIT"
+mbear = rsi14 > 75 or (close < open and rvol > 1.5)
+ec    = tscore > ethr and cf_pos >= cf_thr
+wc    = tscore > wthr and cf_pos >= 2
+xc    = tscore < xthr and cf_neg >= cf_thr
+cc    = tscore < cthr or (tscore > 0 and mbear)
+state = ec ? "ENTRY" : wc ? "WATCH" : xc ? "EXIT" : cc ? "CAUTION" : "WAIT"
 
 var string pstate = "WAIT"
-schg   = state != pstate
-jent   = state == "ENTRY" and pstate != "ENTRY"
-jex    = state == "EXIT"  and pstate != "EXIT"
+schg  = state != pstate
+jent  = state == "ENTRY" and pstate != "ENTRY"
+jex   = state == "EXIT"  and pstate != "EXIT"
 pstate := state
+
+// --- DISPLAY HELPERS ---──────────────────────────────────────────────────────
+score_str = tscore > 0 ? "+" + str.tostring(tscore, "#") :
+            tscore < 0 ? str.tostring(tscore, "#") : "0"
+score_c   = tscore > 0 ? #ff6b1a : tscore < 0 ? #3a3a3a : #9b9b9b
+
+sc = state == "ENTRY" ? C_BULL : state == "WATCH" ? color.new(C_BULL, 30) :
+     state == "EXIT"  ? C_BEAR : state == "CAUTION" ? color.new(C_BEAR, 20) : C_SEC
+
+why_ent = fc >= 3 ? "Multi-signal accumulation" :
+          fa and fv ? "Absorption with VWAP hold" :
+          ft and rs_val > 0 ? "Buying pressure leading market" :
+          fa ? "Absorption at key level" :
+          fv ? "VWAP accumulation" :
+          fe ? "Late-session flow" :
+          fo ? "Opening range accumulation" :
+          fp ? "Volume cluster support" : "Score + confluence aligned"
+why_str = state == "ENTRY"   ? why_ent :
+          state == "WATCH"   ? "Conditions building" :
+          state == "EXIT"    ? "Distribution pattern emerging" :
+          state == "CAUTION" ? "Conflicting signals" : "No setup detected"
 
 // --- OSCILLATOR ---──────────────────────────────────────────────────────────
 hc = tscore >= 0 ? C_HP : C_HN
 plot(i_shosc ? tscore : na, "Tideflow Score",
      color = hc, style = plot.style_columns, linewidth = 2)
 
-hld = i_shosc ? display.all : display.none
-l0   = hline(   0, "0",    color = C_HAIR,                  linestyle = hline.style_solid,  display = hld)
-l50  = hline(  50, "+50",  color = color.new(C_BULL, 65),   linestyle = hline.style_dotted, display = hld)
-ln50 = hline( -50, "-50",  color = color.new(C_BEAR, 50),   linestyle = hline.style_dotted, display = hld)
-l100 = hline( 100, "+100", color = color.new(C_HAIR, 50),   linestyle = hline.style_dotted, display = hld)
-ln1  = hline(-100, "-100", color = color.new(C_HAIR, 50),   linestyle = hline.style_dotted, display = hld)
+hld  = i_shosc ? display.all : display.none
+l0   = hline(   0, "0",    color = C_HAIR,                linestyle = hline.style_solid,  display = hld)
+l50  = hline(  50, "+50",  color = color.new(C_BULL, 65), linestyle = hline.style_dotted, display = hld)
+ln50 = hline( -50, "-50",  color = color.new(C_BEAR, 50), linestyle = hline.style_dotted, display = hld)
+l100 = hline( 100, "+100", color = color.new(C_HAIR, 50), linestyle = hline.style_dotted, display = hld)
+ln1  = hline(-100, "-100", color = color.new(C_HAIR, 50), linestyle = hline.style_dotted, display = hld)
 fill(l50,  l100, color = color.new(C_BULL, 92), title = "Bull zone")
 fill(ln50, ln1,  color = color.new(C_BEAR, 80), title = "Bear zone")
 
-// --- ENTRY ZONES & MARKERS ---────────────────────────────────────────────────
-// Boxes: single-bar wide, alpha-92 fill, border only on high-confidence.
-// Markers: force_overlay triangle on price chart, no text.
+// --- ENTRY ZONES & SCORE LABELS ---───────────────────────────────────────────
 var box[]   zb = array.new<box>()
 var label[] zm = array.new<label>()
 MZ = 20
@@ -252,8 +291,7 @@ if i_shzon and (jent or jex) and barstate.isconfirmed
     bull  = jent
     hic   = math.abs(tscore) > 75 and (bull ? cf_pos : cf_neg) >= 3
     zfill = bull ? C_ZHI : C_ZBH
-    zbord = bull and hic ? C_ZBD : not bull and hic ? C_BEAR :
-            color.new(color.black, 100)
+    zbord = bull and hic ? C_ZBD : not bull and hic ? C_BEAR : color.new(color.black, 100)
     zbw   = hic ? 1 : 0
     nb = box.new(
          left = bar_index, top = high,
@@ -264,120 +302,74 @@ if i_shzon and (jent or jex) and barstate.isconfirmed
     mk = label.new(
          x = bar_index,
          y = bull ? low : high,
-         text = "",
-         style = bull ? label.style_triangleup : label.style_triangledown,
-         color = bull ? C_BULL : C_BEAR,
+         text = score_str,
+         style = bull ? label.style_label_up : label.style_label_down,
+         color = color.new(#0a0a0a, 30),
+         textcolor = #ffffff,
          size = size.tiny,
          force_overlay = true)
     array.push(zm, mk)
     f_clean()
 
-// --- LAST SIGNAL TRACKING ---─────────────────────────────────────────────────
-var string lsig_type = "--"
-var string lsig_time = "--"
-if jent
-    lsig_type := "ENTRY"
-    lsig_time := str.format_time(time, "MM/dd HH:mm", syminfo.timezone)
-else if jex
-    lsig_type := "EXIT"
-    lsig_time := str.format_time(time, "MM/dd HH:mm", syminfo.timezone)
-
 // --- DASHBOARD ---───────────────────────────────────────────────────────────
-dpos = i_dpos == "top-right" ? position.top_right :
-       i_dpos == "top-left" ? position.top_left :
+dpos = i_dpos == "top-right"    ? position.top_right :
+       i_dpos == "top-left"     ? position.top_left :
        i_dpos == "bottom-right" ? position.bottom_right :
        position.bottom_left
 
-var table dash = table.new(dpos, 2, 10,
-     bgcolor = C_BG, border_width = 1,
-     border_color = C_HAIR, frame_color = C_HAIR, frame_width = 1)
-
-sc = state=="ENTRY" ? C_BULL : state=="WATCH" ? color.new(C_BULL,30) :
-     state=="EXIT" ? C_BEAR : state=="CAUTION" ? color.new(C_BEAR,20) : C_SEC
-nc = tscore > ethr ? C_BULL : tscore > wthr ? color.new(C_BULL,30) :
-     tscore < xthr ? C_BEAR : tscore < cthr ? color.new(C_BEAR,20) : C_PRI
-
-var int   lzb  = na
-var float lzm  = na
-var bool  lzbu = false
-if jent or jex
-    lzb  := bar_index
-    lzm  := (high + low) / 2.0
-    lzbu := jent
-bag  = na(lzb) ? na : bar_index - lzb
-zpl  = na(lzm) ? na : (close-lzm)/lzm*100*(lzbu?1:-1)
+var table dash = table.new(dpos, 1, 9,
+     bgcolor = D_BG, frame_color = D_DIV, frame_width = 1,
+     border_color = D_DIV, border_width = 0)
 
 if i_shdsh and barstate.islast
-    table.cell(dash,0,0,"TYDEFLOW FLOW",
-         text_color=C_BULL, bgcolor=C_BG,
-         text_size=size.small, text_halign=text.align_left, width=7)
-    table.cell(dash,1,0,syminfo.ticker,
-         text_color=C_SEC, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_right, width=10)
-    table.cell(dash,0,1,"Score",
-         text_color=C_SEC, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_left)
-    table.cell(dash,1,1,str.tostring(tscore,"#"),
-         text_color=nc, bgcolor=C_BG,
-         text_size=size.large, text_halign=text.align_right)
-    table.cell(dash,0,2,"Signal",
-         text_color=C_SEC, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_left)
-    table.cell(dash,1,2,state,
-         text_color=sc, bgcolor=C_BG,
-         text_size=size.normal, text_halign=text.align_right)
-    table.cell(dash,0,3,"Confluence",
-         text_color=C_SEC, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_left)
-    table.cell(dash,1,3,str.tostring(cf_pos)+" / 5",
-         text_color=C_PRI, bgcolor=C_BG,
-         text_size=size.small, text_halign=text.align_right)
-    fpt = ((fa?"ABS ":"") + (fe?"EOD ":"") + (fv?"VWP ":"") +
-           (fp?"VAP ":"") + (fo?"OPN ":"") +
-           (ft?(fp_tick>0?"TCK+":"TCK-"):""))
-    fpt := fpt=="" ? "--" : fpt
-    table.cell(dash,0,4,"Footprints",
-         text_color=C_SEC, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_left)
-    table.cell(dash,1,4,fpt,
-         text_color=fc>0?C_BULL:C_TER, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_right)
-    table.cell(dash,0,5,"RSI / RVol",
-         text_color=C_SEC, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_left)
-    table.cell(dash,1,5,
-         str.tostring(rsi14,"#.0")+" / "+str.tostring(rvol,"#.0")+"x",
-         text_color=C_PRI, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_right)
-    table.cell(dash,0,6,"RS / 52wH",
-         text_color=C_SEC, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_left)
-    table.cell(dash,1,6,
-         str.tostring(rsdiff,"+#.0;-#.0")+"% / -"+str.tostring(dpct,"#.0")+"%",
-         text_color=C_PRI, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_right)
-    lsig_c   = lsig_type == "ENTRY" ? C_BULL : lsig_type == "EXIT" ? C_BEAR : C_TER
-    lsig_txt = lsig_type == "--" ? "--" : lsig_type + "  " + lsig_time
-    table.cell(dash,0,7,"Last Signal",
-         text_color=C_SEC, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_left)
-    table.cell(dash,1,7,lsig_txt,
-         text_color=lsig_c, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_right)
-    zplstr = str.tostring(zpl, "+#.0;-#.0")
-    lzt = na(bag) ? "--" : str.tostring(bag) + " bars / " + zplstr + "%"
-    table.cell(dash,0,8,"Last zone",
-         text_color=C_SEC, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_left)
-    table.cell(dash,1,8,lzt,
-         text_color=C_TER, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_right)
-    table.cell(dash,0,9,"tydeflow.io",
-         text_color=C_TER, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_left)
-    table.cell(dash,1,9,"v1.1",
-         text_color=C_TER, bgcolor=C_BG,
-         text_size=size.tiny, text_halign=text.align_right)
+    // Row 0: Brand
+    table.cell(dash, 0, 0,
+         "TYDEFLOW  " + syminfo.ticker,
+         text_color = #6b6b6b, bgcolor = D_BG,
+         text_size = size.tiny, text_halign = text.align_left)
+
+    // Row 1: Divider
+    table.cell(dash, 0, 1, " ",
+         text_color = D_DIV, bgcolor = D_DIV,
+         text_size = size.tiny, text_halign = text.align_center)
+
+    // Row 2: Score
+    table.cell(dash, 0, 2, score_str,
+         text_color = score_c, bgcolor = D_BG,
+         text_size = size.huge, text_halign = text.align_center)
+
+    // Row 3: Gauge bar
+    table.cell(dash, 0, 3,
+         f_gauge(tscore) + "  " + score_str,
+         text_color = score_c, bgcolor = D_BG,
+         text_size = size.tiny, text_halign = text.align_center)
+
+    // Row 4: Divider
+    table.cell(dash, 0, 4, " ",
+         text_color = D_DIV, bgcolor = D_DIV,
+         text_size = size.tiny, text_halign = text.align_center)
+
+    // Row 5: State
+    table.cell(dash, 0, 5, state,
+         text_color = sc, bgcolor = D_BG,
+         text_size = size.normal, text_halign = text.align_center)
+
+    // Row 6: Why
+    table.cell(dash, 0, 6, why_str,
+         text_color = #9b9b9b, bgcolor = D_BG,
+         text_size = size.tiny, text_halign = text.align_center)
+
+    // Row 7: Divider
+    table.cell(dash, 0, 7, " ",
+         text_color = D_DIV, bgcolor = D_DIV,
+         text_size = size.tiny, text_halign = text.align_center)
+
+    // Row 8: Footer
+    bar_time = str.format_time(time, "HH:mm", syminfo.timezone)
+    table.cell(dash, 0, 8,
+         "Follow @tydeflowapp on X   " + bar_time,
+         text_color = #6b6b6b, bgcolor = D_BG,
+         text_size = size.tiny, text_halign = text.align_left)
 
 // --- ALERTS ---───────────────────────────────────────────────────────────────
 alertcondition(jent and i_alent, title = "TF Flow - ENTRY",
