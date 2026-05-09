@@ -212,10 +212,12 @@ ft = math.abs(fp_tick) >= 50
 fc = (fa?1:0)+(fe?1:0)+(fv?1:0)+(fp?1:0)+(fo?1:0)+(ft?1:0)
 
 // --- STATE MACHINE ---────────────────────────────────────────────────────────
-mbear = rsi14 > 75 or (close < open and rvol > 1.5)
-ec    = tscore > ethr and cf_pos >= cf_thr and rsi14 < 70
+mbear           = rsi14 > 75 or (close < open and rvol > 1.5)
+stretched_above = rsi14 > 65 and ma50 > 0 and (close - ma50) / ma50 * 100 > 15
+stretched_below = rsi14 < 35 and ma50 > 0 and (ma50 - close) / ma50 * 100 > 15
+ec    = tscore > ethr and cf_pos >= cf_thr and rsi14 < 70 and not stretched_above
 wc    = tscore > wthr and cf_pos >= 2
-xc    = tscore < xthr and cf_neg >= cf_thr and rsi14 > 35
+xc    = tscore < xthr and cf_neg >= cf_thr and rsi14 > 35 and not stretched_below
 cc    = tscore < cthr or (tscore > 0 and mbear)
 state = ec ? "ENTRY" : wc ? "WATCH" : xc ? "EXIT" : cc ? "CAUTION" : "WAIT"
 
