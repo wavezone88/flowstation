@@ -460,7 +460,7 @@ if i_shdsh and barstate.islast
          text_size = size.tiny, text_halign = text.align_left)
 
 // --- SIGNAL P/L COUNTER ---──────────────────────────────────────────────────
-var table pnl_tbl = table.new(position.bottom_right, 1, 1,
+var table pnl_tbl = table.new(position.middle_center, 1, 1,
      bgcolor = color.new(#0a0a0a, 30), frame_color = #2a2a2a, frame_width = 1)
 
 if i_show_total and barstate.islast
