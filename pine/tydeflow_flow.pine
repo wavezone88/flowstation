@@ -1,7 +1,6 @@
 //@version=6
 indicator("Tydeflow Flow - Institutional Footprint Scoring",
-     shorttitle = "TF Flow", overlay = false,
-     max_boxes_count = 50, max_labels_count = 50, max_lines_count = 50)
+     shorttitle = "TF Flow", overlay = false)
 
 // --- INPUTS ---───────────────────────────────────────────────────────────────
 var string GS = "Style"
@@ -31,7 +30,7 @@ i_orn   = input.bool(true, "Opening Range Stuffing", group = GF,
 i_tick  = input.bool(true, "Up/Down Tick Volume Imbalance", group = GF,
      tooltip = "Up-volume vs down-volume ratio >2.2 over 20 bars — sustained accumulation pressure.")
 i_shosc = input.bool(true,  "Show oscillator panel",   group = GV)
-i_shzon = input.bool(true,  "Show entry zones",        group = GV)
+i_shzon = input.bool(true,  "Show BUY/SELL markers",    group = GV)
 i_shdsh = input.bool(true,  "Show dashboard",          group = GV)
 i_dpos  = input.string("top-right", "Dashboard position",
      options = ["top-right","top-left","bottom-right","bottom-left"], group = GV)
@@ -50,10 +49,6 @@ C_BEAR = #3a3a3a
 C_HAIR = dk ? #2a2a2a : #d4d4d4
 C_HP   = #ff6b1a
 C_HN   = #4a4a4a
-C_ZHI  = color.new(#ff6b1a, 92)
-C_ZBD  = #ff6b1a
-C_ZBH  = color.new(#3a3a3a, 92)
-
 // Dashboard — always dark regardless of chart theme
 D_BG  = color.new(#0a0a0a, 10)
 D_DIV = #2a2a2a
@@ -249,35 +244,15 @@ ln1  = hline(-100, "-100", color = color.new(C_HAIR, 50), linestyle = hline.styl
 fill(l50,  l100, color = color.new(C_BULL, 92), title = "Bull zone")
 fill(ln50, ln1,  color = color.new(C_BEAR, 80), title = "Bear zone")
 
-// --- ENTRY ZONES & SCORE LABELS ---───────────────────────────────────────────
-var box[]   zb = array.new<box>()
-var label[] zm = array.new<label>()
-MZ = 20
-f_clean() =>
-    while array.size(zb) > MZ
-        box.delete(array.shift(zb))
-    while array.size(zm) > MZ
-        label.delete(array.shift(zm))
-
-if i_shzon and (jent or jex) and barstate.isconfirmed
-    bull  = jent
-    hic   = math.abs(tscore) > 75 and (bull ? cf_pos : cf_neg) >= 3
-    zfill = bull ? C_ZHI : C_ZBH
-    zbord = bull and hic ? C_ZBD : not bull and hic ? C_BEAR : color.new(color.black, 100)
-    zbw   = hic ? 1 : 0
-    nb = box.new(
-         left = bar_index, top = high, right = bar_index + 1, bottom = low,
-         border_color = zbord, border_width = zbw,
-         bgcolor = zfill, force_overlay = true)
-    array.push(zb, nb)
-    mk = label.new(
-         x = bar_index, y = bull ? low : high,
-         text = score_str,
-         style = bull ? label.style_label_up : label.style_label_down,
-         color = color.new(#0a0a0a, 30), textcolor = #ffffff,
-         size = size.tiny, force_overlay = true)
-    array.push(zm, mk)
-    f_clean()
+// --- SIGNAL MARKERS ---───────────────────────────────────────────────────────
+plotshape(i_shzon and jent, title = "BUY signal",
+     location = location.belowbar, style = shape.labelup,
+     size = size.small, color = #ff6b1a, textcolor = color.white,
+     text = "BUY", force_overlay = true)
+plotshape(i_shzon and jex, title = "SELL signal",
+     location = location.abovebar, style = shape.labeldown,
+     size = size.small, color = #3a3a3a, textcolor = color.white,
+     text = "SELL", force_overlay = true)
 
 // --- DASHBOARD ---───────────────────────────────────────────────────────────
 dpos = i_dpos == "top-right" ? position.top_right : i_dpos == "top-left" ? position.top_left : i_dpos == "bottom-right" ? position.bottom_right : position.bottom_left
