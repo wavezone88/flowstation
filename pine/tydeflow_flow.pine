@@ -400,65 +400,53 @@ plotshape(i_shzon and is_tracked_entry, title = "Tracked entry",
 // --- DASHBOARD ---───────────────────────────────────────────────────────────
 dpos = i_dpos == "top-right" ? position.top_right : i_dpos == "top-left" ? position.top_left : i_dpos == "bottom-right" ? position.bottom_right : position.bottom_left
 
-var table dash = table.new(dpos, 1, 12,
+var table dash = table.new(dpos, 6, 2,
      bgcolor = D_BG, frame_color = D_DIV, frame_width = 1,
-     border_color = D_DIV, border_width = 0)
+     border_color = D_DIV, border_width = 1)
 
 if i_shdsh and barstate.islast
-    // Row 0: Brand
-    table.cell(dash, 0, 0, "TYDEFLOW  " + syminfo.ticker,
+    pnl_str   = cum_pnl > 0 ? "+" + str.tostring(cum_pnl, "0.0") + "%" : str.tostring(cum_pnl, "0.0") + "%"
+    pnl_label = trade_count == 0 ? "—" : "Last " + str.tostring(trade_count) + ": " + pnl_str
+    pnl_color = cum_pnl > 1.0 ? #5ec896 : cum_pnl < -1.0 ? #e05555 : #9b9b9b
+    hc_label  = total_trds == 0 ? "—" : last_was_hc ? "HIGH CONVICTION" : "STANDARD"
+    hc_color  = last_was_hc ? #ffffff : #9b9b9b
+    bar_time  = str.format_time(time, "HH:mm", syminfo.timezone)
+    // Row 0: primary — brand | score | gauge | state | P/L | avg hold
+    table.cell(dash, 0, 0, " TYDEFLOW  " + syminfo.ticker + " ",
          text_color = #6b6b6b, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_left)
-    // Row 1: Divider
-    table.cell(dash, 0, 1, " ",
-         text_color = D_DIV, bgcolor = D_DIV,
-         text_size = size.tiny, text_halign = text.align_center)
-    // Row 2: Score
-    table.cell(dash, 0, 2, score_str,
+    table.cell(dash, 1, 0, " " + score_str + " ",
          text_color = score_c, bgcolor = D_BG,
-         text_size = size.large, text_halign = text.align_center)
-    // Row 3: Gauge bar
-    table.cell(dash, 0, 3, f_gauge(tscore),
+         text_size = size.normal, text_halign = text.align_center)
+    table.cell(dash, 2, 0, " " + f_gauge(tscore) + " ",
          text_color = score_c, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_center)
-    // Row 4: Divider
-    table.cell(dash, 0, 4, " ",
-         text_color = D_DIV, bgcolor = D_DIV,
-         text_size = size.tiny, text_halign = text.align_center)
-    // Row 5: State
-    table.cell(dash, 0, 5, state,
+    table.cell(dash, 3, 0, " " + state + " ",
          text_color = sc, bgcolor = D_BG,
          text_size = size.normal, text_halign = text.align_center)
-    // Row 6: Why
-    table.cell(dash, 0, 6, why_str,
-         text_color = #9b9b9b, bgcolor = D_BG,
-         text_size = size.tiny, text_halign = text.align_center)
-    // Row 7: Avg hold
-    table.cell(dash, 0, 7, avg_hold_str,
-         text_color = #9b9b9b, bgcolor = D_BG,
-         text_size = size.tiny, text_halign = text.align_center)
-    // Row 8: Cumulative P/L — trade_count reflects actual entries available
-    pnl_str   = cum_pnl > 0 ? "+" + str.tostring(cum_pnl, "0.0") + "%" : str.tostring(cum_pnl, "0.0") + "%"
-    pnl_label = trade_count == 0 ? "No entries tracked" : "Last " + str.tostring(trade_count) + ": " + pnl_str
-    pnl_color = cum_pnl > 1.0 ? #5ec896 : cum_pnl < -1.0 ? #e05555 : #9b9b9b
-    table.cell(dash, 0, 8, pnl_label,
+    table.cell(dash, 4, 0, " " + pnl_label + " ",
          text_color = pnl_color, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_center)
-    // Row 9: High conviction tier
-    hc_label = total_trds == 0 ? "—" : last_was_hc ? "HIGH CONVICTION" : "STANDARD"
-    hc_color = last_was_hc ? #ffffff : #9b9b9b
-    table.cell(dash, 0, 9, hc_label,
+    table.cell(dash, 5, 0, " " + avg_hold_str + " ",
+         text_color = #9b9b9b, bgcolor = D_BG,
+         text_size = size.tiny, text_halign = text.align_center)
+    // Row 1: secondary — why | HC tier | spacer | spacer | footer | time
+    table.cell(dash, 0, 1, " " + why_str + " ",
+         text_color = #9b9b9b, bgcolor = D_BG,
+         text_size = size.tiny, text_halign = text.align_left)
+    table.cell(dash, 1, 1, " " + hc_label + " ",
          text_color = hc_color, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_center)
-    // Row 10: Divider
-    table.cell(dash, 0, 10, " ",
-         text_color = D_DIV, bgcolor = D_DIV,
-         text_size = size.tiny, text_halign = text.align_center)
-    // Row 11: Footer
-    bar_time = str.format_time(time, "HH:mm", syminfo.timezone)
-    table.cell(dash, 0, 11, "Follow @tydeflowapp on X   " + bar_time,
+    table.cell(dash, 2, 1, "",
+         text_color = D_BG, bgcolor = D_BG, text_size = size.tiny)
+    table.cell(dash, 3, 1, "",
+         text_color = D_BG, bgcolor = D_BG, text_size = size.tiny)
+    table.cell(dash, 4, 1, " Follow @tydeflowapp on X ",
          text_color = #6b6b6b, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_left)
+    table.cell(dash, 5, 1, " " + bar_time + " ",
+         text_color = #6b6b6b, bgcolor = D_BG,
+         text_size = size.tiny, text_halign = text.align_right)
 
 // --- SIGNAL P/L COUNTER ---──────────────────────────────────────────────────
 var table pnl_tbl = table.new(position.middle_center, 1, 1,
