@@ -38,8 +38,6 @@ i_orn   = input.bool(true, "Opening Range Stuffing", group = GF,
      tooltip = "First 15 minutes of session showing huge volume but minimal price movement — institutions positioning before retail wakes up.")
 i_tick  = input.bool(true, "Up/Down Tick Volume Imbalance", group = GF,
      tooltip = "Up-volume vs down-volume ratio >2.2 over 20 bars — sustained accumulation pressure.")
-i_soldiers = input.bool(true, "Three White Soldiers boost", group = GF,
-     tooltip = "Adds modest score boost when three consecutive bullish bars appear with closes in upper half of range. Often precedes confirmed bottoms. Disable for purists.")
 i_shosc   = input.bool(true,  "Show oscillator panel",    group = GV)
 i_shzon   = input.bool(true,  "Show ENTRY/OVERHEATED markers", group = GV)
 i_shdsh   = input.bool(true,  "Show dashboard",           group = GV)
@@ -212,9 +210,7 @@ ustr = (fp_abs * WA + fp_eod * WE + fp_vwap * WV + fp_vap * WP + fp_orn * WO)
 
 dir = math.abs(fp_tick) >= 25 ? math.sign(fp_tick) : close >= ma50 ? 1 : -1
 
-three_soldiers = close > close[1] and close[1] > close[2] and close > open and close[1] > open[1] and close[2] > open[2] and close > (high + low) / 2 and close[1] > (high[1] + low[1]) / 2 and close[2] > (high[2] + low[2]) / 2
-soldiers_boost = i_soldiers and three_soldiers ? 8.0 : 0.0
-tscore = math.max(math.min((ustr * dir + fp_tick * WT) * 0.6 + cf_tot * 8.0 + soldiers_boost, 100.0), -100.0)
+tscore = math.max(math.min((ustr * dir + fp_tick * WT) * 0.6 + cf_tot * 8.0, 100.0), -100.0)
 
 fa = fp_abs  >= 50
 fe = fp_eod  >= 50
