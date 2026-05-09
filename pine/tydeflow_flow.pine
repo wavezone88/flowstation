@@ -17,6 +17,9 @@ i_sens  = input.string("Balanced", "Sensitivity",
      options = ["Conservative", "Balanced", "Aggressive"],
      group = GN,
      tooltip = "Conservative requires score >70 + 4 confluence for ENTRY (rare, high-quality signals). Balanced: >60 + 3. Aggressive: >50 + 2 (more signals, more noise).")
+i_cooldown = input.int(12, "Signal cooldown (bars)", minval = 1, maxval = 50,
+     group = GN,
+     tooltip = "Minimum bars between consecutive ENTRY or EXIT signals. Higher = fewer, higher-quality signals. Lower = more signals.")
 i_abs   = input.bool(true, "Volume Absorption", group = GF,
      tooltip = "Detects bars with 2x+ normal volume but minimal price movement — a signature of institutions absorbing seller liquidity at a price level without revealing their hand.")
 i_eod   = input.bool(true, "End-of-Day Volume Surge", group = GF,
@@ -213,10 +216,23 @@ xc    = tscore < xthr and cf_neg >= cf_thr
 cc    = tscore < cthr or (tscore > 0 and mbear)
 state = ec ? "ENTRY" : wc ? "WATCH" : xc ? "EXIT" : cc ? "CAUTION" : "WAIT"
 
-var string pstate = "WAIT"
-schg  = state != pstate
-jent  = state == "ENTRY" and pstate != "ENTRY"
-jex   = state == "EXIT"  and pstate != "EXIT"
+var string pstate        = "WAIT"
+var int    bars_since_entry = 999
+var int    bars_since_exit  = 999
+
+bars_since_entry := bars_since_entry + 1
+bars_since_exit  := bars_since_exit  + 1
+
+schg     = state != pstate
+jent_raw = state == "ENTRY" and pstate != "ENTRY"
+jex_raw  = state == "EXIT"  and pstate != "EXIT"
+jent     = jent_raw and bars_since_entry >= i_cooldown
+jex      = jex_raw  and bars_since_exit  >= i_cooldown
+
+if jent
+    bars_since_entry := 0
+if jex
+    bars_since_exit  := 0
 pstate := state
 
 // --- DISPLAY HELPERS ---──────────────────────────────────────────────────────
@@ -245,14 +261,14 @@ fill(l50,  l100, color = color.new(C_BULL, 92), title = "Bull zone")
 fill(ln50, ln1,  color = color.new(C_BEAR, 80), title = "Bear zone")
 
 // --- SIGNAL MARKERS ---───────────────────────────────────────────────────────
-plotshape(i_shzon and jent, title = "BUY signal",
-     location = location.belowbar, style = shape.labelup,
+plotshape(i_shzon and jent, title = "ENTRY signal",
+     location = location.belowbar, style = shape.labeldown,
      size = size.small, color = #ff6b1a, textcolor = color.white,
-     text = "BUY", force_overlay = true)
-plotshape(i_shzon and jex, title = "SELL signal",
-     location = location.abovebar, style = shape.labeldown,
+     text = "ENTRY", force_overlay = true)
+plotshape(i_shzon and jex, title = "EXIT signal",
+     location = location.abovebar, style = shape.labelup,
      size = size.small, color = #3a3a3a, textcolor = color.white,
-     text = "SELL", force_overlay = true)
+     text = "EXIT", force_overlay = true)
 
 // --- DASHBOARD ---───────────────────────────────────────────────────────────
 dpos = i_dpos == "top-right" ? position.top_right : i_dpos == "top-left" ? position.top_left : i_dpos == "bottom-right" ? position.bottom_right : position.bottom_left
