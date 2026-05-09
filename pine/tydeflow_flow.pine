@@ -23,6 +23,9 @@ i_cooldown_hours = input.float(24.0, "Signal cooldown (hours)", minval = 0.5, ma
 i_lookback = input.int(3, "P/L lookback (entries)", options = [3, 5, 10],
      group = GN,
      tooltip = "Number of recent ENTRY signals to include in cumulative P/L tracking. Shows whether the indicator has been performing well recently.")
+i_timeout_bars = input.int(60, "P/L trade timeout (bars)", minval = 10, maxval = 500, step = 10,
+     group = GN,
+     tooltip = "Bars after entry before an open trade is force-closed for P/L. On 1H: 60 bars ≈ 9 trading days. On daily: 30 bars = 30 days. Increase on shorter timeframes to avoid premature exits.")
 i_abs   = input.bool(true, "Volume Absorption", group = GF,
      tooltip = "Detects bars with 2x+ normal volume but minimal price movement — a signature of institutions absorbing seller liquidity at a price level without revealing their hand.")
 i_eod   = input.bool(true, "End-of-Day Volume Surge", group = GF,
@@ -35,9 +38,13 @@ i_orn   = input.bool(true, "Opening Range Stuffing", group = GF,
      tooltip = "First 15 minutes of session showing huge volume but minimal price movement — institutions positioning before retail wakes up.")
 i_tick  = input.bool(true, "Up/Down Tick Volume Imbalance", group = GF,
      tooltip = "Up-volume vs down-volume ratio >2.2 over 20 bars — sustained accumulation pressure.")
-i_shosc = input.bool(true,  "Show oscillator panel",   group = GV)
-i_shzon = input.bool(true,  "Show ENTRY/EXIT markers",  group = GV)
-i_shdsh = input.bool(true,  "Show dashboard",          group = GV)
+i_shosc   = input.bool(true,  "Show oscillator panel",    group = GV)
+i_shzon   = input.bool(true,  "Show ENTRY/EXIT markers",  group = GV)
+i_shdsh   = input.bool(true,  "Show dashboard",           group = GV)
+i_connect = input.bool(false, "Connect tracked entries",  group = GV,
+     tooltip = "Draws a thin dotted line connecting the last N tracked ENTRY signals to visualize the path of recent signals over time.")
+i_debug   = input.bool(false, "Show P/L debug table",     group = GV,
+     tooltip = "Renders a table showing every tracked entry: price, bars held, current P/L%, and open/closed status. Use to diagnose unexpected P/L readings.")
 i_dpos  = input.string("top-right", "Dashboard position",
      options = ["top-right","top-left","bottom-right","bottom-left"], group = GV)
 i_theme = input.string("dark", "Color theme",
@@ -254,20 +261,24 @@ pstate := state
 // --- TRADE TRACKING ---───────────────────────────────────────────────────────
 var array<float> entry_prices    = array.new<float>()
 var array<int>   entry_bars      = array.new<int>()
-var array<float> closed_pnl      = array.new<float>()
+var array<float> trade_pnl       = array.new<float>()  // holds unrealized P/L for open trades, realized for closed
 var array<bool>  trade_closed    = array.new<bool>()
 var array<int>   entry_bar_index = array.new<int>()
+var array<line>  connect_lines   = array.new<line>()
 
 if jent
+    // Clean up connector lines before adding new entry
+    while array.size(connect_lines) > 0
+        line.delete(array.shift(connect_lines))
     array.push(entry_prices,    close)
     array.push(entry_bars,      bar_index)
-    array.push(closed_pnl,      0.0)
+    array.push(trade_pnl,       0.0)
     array.push(trade_closed,    false)
     array.push(entry_bar_index, bar_index)
     if array.size(entry_prices) > 20
         array.shift(entry_prices)
         array.shift(entry_bars)
-        array.shift(closed_pnl)
+        array.shift(trade_pnl)
         array.shift(trade_closed)
         array.shift(entry_bar_index)
 
@@ -279,19 +290,19 @@ if array.size(entry_prices) > 0
             entry_b   = array.get(entry_bars, i)
             bars_held = bar_index - entry_b
             pnl_pct   = (close - entry_p) / entry_p * 100
-            if jex or bars_held >= 30
-                array.set(closed_pnl,   i, pnl_pct)
+            if jex or bars_held >= i_timeout_bars
+                array.set(trade_pnl,    i, pnl_pct)
                 array.set(trade_closed, i, true)
             else
-                array.set(closed_pnl, i, pnl_pct)
+                array.set(trade_pnl, i, pnl_pct)
 
-// Cumulative P/L over last N entries
+// Cumulative P/L over last N entries (includes unrealized P/L for open trades)
 cum_pnl     = 0.0
-trade_count = math.min(array.size(closed_pnl), i_lookback)
+trade_count = math.min(array.size(trade_pnl), i_lookback)
 if trade_count > 0
-    start_idx = array.size(closed_pnl) - trade_count
-    for i = start_idx to array.size(closed_pnl) - 1
-        cum_pnl := cum_pnl + array.get(closed_pnl, i)
+    start_idx = array.size(trade_pnl) - trade_count
+    for i = start_idx to array.size(trade_pnl) - 1
+        cum_pnl := cum_pnl + array.get(trade_pnl, i)
 
 // --- DISPLAY HELPERS ---──────────────────────────────────────────────────────
 score_str = tscore > 0 ? "+" + str.tostring(tscore, "#") : tscore < 0 ? str.tostring(tscore, "#") : "0"
@@ -375,9 +386,9 @@ if i_shdsh and barstate.islast
     table.cell(dash, 0, 6, why_str,
          text_color = #9b9b9b, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_center)
-    // Row 7: Cumulative P/L
+    // Row 7: Cumulative P/L — trade_count reflects actual entries available
     pnl_str   = cum_pnl > 0 ? "+" + str.tostring(cum_pnl, "0.0") + "%" : str.tostring(cum_pnl, "0.0") + "%"
-    pnl_label = "Last " + str.tostring(i_lookback) + ": " + pnl_str
+    pnl_label = trade_count == 0 ? "No entries tracked" : "Last " + str.tostring(trade_count) + ": " + pnl_str
     pnl_color = cum_pnl > 1.0 ? #5ec896 : cum_pnl < -1.0 ? #e05555 : #9b9b9b
     table.cell(dash, 0, 7, pnl_label,
          text_color = pnl_color, bgcolor = D_BG,
@@ -391,6 +402,54 @@ if i_shdsh and barstate.islast
     table.cell(dash, 0, 9, "Follow @tydeflowapp on X   " + bar_time,
          text_color = #6b6b6b, bgcolor = D_BG,
          text_size = size.tiny, text_halign = text.align_left)
+
+// --- CONNECT TRACKED ENTRIES ---─────────────────────────────────────────────
+if i_connect and barstate.islast and array.size(entry_bar_index) >= 2
+    start_t = math.max(0, array.size(entry_bar_index) - i_lookback)
+    for i = start_t to array.size(entry_bar_index) - 2
+        x1 = array.get(entry_bar_index, i)
+        y1 = array.get(entry_prices,    i)
+        x2 = array.get(entry_bar_index, i + 1)
+        y2 = array.get(entry_prices,    i + 1)
+        new_line = line.new(x1 = x1, y1 = y1, x2 = x2, y2 = y2,
+             color = color.new(#5ec896, 50), style = line.style_dotted,
+             width = 1, force_overlay = true)
+        array.push(connect_lines, new_line)
+
+// --- P/L DEBUG TABLE ---─────────────────────────────────────────────────────
+var table dbg_tbl = table.new(position.bottom_left, 5, 22,
+     bgcolor = color.new(#0a0a0a, 10), frame_color = #2a2a2a, frame_width = 1,
+     border_color = #1a1a1a, border_width = 1)
+
+if i_debug and barstate.islast
+    table.cell(dbg_tbl, 0, 0, "#",       text_color = #6b6b6b, bgcolor = #111111, text_size = size.tiny, text_halign = text.align_center)
+    table.cell(dbg_tbl, 1, 0, "entry $", text_color = #6b6b6b, bgcolor = #111111, text_size = size.tiny, text_halign = text.align_center)
+    table.cell(dbg_tbl, 2, 0, "bars",    text_color = #6b6b6b, bgcolor = #111111, text_size = size.tiny, text_halign = text.align_center)
+    table.cell(dbg_tbl, 3, 0, "P/L%",    text_color = #6b6b6b, bgcolor = #111111, text_size = size.tiny, text_halign = text.align_center)
+    table.cell(dbg_tbl, 4, 0, "status",  text_color = #6b6b6b, bgcolor = #111111, text_size = size.tiny, text_halign = text.align_center)
+    n_ent = array.size(entry_prices)
+    for dbg_row = 1 to 21
+        dbg_idx = dbg_row - 1
+        if dbg_idx < n_ent
+            dbg_ep   = array.get(entry_prices, dbg_idx)
+            dbg_eb   = array.get(entry_bars,   dbg_idx)
+            dbg_pnl  = array.get(trade_pnl,    dbg_idx)
+            dbg_clsd = array.get(trade_closed,  dbg_idx)
+            dbg_bh   = bar_index - dbg_eb
+            dbg_pc   = dbg_pnl > 0 ? #5ec896 : dbg_pnl < 0 ? #e05555 : #9b9b9b
+            dbg_sc   = dbg_clsd ? #6b6b6b : #5ec896
+            dbg_ps   = dbg_pnl >= 0 ? "+" + str.tostring(dbg_pnl, "0.0") + "%" : str.tostring(dbg_pnl, "0.0") + "%"
+            table.cell(dbg_tbl, 0, dbg_row, str.tostring(dbg_idx + 1),    text_color = #6b6b6b, bgcolor = #0a0a0a, text_size = size.tiny, text_halign = text.align_center)
+            table.cell(dbg_tbl, 1, dbg_row, str.tostring(dbg_ep, "0.00"), text_color = #9b9b9b, bgcolor = #0a0a0a, text_size = size.tiny, text_halign = text.align_center)
+            table.cell(dbg_tbl, 2, dbg_row, str.tostring(dbg_bh),         text_color = #9b9b9b, bgcolor = #0a0a0a, text_size = size.tiny, text_halign = text.align_center)
+            table.cell(dbg_tbl, 3, dbg_row, dbg_ps,                       text_color = dbg_pc,  bgcolor = #0a0a0a, text_size = size.tiny, text_halign = text.align_center)
+            table.cell(dbg_tbl, 4, dbg_row, dbg_clsd ? "closed" : "open", text_color = dbg_sc,  bgcolor = #0a0a0a, text_size = size.tiny, text_halign = text.align_center)
+        else
+            table.cell(dbg_tbl, 0, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.tiny)
+            table.cell(dbg_tbl, 1, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.tiny)
+            table.cell(dbg_tbl, 2, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.tiny)
+            table.cell(dbg_tbl, 3, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.tiny)
+            table.cell(dbg_tbl, 4, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.tiny)
 
 // --- ALERTS ---───────────────────────────────────────────────────────────────
 alertcondition(jent and i_alent, title = "TF Flow - ENTRY",
