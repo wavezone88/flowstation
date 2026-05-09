@@ -29,7 +29,7 @@ i_recent_window = input.int(50, "Signal P/L recent window (entries)", minval = 1
 i_timeout_hours = input.float(96.0, "P/L trade timeout (hours)", minval = 1.0, maxval = 8760.0, step = 1.0,
      group = GN,
      tooltip = "Maximum time a trade stays open for P/L tracking before being force-closed at current price. Same duration regardless of chart timeframe. Suggested: 24h (intraday/scalping), 96h (~4 days, swing 1H), 240h (10 days, daily-style), 720h (30 days, position).")
-i_gap_threshold = input.float(1.5, "Gap-down filter threshold (%)", minval = 0.5, maxval = 5.0, step = 0.1,
+i_gap_threshold = input.float(1.0, "Gap-down filter threshold (%)", minval = 0.5, maxval = 5.0, step = 0.1,
      group = GN,
      tooltip = "Minimum % gap-down required to suppress ENTRY signals. 1.5% catches significant overnight news gaps. Lower = more sensitive. Higher = only filters major gap events. Suppression lasts 3 bars after the gap.")
 i_abs   = input.bool(true, "Volume Absorption", group = GF,
@@ -240,7 +240,7 @@ var int bars_since_gap_up   = 999
 bars_since_gap_down := gap_down ? 0 : bars_since_gap_down + 1
 bars_since_gap_up   := gap_up   ? 0 : bars_since_gap_up   + 1
 
-gap_down_active = bars_since_gap_down <= 3
+gap_down_active = bars_since_gap_down <= 8
 
 // --- STATE MACHINE ---────────────────────────────────────────────────────────
 mbear           = rsi14 > 75 or (close < open and rvol > 1.5)
