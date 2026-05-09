@@ -227,6 +227,16 @@ ft = math.abs(fp_tick) >= 50
 fc         = (fa?1:0)+(fe?1:0)+(fv?1:0)+(fp?1:0)+(fo?1:0)+(ft?1:0)
 rare_count = (fa?1:0) + (fe?1:0) + (fv?1:0) + (fp?1:0) + (fo?1:0)
 
+// Trade tracking arrays declared here so tier classification can read entry history
+var array<float> entry_prices    = array.new<float>()
+var array<int>   entry_bars      = array.new<int>()
+var array<float> trade_pnl       = array.new<float>()
+var array<bool>  trade_closed    = array.new<bool>()
+var array<int>   entry_bar_index = array.new<int>()
+var array<int>   entry_times     = array.new<int>()
+var array<int>   close_times     = array.new<int>()
+var array<line>  connect_lines   = array.new<line>()
+
 // --- ENTRY TIER CLASSIFICATION ---────────────────────────────────────────────
 // Classifies each ENTRY by expected hold horizon based on prior entry history.
 // Short = recent cluster of entries (choppy regime). Medium = standard swing.
@@ -316,15 +326,6 @@ if jex
 pstate := state
 
 // --- TRADE TRACKING ---───────────────────────────────────────────────────────
-var array<float> entry_prices    = array.new<float>()
-var array<int>   entry_bars      = array.new<int>()
-var array<float> trade_pnl       = array.new<float>()  // holds unrealized P/L for open trades, realized for closed
-var array<bool>  trade_closed    = array.new<bool>()
-var array<int>   entry_bar_index = array.new<int>()
-var array<int>   entry_times      = array.new<int>()    // Unix ms timestamp at entry
-var array<int>   close_times      = array.new<int>()    // Unix ms timestamp when trade closed (0 while open)
-var array<line>  connect_lines   = array.new<line>()
-
 if jent
     // Clean up connector lines before adding new entry
     while array.size(connect_lines) > 0
