@@ -23,6 +23,9 @@ i_cooldown_hours = input.float(24.0, "Signal cooldown (hours)", minval = 0.5, ma
 i_lookback = input.int(5, "P/L lookback (entries)", options = [3, 5, 10],
      group = GN,
      tooltip = "Number of recent ENTRY signals to include in cumulative P/L tracking. Shows whether the indicator has been performing well recently.")
+i_recent_window = input.int(50, "Signal P/L recent window (entries)", minval = 10, maxval = 200, step = 10,
+     group = GN,
+     tooltip = "Signal P/L counter only includes the most recent N entries. Lower = more responsive to current performance. Higher = more historical context. Default 50 = enough for statistical signal, recent enough to reflect current regime.")
 i_timeout_hours = input.float(96.0, "P/L trade timeout (hours)", minval = 1.0, maxval = 8760.0, step = 1.0,
      group = GN,
      tooltip = "Maximum time a trade stays open for P/L tracking before being force-closed at current price. Same duration regardless of chart timeframe. Suggested: 24h (intraday/scalping), 96h (~4 days, swing 1H), 240h (10 days, daily-style), 720h (30 days, position).")
@@ -224,7 +227,7 @@ rare_count = (fa?1:0) + (fe?1:0) + (fv?1:0) + (fp?1:0) + (fo?1:0)
 // --- STATE MACHINE ---────────────────────────────────────────────────────────
 mbear           = rsi14 > 75 or (close < open and rvol > 1.5)
 stretched_above = rsi14 > 65 and ma50 > 0 and (close - ma50) / ma50 * 100 > 15
-overheated_cond = rsi14 > 72 and ma50 > 0 and (close - ma50) / ma50 * 100 > 12 and ta.vwap > 0 and (close - ta.vwap) / ta.vwap * 100 > 4
+overheated_cond = rsi14 > 68 and ma50 > 0 and (close - ma50) / ma50 * 100 > 8 and ta.vwap > 0 and (close - ta.vwap) / ta.vwap * 100 > 2
 ec    = tscore > ethr and cf_pos >= cf_thr and rsi14 < 70 and not stretched_above
 wc    = tscore > wthr and cf_pos >= 2
 xc    = overheated_cond
@@ -253,7 +256,7 @@ exit_ready  = time - last_exit_time  >= cooldown_ms
 jent        = jent_raw and entry_ready and entry_armed
 jex         = jex_raw  and exit_ready  and exit_armed
 
-high_conviction = jent and rare_count >= 2
+high_conviction = jent and rare_count >= 1
 var bool last_was_hc = false
 
 if jent
@@ -333,12 +336,13 @@ if trade_count > 0
     avg_hold_val := avg_hold_val / trade_count
 avg_hold_str = trade_count > 0 ? "Avg hold: " + str.tostring(avg_hold_val, "0.0") + "h" : "Avg hold: —"
 
-// Total P/L + win rate across ALL tracked trades
+// Total P/L + win rate across most recent i_recent_window trades
 total_pnl  = 0.0
 tot_wins   = 0
-total_trds = array.size(trade_pnl)
+total_trds = math.min(array.size(trade_pnl), i_recent_window)
 if total_trds > 0
-    for i = 0 to total_trds - 1
+    start_recent = array.size(trade_pnl) - total_trds
+    for i = start_recent to array.size(trade_pnl) - 1
         pv = array.get(trade_pnl, i)
         total_pnl := total_pnl + pv
         if pv > 0.0
