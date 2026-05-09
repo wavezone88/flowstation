@@ -19,7 +19,7 @@ i_sens  = input.string("Balanced", "Sensitivity",
      tooltip = "Conservative requires score >70 + 4 confluence for ENTRY (rare, high-quality signals). Balanced: >60 + 3. Aggressive: >50 + 2 (more signals, more noise).")
 i_cooldown_hours = input.float(24.0, "Signal cooldown (hours)", minval = 0.5, maxval = 240.0, step = 0.5,
      group = GN,
-     tooltip = "Minimum time between consecutive ENTRY or EXIT signals. Same duration regardless of chart timeframe. 4 hours = swing-friendly. 24 hours = daily-style holds. 1 hour = scalping.")
+     tooltip = "Minimum time between consecutive ENTRY or OVERHEATED signals. Same duration regardless of chart timeframe. 4 hours = swing-friendly. 24 hours = daily-style holds. 1 hour = scalping.")
 i_lookback = input.int(3, "P/L lookback (entries)", options = [3, 5, 10],
      group = GN,
      tooltip = "Number of recent ENTRY signals to include in cumulative P/L tracking. Shows whether the indicator has been performing well recently.")
@@ -41,7 +41,7 @@ i_tick  = input.bool(true, "Up/Down Tick Volume Imbalance", group = GF,
 i_soldiers = input.bool(true, "Three White Soldiers boost", group = GF,
      tooltip = "Adds modest score boost when three consecutive bullish bars appear with closes in upper half of range. Often precedes confirmed bottoms. Disable for purists.")
 i_shosc   = input.bool(true,  "Show oscillator panel",    group = GV)
-i_shzon   = input.bool(true,  "Show ENTRY/EXIT markers",  group = GV)
+i_shzon   = input.bool(true,  "Show ENTRY/OVERHEATED markers", group = GV)
 i_shdsh   = input.bool(true,  "Show dashboard",           group = GV)
 i_connect = input.bool(false, "Connect tracked entries",  group = GV,
      tooltip = "Draws a thin dotted line connecting the last N tracked ENTRY signals to visualize the path of recent signals over time.")
@@ -54,7 +54,7 @@ i_dpos  = input.string("top-right", "Dashboard position",
 i_theme = input.string("dark", "Color theme",
      options = ["dark", "light"], group = GV)
 i_alent = input.bool(true,  "Alert on ENTRY signal", group = GA)
-i_alex  = input.bool(true,  "Alert on EXIT signal",  group = GA)
+i_alex  = input.bool(true,  "Alert on OVERHEATED signal", group = GA)
 i_alst  = input.bool(false, "Alert on state change", group = GA)
 
 // --- COLORS ---───────────────────────────────────────────────────────────────
@@ -227,12 +227,12 @@ fc = (fa?1:0)+(fe?1:0)+(fv?1:0)+(fp?1:0)+(fo?1:0)+(ft?1:0)
 // --- STATE MACHINE ---────────────────────────────────────────────────────────
 mbear           = rsi14 > 75 or (close < open and rvol > 1.5)
 stretched_above = rsi14 > 65 and ma50 > 0 and (close - ma50) / ma50 * 100 > 15
-stretched_below = rsi14 < 35 and ma50 > 0 and (ma50 - close) / ma50 * 100 > 15
+overheated_cond = rsi14 > 72 and ma50 > 0 and (close - ma50) / ma50 * 100 > 12 and ta.vwap > 0 and (close - ta.vwap) / ta.vwap * 100 > 4
 ec    = tscore > ethr and cf_pos >= cf_thr and rsi14 < 70 and not stretched_above
 wc    = tscore > wthr and cf_pos >= 2
-xc    = tscore < xthr and cf_neg >= cf_thr and rsi14 > 35 and not stretched_below
+xc    = overheated_cond
 cc    = tscore < cthr or (tscore > 0 and mbear)
-state = ec ? "ENTRY" : wc ? "WATCH" : xc ? "EXIT" : cc ? "CAUTION" : "WAIT"
+state = ec ? "ENTRY" : wc ? "WATCH" : xc ? "OVERHEATED" : cc ? "CAUTION" : "WAIT"
 
 var string pstate          = "WAIT"
 var int    last_entry_time = 0
@@ -250,7 +250,7 @@ if tscore > -wthr
 
 schg        = state != pstate
 jent_raw    = state == "ENTRY" and pstate != "ENTRY"
-jex_raw     = state == "EXIT"  and pstate != "EXIT"
+jex_raw     = state == "OVERHEATED" and pstate != "OVERHEATED"
 entry_ready = time - last_entry_time >= cooldown_ms
 exit_ready  = time - last_exit_time  >= cooldown_ms
 jent        = jent_raw and entry_ready and entry_armed
@@ -325,13 +325,13 @@ win_rate = total_trds > 0 ? tot_wins * 100.0 / total_trds : 0.0
 // --- DISPLAY HELPERS ---──────────────────────────────────────────────────────
 score_str = tscore > 0 ? "+" + str.tostring(tscore, "#") : tscore < 0 ? str.tostring(tscore, "#") : "0"
 score_c   = tscore > 0 ? #5ec896 : tscore < 0 ? #3a3a3a : #9b9b9b
-sc        = state == "ENTRY" ? C_BULL : state == "WATCH" ? color.new(C_BULL, 30) : state == "EXIT" ? C_BEAR : state == "CAUTION" ? color.new(C_BEAR, 20) : C_SEC
+sc        = state == "ENTRY" ? C_BULL : state == "WATCH" ? color.new(C_BULL, 30) : state == "OVERHEATED" ? C_BEAR : state == "CAUTION" ? color.new(C_BEAR, 20) : C_SEC
 
 // Why explanation — split into two chains to stay readable as single lines
 why_p1  = fc >= 3 ? "Multi-signal accumulation" : fa and fv ? "Absorption with VWAP hold" : ft and rs_val > 0 ? "Buying pressure leading market" : ""
 why_p2  = fa ? "Absorption at key level" : fv ? "VWAP accumulation" : fe ? "Late-session flow" : fo ? "Opening range accumulation" : fp ? "Volume cluster support" : "Score + confluence aligned"
 why_ent = why_p1 != "" ? why_p1 : why_p2
-why_str = state == "ENTRY" ? why_ent : state == "WATCH" ? "Conditions building" : state == "EXIT" ? "Distribution pattern emerging" : state == "CAUTION" ? "Conflicting signals" : "No setup detected"
+why_str = state == "ENTRY" ? why_ent : state == "WATCH" ? "Conditions building" : state == "OVERHEATED" ? "Price extended, mean reversion risk" : state == "CAUTION" ? "Conflicting signals" : "No setup detected"
 
 // --- OSCILLATOR ---──────────────────────────────────────────────────────────
 hc = tscore >= 0 ? C_HP : C_HN
@@ -351,9 +351,9 @@ fill(ln50, ln1,  color = color.new(C_BEAR, 80), title = "Bear zone")
 plotshape(i_shzon and jent, title = "ENTRY signal",
      location = location.belowbar, style = shape.triangleup,
      size = size.small, color = #5ec896, force_overlay = true)
-plotshape(i_shzon and jex, title = "EXIT signal",
+plotshape(i_shzon and jex, title = "OVERHEATED signal",
      location = location.abovebar, style = shape.flag,
-     size = size.small, color = #e05555, force_overlay = true)
+     size = size.small, color = #3a3a3a, force_overlay = true)
 
 // Small white dot marks the last N tracked entries
 is_tracked_entry = false
@@ -482,7 +482,7 @@ if i_debug and barstate.islast
 // --- ALERTS ---───────────────────────────────────────────────────────────────
 alertcondition(jent and i_alent, title = "TF Flow - ENTRY",
      message = "Tydeflow ENTRY {{ticker}} ({{interval}}) {{plot_0}}")
-alertcondition(jex  and i_alex,  title = "TF Flow - EXIT",
-     message = "Tydeflow EXIT {{ticker}} ({{interval}}) {{plot_0}}")
+alertcondition(jex  and i_alex,  title = "TF Flow - OVERHEATED",
+     message = "Tydeflow OVERHEATED {{ticker}} ({{interval}}) {{plot_0}}")
 alertcondition(schg and i_alst,  title = "TF Flow - State",
      message = "Tydeflow state change {{ticker}} ({{interval}}) {{plot_0}}")
