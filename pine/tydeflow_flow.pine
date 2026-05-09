@@ -485,11 +485,10 @@ if i_debug and barstate.islast
     table.cell(dbg_tbl, 2, 0, "hrs",     text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
     table.cell(dbg_tbl, 3, 0, "P/L%",    text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
     table.cell(dbg_tbl, 4, 0, "status",  text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
-    n_ent     = array.size(entry_prices)
-    dbg_start = math.max(0, n_ent - 21)
+    n_ent = array.size(entry_prices)
     for dbg_row = 1 to 21
-        dbg_idx = dbg_start + (dbg_row - 1)
-        if dbg_idx < n_ent
+        dbg_idx = n_ent - 22 + dbg_row
+        if dbg_idx >= 0 and dbg_idx < n_ent
             dbg_ep   = array.get(entry_prices, dbg_idx)
             dbg_pnl  = array.get(trade_pnl,    dbg_idx)
             dbg_clsd = array.get(trade_closed,  dbg_idx)
