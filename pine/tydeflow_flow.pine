@@ -53,6 +53,8 @@ i_debug      = input.bool(false, "Show P/L debug table",       group = GV,
      tooltip = "Renders a table showing every tracked entry: price, bars held, current P/L%, and open/closed status. Use to diagnose unexpected P/L readings.")
 i_show_total = input.bool(true,  "Show cumulative signal P/L", group = GV,
      tooltip = "Bottom-right label showing total P/L across all tracked trades (closed + open unrealized), win rate, and trade count. Assumes equal position sizing.")
+i_diagnostic = input.bool(false, "Show entry recording diagnostic", group = GV,
+     tooltip = "Drops a temporary label at each ENTRY showing the recorded bar, price, and time. Used to verify trade tracking accuracy. Turn off for normal use.")
 i_dpos  = input.string("top-right", "Dashboard position",
      options = ["top-right","top-left","bottom-right","bottom-left"], group = GV)
 i_theme = input.string("dark", "Color theme",
@@ -300,6 +302,16 @@ if jent
     last_was_hc      := high_conviction
     last_tier        := entry_tier
     last_tier_label  := tier_label
+if jent and barstate.isconfirmed and i_diagnostic
+    label.new(x = bar_index, y = high * 1.005,
+         text = "ENTRY rec\nbar: " + str.tostring(bar_index) +
+               "\nprice: $" + str.tostring(close, "0.00") +
+               "\ntime: " + str.format_time(time, "yyyy-MM-dd HH:mm", syminfo.timezone),
+         style = label.style_label_down,
+         color = color.new(#5ec896, 50),
+         textcolor = #ffffff,
+         size = size.tiny,
+         force_overlay = true)
 if jex
     last_exit_time := time
     exit_armed     := false
