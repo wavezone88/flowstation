@@ -302,7 +302,7 @@ if jent
     last_was_hc      := high_conviction
     last_tier        := entry_tier
     last_tier_label  := tier_label
-if jent and barstate.isconfirmed and i_diagnostic
+if jent and i_diagnostic
     label.new(x = bar_index, y = high * 1.005,
          text = "ENTRY rec\nbar: " + str.tostring(bar_index) +
                "\nprice: $" + str.tostring(close, "0.00") +
@@ -548,17 +548,20 @@ if i_shdsh and barstate.islast
     table.cell(dash, 5, 2, "", text_color = D_BG, bgcolor = D_BG, text_size = size.tiny)
 
 // --- CONNECT TRACKED ENTRIES ---─────────────────────────────────────────────
-if i_connect and barstate.islast and array.size(entry_bar_index) >= 2
-    start_t = math.max(0, array.size(entry_bar_index) - i_lookback)
-    for i = start_t to array.size(entry_bar_index) - 2
-        x1 = array.get(entry_bar_index, i)
-        y1 = array.get(entry_prices,    i)
-        x2 = array.get(entry_bar_index, i + 1)
-        y2 = array.get(entry_prices,    i + 1)
-        new_line = line.new(x1 = x1, y1 = y1, x2 = x2, y2 = y2,
-             color = color.new(#5ec896, 80), style = line.style_dotted,
-             width = 1, force_overlay = true)
-        array.push(connect_lines, new_line)
+if i_connect and barstate.islast
+    while array.size(connect_lines) > 0
+        line.delete(array.shift(connect_lines))
+    if array.size(entry_bar_index) >= 2
+        start_t = math.max(0, array.size(entry_bar_index) - i_lookback)
+        for i = start_t to array.size(entry_bar_index) - 2
+            x1 = array.get(entry_bar_index, i)
+            y1 = array.get(entry_prices,    i)
+            x2 = array.get(entry_bar_index, i + 1)
+            y2 = array.get(entry_prices,    i + 1)
+            new_line = line.new(x1 = x1, y1 = y1, x2 = x2, y2 = y2,
+                 color = color.new(#5ec896, 80), style = line.style_dotted,
+                 width = 1, force_overlay = true)
+            array.push(connect_lines, new_line)
 
 // --- P/L DEBUG TABLE ---─────────────────────────────────────────────────────
 var table dbg_tbl = table.new(position.bottom_left, 5, 22,
