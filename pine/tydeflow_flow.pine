@@ -138,7 +138,6 @@ dist_val = dpct <= 5 ? 1.0 : dpct <= 10 ? 0.5 : dpct <= 20 ? 0.0 : dpct <= 35 ? 
 
 cf_tot = (trend_val + rsi_val + rvol_val + rs_val + dist_val) * cmul
 cf_pos = (trend_val > 0 ? 1 : 0) + (rsi_val > 0 ? 1 : 0) + (rvol_val > 0 ? 1 : 0) + (rs_val > 0 ? 1 : 0) + (dist_val > 0 ? 1 : 0)
-cf_neg = (trend_val < 0 ? 1 : 0) + (rsi_val < 0 ? 1 : 0) + (rvol_val < 0 ? 1 : 0) + (rs_val < 0 ? 1 : 0) + (dist_val < 0 ? 1 : 0)
 
 // --- FOOTPRINT DETECTORS ---──────────────────────────────────────────────────
 atr14 = ta.atr(14)
@@ -257,7 +256,6 @@ state = ec ? "ENTRY" : wc ? "WATCH" : xc ? "OVERHEATED" : cc ? "CAUTION" : "WAIT
 var string pstate          = "WAIT"
 var int    last_entry_time = 0
 var int    last_exit_time  = 0
-var int    prev_entry_time = 0
 var bool   entry_armed     = true
 var bool   exit_armed      = true
 
@@ -278,9 +276,8 @@ jent        = jent_raw and entry_ready and entry_armed
 jex         = jex_raw  and exit_ready  and exit_armed
 
 // --- ENTRY TIER CLASSIFICATION ---────────────────────────────────────────────
-// Uses prev_entry_time (2nd-most-recent) and last_entry_time to determine regime.
-// Both are read BEFORE the if-jent block updates them, so classification reflects
-// the state of the market at the moment the signal fires.
+// Reads last_entry_time BEFORE the if-jent block updates it, so tier reflects
+// the gap from the prior entry at the moment the new signal fires.
 ms_14d      = 14 * 24 * 3600 * 1000
 ms_30d      = 30 * 24 * 3600 * 1000
 near_ma     = ma50 > 0 and math.abs((close - ma50) / ma50 * 100) < 5
@@ -296,7 +293,6 @@ var string last_tier       = "—"
 var string last_tier_label = "—"
 
 if jent
-    prev_entry_time  := last_entry_time
     last_entry_time  := time
     entry_armed      := false
     last_was_hc      := high_conviction
@@ -319,7 +315,6 @@ pstate := state
 
 // --- TRADE TRACKING ---───────────────────────────────────────────────────────
 var array<float> entry_prices    = array.new<float>()
-var array<int>   entry_bars      = array.new<int>()
 var array<float> trade_pnl       = array.new<float>()
 var array<bool>  trade_closed    = array.new<bool>()
 var array<int>   entry_bar_index = array.new<int>()
@@ -332,7 +327,6 @@ if jent
     while array.size(connect_lines) > 0
         line.delete(array.shift(connect_lines))
     array.push(entry_prices,    close)
-    array.push(entry_bars,      bar_index)
     array.push(trade_pnl,       0.0)
     array.push(trade_closed,    false)
     array.push(entry_bar_index, bar_index)
@@ -341,7 +335,6 @@ if jent
     max_history = math.max(i_lookback, i_recent_window)
     if array.size(entry_prices) > max_history
         array.shift(entry_prices)
-        array.shift(entry_bars)
         array.shift(trade_pnl)
         array.shift(trade_closed)
         array.shift(entry_bar_index)
