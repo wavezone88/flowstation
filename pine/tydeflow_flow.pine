@@ -284,7 +284,7 @@ jex         = jex_raw  and exit_ready  and exit_armed
 ms_14d      = 14 * 24 * 3600 * 1000
 ms_30d      = 30 * 24 * 3600 * 1000
 near_ma     = ma50 > 0 and math.abs((close - ma50) / ma50 * 100) < 5
-tier_short  = prev_entry_time > 0 and (time - prev_entry_time) <= ms_14d
+tier_short  = last_entry_time > 0 and (time - last_entry_time) <= ms_14d
 tier_long   = (last_entry_time == 0 or time - last_entry_time > ms_30d) and near_ma
 tier_medium = not tier_short and not tier_long
 entry_tier  = tier_short ? "S" : tier_long ? "L" : "M"
