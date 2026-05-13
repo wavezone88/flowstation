@@ -4,6 +4,7 @@ Fetches S&P 500 + Nasdaq 100, filters to $8-$999, scores each symbol,
 writes signals to Google Sheets, emails HC hits via Resend.
 """
 from __future__ import annotations
+import io
 import json
 import os
 import sys
@@ -32,7 +33,7 @@ def _wiki_tables(url: str) -> list:
     import requests as req
     resp = req.get(url, headers=_WIKI_HEADERS, timeout=20)
     resp.raise_for_status()
-    return pd.read_html(resp.text, flavor="lxml")
+    return pd.read_html(io.StringIO(resp.text), flavor="lxml")
 
 
 def get_universe() -> list[str]:
