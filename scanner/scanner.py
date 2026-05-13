@@ -15,7 +15,7 @@ import pandas as pd
 import yfinance as yf
 
 from indicators import score_daily
-from notifications import write_signal_to_sheet, send_hc_email, ensure_sheet_header
+from notifications import write_signal_to_sheet, send_hc_email, ensure_sheet_setup
 
 # --- Config ---
 PRICE_MIN = 8.0
@@ -177,12 +177,12 @@ def main() -> None:
         print("[info] No signals this run — nothing to write")
         return
 
-    # Ensure sheet has headers on first run
+    # Ensure sheet is formatted on first run (idempotent)
     if not dry_run:
         try:
-            ensure_sheet_header(sheet_id, creds_json)
+            ensure_sheet_setup(sheet_id, creds_json)
         except Exception as e:
-            print(f"[warn] Sheet header check failed: {e}")
+            print(f"[warn] Sheet setup failed: {e}")
 
     for signal in signals:
         sym = signal["symbol"]
