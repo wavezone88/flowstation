@@ -1,0 +1,634 @@
+//@version=6
+indicator("Tydeflow Flow - Institutional Footprint Scoring",
+     shorttitle = "TF Flow", overlay = false)
+
+// --- INPUTS ---───────────────────────────────────────────────────────────────
+var string GS = "Style"
+var string GN = "Sensitivity"
+var string GF = "Footprint detectors"
+var string GV = "Visual options"
+var string GA = "Alerts"
+
+i_style = input.string("Swing (3-30 day)", "Style preset",
+     options = ["Swing (3-30 day)", "Position (1-6 month)", "Custom"],
+     group = GS,
+     tooltip = "Adjusts how strongly footprints vs. confluence factors are weighted. Swing weights footprint detectors heavier (catches faster entries). Position balances both. Custom unlocks individual sliders.")
+i_sens  = input.string("Balanced", "Sensitivity",
+     options = ["Conservative", "Balanced", "Aggressive"],
+     group = GN,
+     tooltip = "Conservative requires score >70 + 4 confluence for ENTRY (rare, high-quality signals). Balanced: >60 + 3. Aggressive: >50 + 2 (more signals, more noise).")
+i_cooldown_hours = input.float(24.0, "Signal cooldown (hours)", minval = 0.5, maxval = 240.0, step = 0.5,
+     group = GN,
+     tooltip = "Minimum time between consecutive ENTRY or OVERHEATED signals. Same duration regardless of chart timeframe. 4 hours = swing-friendly. 24 hours = daily-style holds. 1 hour = scalping.")
+i_lookback = input.int(5, "P/L lookback (entries)", options = [3, 5, 10],
+     group = GN,
+     tooltip = "Number of recent ENTRY signals to include in cumulative P/L tracking. Shows whether the indicator has been performing well recently.")
+i_recent_window = input.int(50, "Signal P/L recent window (entries)", minval = 10, maxval = 200, step = 10,
+     group = GN,
+     tooltip = "Signal P/L counter only includes the most recent N entries. Lower = more responsive to current performance. Higher = more historical context. Default 50 = enough for statistical signal, recent enough to reflect current regime.")
+i_timeout_hours = input.float(96.0, "P/L trade timeout (hours)", minval = 1.0, maxval = 8760.0, step = 1.0,
+     group = GN,
+     tooltip = "Maximum time a trade stays open for P/L tracking before being force-closed at current price. Same duration regardless of chart timeframe. Suggested: 24h (intraday/scalping), 96h (~4 days, swing 1H), 240h (10 days, daily-style), 720h (30 days, position).")
+i_gap_threshold = input.float(1.0, "Gap-down filter threshold (%)", minval = 0.5, maxval = 5.0, step = 0.1,
+     group = GN,
+     tooltip = "Minimum % gap-down required to suppress ENTRY signals. 1.5% catches significant overnight news gaps. Lower = more sensitive. Higher = only filters major gap events. Suppression lasts 3 bars after the gap.")
+i_abs   = input.bool(true, "Volume Absorption", group = GF,
+     tooltip = "Detects bars with 2x+ normal volume but minimal price movement — a signature of institutions absorbing seller liquidity at a price level without revealing their hand.")
+i_eod   = input.bool(true, "End-of-Day Volume Surge", group = GF,
+     tooltip = "Last 30 minutes of session showing 3x+ normal volume — institutional VWAP/closing-benchmark execution.")
+i_vwap  = input.bool(true, "VWAP Magnetism", group = GF,
+     tooltip = "8+ consecutive bars with price hugging VWAP on heavy volume — algorithmic VWAP-targeted execution.")
+i_vap   = input.bool(true, "Volume-at-Price Clustering", group = GF,
+     tooltip = "Heavy volume transacted in a tight price range over 10 bars — single institutional order being worked through algos.")
+i_orn   = input.bool(true, "Opening Range Stuffing", group = GF,
+     tooltip = "First 15 minutes of session showing huge volume but minimal price movement — institutions positioning before retail wakes up.")
+i_tick  = input.bool(true, "Up/Down Tick Volume Imbalance", group = GF,
+     tooltip = "Up-volume vs down-volume ratio >2.2 over 20 bars — sustained accumulation pressure.")
+i_shosc   = input.bool(true,  "Show oscillator panel",    group = GV)
+i_shzon   = input.bool(true,  "Show ENTRY/OVERHEATED markers", group = GV)
+i_shdsh   = input.bool(true,  "Show dashboard",           group = GV)
+i_connect = input.bool(false, "Connect tracked entries",  group = GV,
+     tooltip = "Draws a thin dotted line connecting the last N tracked ENTRY signals to visualize the path of recent signals over time.")
+i_debug      = input.bool(false, "Show P/L debug table",       group = GV,
+     tooltip = "Renders a table showing every tracked entry: price, bars held, current P/L%, and open/closed status. Use to diagnose unexpected P/L readings.")
+i_show_total = input.bool(true,  "Show cumulative signal P/L", group = GV,
+     tooltip = "Bottom-right label showing total P/L across all tracked trades (closed + open unrealized), win rate, and trade count. Assumes equal position sizing.")
+i_diagnostic = input.bool(false, "Show entry recording diagnostic", group = GV,
+     tooltip = "Drops a temporary label at each ENTRY showing the recorded bar, price, and time. Used to verify trade tracking accuracy. Turn off for normal use.")
+i_dpos  = input.string("top-right", "Dashboard position",
+     options = ["top-right","top-left","bottom-right","bottom-left"], group = GV)
+i_theme = input.string("dark", "Color theme",
+     options = ["dark", "light"], group = GV)
+i_alent = input.bool(true,  "Alert on ENTRY signal", group = GA)
+i_alex  = input.bool(true,  "Alert on OVERHEATED signal", group = GA)
+i_alst  = input.bool(false, "Alert on state change", group = GA)
+
+// --- COLORS ---───────────────────────────────────────────────────────────────
+dk     = i_theme == "dark"
+C_BG   = dk ? color.new(#0a0a0a, 15) : color.new(#f7f7f7, 15)
+C_SEC  = dk ? #9b9b9b : #5a5a5a
+C_BULL = #5ec896
+C_BEAR = #3a3a3a
+C_HAIR = dk ? #2a2a2a : #d4d4d4
+C_HP   = #5ec896
+C_HN   = #4a4a4a
+// Dashboard — always dark regardless of chart theme
+D_BG  = color.new(#0a0a0a, 10)
+D_DIV = #2a2a2a
+D_LBL = color.new(#161616, 0)
+
+// --- GAUGE ---────────────────────────────────────────────────────────────────
+f_gauge(sc) =>
+    raw    = int(math.round((sc + 100.0) / 200.0 * 12.0))
+    filled = raw < 0 ? 0 : raw > 12 ? 12 : raw
+    g = ""
+    for i = 0 to 11
+        g := g + (i < filled ? "●" : "○")
+    g
+
+// --- WEIGHTS & THRESHOLDS ---─────────────────────────────────────────────────
+fmul   = i_style == "Swing (3-30 day)" ? 1.10 : 1.00
+cmul   = i_style == "Swing (3-30 day)" ? 0.85 : 1.00
+WA = 1.2 * fmul
+WE = 1.0 * fmul
+WV = 1.1 * fmul
+WP = 1.0 * fmul
+WO = 0.9 * fmul
+WT = 1.3 * fmul
+
+ethr   = i_sens == "Conservative" ? 70.0 : i_sens == "Aggressive" ? 50.0 : 60.0
+cf_thr = i_sens == "Conservative" ? 4    : i_sens == "Aggressive" ? 2    : 3
+wthr   = ethr - 20.0
+xthr   = -ethr
+cthr   = -wthr
+
+// --- CONFLUENCE ---───────────────────────────────────────────────────────────
+ma50  = ta.sma(close, 50)
+ma200 = ta.sma(close, 200)
+
+t_stk     = close > ma50 and ma50 > ma200
+t_50      = close > ma50 and not (ma50 > ma200)
+t_200     = close > ma200 and not (close > ma50)
+trend_val = t_stk ? 1.0 : t_50 ? 0.6 : t_200 ? -0.4 : -1.0
+
+rsi14   = ta.rsi(close, 14)
+r_sweet = rsi14 >= 50 and rsi14 <= 65
+r_mid   = (rsi14 >= 40 and rsi14 < 50) or (rsi14 > 65 and rsi14 <= 70)
+r_low   = rsi14 >= 30 and rsi14 < 40
+rsi_val = r_sweet ? 1.0 : r_mid ? 0.5 : r_low ? 0.0 : rsi14 > 70 ? -0.5 : -0.7
+
+avg30    = ta.sma(volume, 30)
+rvol     = avg30 > 0 ? volume / avg30 : 1.0
+pup      = close > open
+rv_hi    = rvol > 1.5 and pup
+rv_mid   = rvol >= 1.0 and rvol <= 1.5 and pup
+rvol_val = rv_hi ? 0.8 : rv_mid ? 0.4 : rvol < 0.7 ? -0.5 : 0.0
+
+spy     = request.security("AMEX:SPY", timeframe.period, close,
+     ignore_invalid_symbol = true)
+c30     = nz(close[30], close)
+s30     = nz(spy[30], spy)
+sr30    = c30 > 0 ? (close - c30) / c30 * 100 : 0.0
+sr30spy = s30 > 0 ? (spy - s30) / s30 * 100 : 0.0
+rsdiff  = sr30 - sr30spy
+rs_val  = rsdiff >= 10 ? 1.0 : rsdiff >= 5 ? 0.5 : rsdiff >= -5 ? 0.0 : rsdiff >= -10 ? -0.5 : -1.0
+
+hi52     = ta.highest(high, 252)
+dpct     = hi52 > 0 ? (hi52 - close) / hi52 * 100 : 0.0
+dist_val = dpct <= 5 ? 1.0 : dpct <= 10 ? 0.5 : dpct <= 20 ? 0.0 : dpct <= 35 ? -0.5 : -1.0
+
+cf_tot = (trend_val + rsi_val + rvol_val + rs_val + dist_val) * cmul
+cf_pos = (trend_val > 0 ? 1 : 0) + (rsi_val > 0 ? 1 : 0) + (rvol_val > 0 ? 1 : 0) + (rs_val > 0 ? 1 : 0) + (dist_val > 0 ? 1 : 0)
+
+// --- FOOTPRINT DETECTORS ---──────────────────────────────────────────────────
+atr14 = ta.atr(14)
+
+in_sess  = not na(time(timeframe.period, "0930-1600", "America/New_York"))
+var bool prev_in_sess = false
+ss       = in_sess and not prev_in_sess
+prev_in_sess := in_sess
+var int sbar = 0
+if ss
+    sbar := 0
+else if in_sess
+    sbar := sbar + 1
+
+bsec = timeframe.in_seconds()
+tsb  = bsec > 0 ? int(math.floor(390 * 60 / bsec)) : 0
+savg = ta.sma(volume, math.max(tsb, 5))
+atrd = request.security(syminfo.tickerid, "D", ta.atr(14),
+     ignore_invalid_symbol = true, lookahead = barmerge.lookahead_off)
+
+// 1. Volume Absorption
+fp_abs = 0.0
+if i_abs
+    if volume > 2.0 * avg30 and math.abs(close - open) < 0.35 * atr14 and atr14 > 0
+        fp_abs := math.min(math.min(rvol / 1.5, 3.0) / 3.0 * 100, 100)
+
+// 2. End-of-Day Volume Surge
+fp_eod = 0.0
+is_eod = timeframe.isintraday and bsec <= 3600
+if i_eod and is_eod and in_sess and tsb > 0
+    bl = tsb - sbar
+    if bl * bsec <= 30 * 60 and bl >= 0 and savg > 0 and volume > 3 * savg
+        fp_eod := math.min(volume / savg / 3.0 * 100, 100)
+
+// 3. VWAP Magnetism
+vw    = ta.vwap
+vn    = math.abs(close - vw) < 0.3 * atr14
+vvol  = volume > 1.2 * avg30
+var int vbars = 0
+vbars := vn and vvol ? vbars + 1 : 0
+fp_vwap = 0.0
+if i_vwap and vbars >= 8
+    fp_vwap := math.min(30.0 + (vbars - 8) / 15.0 * 70.0, 100.0)
+
+// 4. Volume-at-Price Clustering
+fp_vap = 0.0
+if i_vap
+    rng10 = ta.highest(high, 10) - ta.lowest(low, 10)
+    a100  = ta.sma(volume, 100)
+    v10   = math.sum(volume, 10)
+    if atr14 > 0 and a100 > 0 and rng10 < 1.5 * atr14 and v10 > 2.5 * a100 * 10
+        fp_vap := math.min((1.5 * atr14) / math.max(rng10, atr14 * 0.1) * (v10 / (a100 * 10) / 2.0) * 30.0, 100.0)
+
+// 5. Opening Range Stuffing
+fp_orn = 0.0
+is_or  = timeframe.isintraday and bsec <= 1800
+if i_orn and is_or and in_sess
+    base = avg30 > 0 ? avg30 : 1.0
+    if sbar * bsec <= 15 * 60 and not na(atrd) and atrd > 0 and volume > 2 * base and (high - low) < atrd / 4.0
+        fp_orn := math.min(volume / base / 2.0 * 100, 100)
+
+// 6. Up/Down Tick Imbalance
+fp_tick = 0.0
+if i_tick
+    uv  = close > open ? volume : 0.0
+    dv  = close < open ? volume : 0.0
+    su  = math.sum(uv, 20)
+    sd  = math.sum(dv, 20)
+    rat = sd > 0 ? su / sd : (su > 0 ? 10.0 : 1.0)
+    if rat > 2.2
+        fp_tick :=  math.min(50.0 + (rat - 2.2) / 2.0 * 100.0, 100.0)
+    else if rat < 0.45
+        fp_tick := -math.min(50.0 + (0.45 - rat) / 0.4 * 100.0, 100.0)
+
+// --- TIDEFLOW SCORE ---───────────────────────────────────────────────────────
+ustr = (fp_abs * WA + fp_eod * WE + fp_vwap * WV + fp_vap * WP + fp_orn * WO)
+
+dir = math.abs(fp_tick) >= 25 ? math.sign(fp_tick) : close >= ma50 ? 1 : -1
+
+tscore = math.max(math.min((ustr * dir + fp_tick * WT) * 0.6 + cf_tot * 8.0, 100.0), -100.0)
+
+fa = fp_abs  >= 50
+fe = fp_eod  >= 50
+fv = fp_vwap >= 50
+fp = fp_vap  >= 50
+fo = fp_orn  >= 50
+ft = math.abs(fp_tick) >= 50
+fc         = (fa?1:0)+(fe?1:0)+(fv?1:0)+(fp?1:0)+(fo?1:0)+(ft?1:0)
+rare_count = (fa?1:0) + (fe?1:0) + (fv?1:0) + (fp?1:0) + (fo?1:0)
+
+// --- GAP DETECTION ---────────────────────────────────────────────────────────
+// Suppresses ENTRY signals for 3 bars after a significant gap-down to avoid
+// catching falling knives when overnight news distorts signal interpretation.
+prev_close = nz(close[1], close)
+gap_pct    = prev_close > 0 ? (open - prev_close) / prev_close * 100 : 0.0
+gap_down   = gap_pct < -i_gap_threshold
+gap_up     = gap_pct >  i_gap_threshold
+
+var int bars_since_gap_down = 999
+var int bars_since_gap_up   = 999
+bars_since_gap_down := gap_down ? 0 : bars_since_gap_down + 1
+bars_since_gap_up   := gap_up   ? 0 : bars_since_gap_up   + 1
+
+gap_down_active = bars_since_gap_down <= 8
+
+// --- STATE MACHINE ---────────────────────────────────────────────────────────
+mbear           = rsi14 > 75 or (close < open and rvol > 1.5)
+stretched_above = rsi14 > 65 and ma50 > 0 and (close - ma50) / ma50 * 100 > 15
+overheated_cond = rsi14 > 68 and ma50 > 0 and (close - ma50) / ma50 * 100 > 8 and ta.vwap > 0 and (close - ta.vwap) / ta.vwap * 100 > 2
+ec    = tscore > ethr and cf_pos >= cf_thr and rsi14 < 70 and not stretched_above and not gap_down_active
+wc    = tscore > wthr and cf_pos >= 2
+xc    = overheated_cond
+cc    = tscore < cthr or (tscore > 0 and mbear)
+state = ec ? "ENTRY" : wc ? "WATCH" : xc ? "OVERHEATED" : cc ? "CAUTION" : "WAIT"
+
+var string pstate          = "WAIT"
+var int    last_entry_time = 0
+var int    last_exit_time  = 0
+var bool   entry_armed     = true
+var bool   exit_armed      = true
+
+cooldown_ms = int(i_cooldown_hours * 3600 * 1000)
+
+// Re-arm when score retreats through neutral
+if tscore < wthr
+    entry_armed := true
+if tscore > -wthr
+    exit_armed := true
+
+schg        = state != pstate
+jent_raw    = state == "ENTRY" and pstate != "ENTRY"
+jex_raw     = state == "OVERHEATED" and pstate != "OVERHEATED"
+entry_ready = time - last_entry_time >= cooldown_ms
+exit_ready  = time - last_exit_time  >= cooldown_ms
+jent        = jent_raw and entry_ready and entry_armed
+jex         = jex_raw  and exit_ready  and exit_armed
+
+// --- ENTRY TIER CLASSIFICATION ---────────────────────────────────────────────
+// Reads last_entry_time BEFORE the if-jent block updates it, so tier reflects
+// the gap from the prior entry at the moment the new signal fires.
+ms_14d      = 14 * 24 * 3600 * 1000
+ms_30d      = 30 * 24 * 3600 * 1000
+near_ma     = ma50 > 0 and math.abs((close - ma50) / ma50 * 100) < 5
+tier_short  = last_entry_time > 0 and (time - last_entry_time) <= ms_14d
+tier_long   = (last_entry_time == 0 or time - last_entry_time > ms_30d) and near_ma
+tier_medium = not tier_short and not tier_long
+entry_tier  = tier_short ? "S" : tier_long ? "L" : "M"
+tier_label  = tier_short ? "Short-term" : tier_long ? "Long-term" : "Medium-term"
+
+high_conviction = jent and rare_count >= 1
+var bool   last_was_hc     = false
+var string last_tier       = "—"
+var string last_tier_label = "—"
+
+if jent
+    last_entry_time  := time
+    entry_armed      := false
+    last_was_hc      := high_conviction
+    last_tier        := entry_tier
+    last_tier_label  := tier_label
+if jent and i_diagnostic
+    label.new(x = bar_index, y = high * 1.005,
+         text = "ENTRY rec\nbar: " + str.tostring(bar_index) +
+               "\nprice: $" + str.tostring(close, "0.00") +
+               "\ntime: " + str.format_time(time, "yyyy-MM-dd HH:mm", syminfo.timezone),
+         style = label.style_label_down,
+         color = color.new(#5ec896, 50),
+         textcolor = #ffffff,
+         size = size.tiny,
+         force_overlay = true)
+if jex
+    last_exit_time := time
+    exit_armed     := false
+pstate := state
+
+// --- TRADE TRACKING ---───────────────────────────────────────────────────────
+var array<float> entry_prices    = array.new<float>()
+var array<float> trade_pnl       = array.new<float>()
+var array<bool>  trade_closed    = array.new<bool>()
+var array<int>   entry_bar_index = array.new<int>()
+var array<int>   entry_times     = array.new<int>()
+var array<int>   close_times     = array.new<int>()
+var array<line>  connect_lines   = array.new<line>()
+
+if jent
+    // Clean up connector lines before adding new entry
+    while array.size(connect_lines) > 0
+        line.delete(array.shift(connect_lines))
+    array.push(entry_prices,    close)
+    array.push(trade_pnl,       0.0)
+    array.push(trade_closed,    false)
+    array.push(entry_bar_index, bar_index)
+    array.push(entry_times,     time)
+    array.push(close_times,     0)
+    max_history = math.max(i_lookback, i_recent_window)
+    if array.size(entry_prices) > max_history
+        array.shift(entry_prices)
+        array.shift(trade_pnl)
+        array.shift(trade_closed)
+        array.shift(entry_bar_index)
+        array.shift(entry_times)
+        array.shift(close_times)
+
+// Update P/L for all open trades each bar
+// When OVERHEATED fires (jex), all open trades close at this bar's price.
+// This simulates a disciplined trader taking profit on the indicator's signal.
+// Trades also force-close after i_timeout_hours if no OVERHEATED fired before then.
+timeout_ms = int(i_timeout_hours * 3600 * 1000)
+if array.size(entry_prices) > 0
+    for i = 0 to array.size(entry_prices) - 1
+        if not array.get(trade_closed, i)
+            entry_p      = array.get(entry_prices, i)
+            pnl_pct      = (close - entry_p) / entry_p * 100
+            trade_age_ms = time - array.get(entry_times, i)
+            if jex or trade_age_ms >= timeout_ms
+                array.set(trade_pnl,    i, pnl_pct)
+                array.set(trade_closed, i, true)
+                array.set(close_times,  i, time)
+            else
+                array.set(trade_pnl, i, pnl_pct)
+
+// Cumulative P/L over last N entries (includes unrealized P/L for open trades)
+cum_pnl     = 0.0
+trade_count = math.min(array.size(trade_pnl), i_lookback)
+if trade_count > 0
+    start_idx = array.size(trade_pnl) - trade_count
+    for i = start_idx to array.size(trade_pnl) - 1
+        cum_pnl := cum_pnl + array.get(trade_pnl, i)
+
+// Average hold time in hours for last N entries (closed trades use recorded close time; open trades use now)
+avg_hold_val = 0.0
+if trade_count > 0
+    start_h = array.size(entry_times) - trade_count
+    for i = start_h to array.size(entry_times) - 1
+        et   = array.get(entry_times, i)
+        clsd = array.get(trade_closed, i)
+        ct   = clsd ? array.get(close_times, i) : time
+        avg_hold_val := avg_hold_val + (ct - et) / 3600000.0
+    avg_hold_val := avg_hold_val / trade_count
+avg_hold_str = trade_count > 0 ? "Avg hold: " + str.tostring(avg_hold_val, "0.0") + "h" : "Avg hold: —"
+
+// Total P/L + win rate across most recent i_recent_window trades
+total_pnl  = 0.0
+tot_wins   = 0
+total_trds = math.min(array.size(trade_pnl), i_recent_window)
+if total_trds > 0
+    start_recent = array.size(trade_pnl) - total_trds
+    for i = start_recent to array.size(trade_pnl) - 1
+        pv = array.get(trade_pnl, i)
+        total_pnl := total_pnl + pv
+        if pv > 0.0
+            tot_wins := tot_wins + 1
+win_rate = total_trds > 0 ? tot_wins * 100.0 / total_trds : 0.0
+
+// --- DISPLAY HELPERS ---──────────────────────────────────────────────────────
+score_str = tscore > 0 ? "+" + str.tostring(tscore, "#") : tscore < 0 ? str.tostring(tscore, "#") : "0"
+score_c   = tscore > 0 ? #5ec896 : tscore < 0 ? #e05555 : #9b9b9b
+sc        = state == "ENTRY" ? C_BULL : state == "WATCH" ? color.new(C_BULL, 30) : state == "OVERHEATED" ? C_BEAR : state == "CAUTION" ? color.new(C_BEAR, 20) : C_SEC
+
+// Why explanation — split into two chains to stay readable as single lines
+why_p1  = fc >= 3 ? "Multi-signal accumulation" : fa and fv ? "Absorption with VWAP hold" : ft and rs_val > 0 ? "Buying pressure leading market" : ""
+why_p2  = fa ? "Absorption at key level" : fv ? "VWAP accumulation" : fe ? "Late-session flow" : fo ? "Opening range accumulation" : fp ? "Volume cluster support" : "Score + confluence aligned"
+why_ent = why_p1 != "" ? why_p1 : why_p2
+why_str = state == "ENTRY" ? why_ent : state == "WATCH" ? "Conditions building" : state == "OVERHEATED" ? "Price extended, mean reversion risk" : state == "CAUTION" ? "Conflicting signals" : "No setup detected"
+if state == "ENTRY" and last_tier == "S"
+    why_str := "Multiple recent entries — likely shorter-term hold"
+if state == "ENTRY" and last_tier == "L"
+    why_str := "First entry in 30+ days — clean setup, longer hold"
+
+// --- OSCILLATOR ---──────────────────────────────────────────────────────────
+hc = tscore >= 0 ? C_HP : C_HN
+plot(i_shosc ? tscore : na, "Tideflow Score",
+     color = hc, style = plot.style_columns, linewidth = 2)
+
+hld  = i_shosc ? display.all : display.none
+l0   = hline(   0, "0",    color = C_HAIR,                linestyle = hline.style_solid,  display = hld)
+l50  = hline(  50, "+50",  color = color.new(C_BULL, 65), linestyle = hline.style_dotted, display = hld)
+ln50 = hline( -50, "-50",  color = color.new(C_BEAR, 50), linestyle = hline.style_dotted, display = hld)
+l100 = hline( 100, "+100", color = color.new(C_HAIR, 50), linestyle = hline.style_dotted, display = hld)
+ln1  = hline(-100, "-100", color = color.new(C_HAIR, 50), linestyle = hline.style_dotted, display = hld)
+fill(l50,  l100, color = color.new(C_BULL, 92), title = "Bull zone")
+fill(ln50, ln1,  color = color.new(C_BEAR, 80), title = "Bear zone")
+
+// --- SIGNAL MARKERS ---───────────────────────────────────────────────────────
+plotshape(i_shzon and jent and not high_conviction and tier_short,
+     title = "ENTRY (Short)", location = location.belowbar,
+     style = shape.triangleup, size = size.tiny,
+     color = #5ec896, force_overlay = true,
+     text = "S", textcolor = #ffffff)
+plotshape(i_shzon and jent and not high_conviction and tier_medium,
+     title = "ENTRY (Medium)", location = location.belowbar,
+     style = shape.triangleup, size = size.small,
+     color = #5ec896, force_overlay = true,
+     text = "M", textcolor = #ffffff)
+plotshape(i_shzon and jent and not high_conviction and tier_long,
+     title = "ENTRY (Long)", location = location.belowbar,
+     style = shape.triangleup, size = size.normal,
+     color = #5ec896, force_overlay = true,
+     text = "L", textcolor = #ffffff)
+plotshape(i_shzon and high_conviction and tier_short,
+     title = "HIGH CONVICTION ENTRY (Short)", location = location.belowbar,
+     style = shape.diamond, size = size.small,
+     color = #00b4d8, force_overlay = true,
+     text = "S", textcolor = #ffffff)
+plotshape(i_shzon and high_conviction and tier_medium,
+     title = "HIGH CONVICTION ENTRY (Medium)", location = location.belowbar,
+     style = shape.diamond, size = size.small,
+     color = #00b4d8, force_overlay = true,
+     text = "M", textcolor = #ffffff)
+plotshape(i_shzon and high_conviction and tier_long,
+     title = "HIGH CONVICTION ENTRY (Long)", location = location.belowbar,
+     style = shape.diamond, size = size.small,
+     color = #00b4d8, force_overlay = true,
+     text = "L", textcolor = #ffffff)
+plotshape(i_shzon and jex, title = "OVERHEATED signal",
+     location = location.abovebar, style = shape.flag,
+     size = size.small, color = #c0392b, force_overlay = true)
+
+// Small white dot marks the last N tracked entries
+is_tracked_entry = false
+if array.size(entry_bar_index) > 0
+    start_t = math.max(0, array.size(entry_bar_index) - i_lookback)
+    for i = start_t to array.size(entry_bar_index) - 1
+        if array.get(entry_bar_index, i) == bar_index
+            is_tracked_entry := true
+plotshape(i_shzon and is_tracked_entry, title = "Tracked entry",
+     location = location.belowbar, style = shape.cross,
+     size = size.tiny, color = #ffffff, force_overlay = true)
+
+// --- DASHBOARD ---───────────────────────────────────────────────────────────
+dpos = i_dpos == "top-right" ? position.top_right : i_dpos == "top-left" ? position.top_left : i_dpos == "bottom-right" ? position.bottom_right : position.bottom_left
+
+var table dash = table.new(dpos, 2, 7,
+     bgcolor = D_BG, frame_color = D_DIV, frame_width = 1,
+     border_color = D_DIV, border_width = 1)
+
+if i_shdsh and barstate.islast
+    // Timeframe label
+    tf_str   = timeframe.isdaily   ? "1D" : timeframe.isweekly ? "1W" : timeframe.ismonthly ? "1M" :
+               timeframe.multiplier >= 60 ? str.tostring(int(timeframe.multiplier / 60)) + "H" :
+               str.tostring(timeframe.multiplier) + "m"
+    bar_time = str.format_time(time, "HH:mm", syminfo.timezone)
+
+    // Score descriptive label
+    score_lbl = tscore >= 80 ? "Very Strong" : tscore >= 60 ? "Strong"    : tscore >= 40 ? "Moderate" :
+                tscore >= 20 ? "Building"    : tscore >= -20 ? "Neutral"  : tscore >= -40 ? "Weakening" : "Weak"
+
+    // State row — accent background tinted to state color
+    state_bg   = state == "ENTRY"      ? color.new(#5ec896, 78) :
+                 state == "WATCH"      ? color.new(#5ec896, 91) :
+                 state == "OVERHEATED" ? color.new(#c0392b, 78) :
+                 state == "CAUTION"    ? color.new(#e67e22, 84) :
+                                        color.new(#1a1a1a, 5)
+    state_icon = state == "ENTRY" ? "▲" : state == "OVERHEATED" ? "▼" : state == "WATCH" ? "◐" : state == "CAUTION" ? "◈" : "○"
+
+    // Signal quality
+    hc_str = total_trds == 0 ? "—" : last_was_hc ? "◆  High Conviction" : "◇  Standard"
+    hc_c   = total_trds == 0 ? #4a4a4a : last_was_hc ? #ffffff : #6b6b6b
+    tier_s = total_trds == 0 ? "" : "   ·   " + last_tier_label
+
+    // Context: gap warning overrides why when active
+    ctx_str = gap_down_active ? "⚠  Gap-down active — entry signals suppressed" : why_str
+    ctx_c   = gap_down_active ? #e05555 : #7a7a7a
+
+    // Performance
+    have_pl  = i_show_total and total_trds > 0
+    tpnl_str = total_pnl >= 0 ? "+" + str.tostring(total_pnl, "0.0") + "%" : str.tostring(total_pnl, "0.0") + "%"
+    wr_str   = str.tostring(math.round(win_rate), "0") + "%"
+    lbl_c    = total_pnl > 0.0 ? #5ec896 : total_pnl < 0.0 ? #e05555 : #9b9b9b
+    hold_sfx = trade_count > 0 ? "   ·   Avg: " + str.tostring(avg_hold_val, "0.0") + "h" : ""
+    perf_str = have_pl ? tpnl_str + "   ·   " + wr_str + " win   ·   " + str.tostring(total_trds) + "T" + hold_sfx : "—"
+    perf_c   = have_pl ? lbl_c : #4a4a4a
+
+    // Recent P/L for footer
+    pnl_str   = cum_pnl >= 0 ? "+" + str.tostring(cum_pnl, "0.0") + "%" : str.tostring(cum_pnl, "0.0") + "%"
+    pnl_color = cum_pnl > 1.0 ? #5ec896 : cum_pnl < -1.0 ? #e05555 : #9b9b9b
+    recent_s  = trade_count > 0 ? "Last " + str.tostring(trade_count) + ":  " + pnl_str : ""
+
+    // Row 0 — header
+    table.cell(dash, 0, 0, " TYDEFLOW ",
+         text_color = #3a3a3a, bgcolor = D_LBL,
+         text_size = size.tiny, text_halign = text.align_left)
+    table.cell(dash, 1, 0, " " + syminfo.ticker + "   ·   " + tf_str + "   ·   " + bar_time + " ",
+         text_color = #4a4a4a, bgcolor = D_BG,
+         text_size = size.tiny, text_halign = text.align_right)
+
+    // Row 1 — state (dominant accent row)
+    table.cell(dash, 0, 1, " STATE ",
+         text_color = color.new(sc, 20), bgcolor = state_bg,
+         text_size = size.tiny, text_halign = text.align_left)
+    table.cell(dash, 1, 1, "  " + state_icon + "  " + state + "  ",
+         text_color = sc, bgcolor = state_bg,
+         text_size = size.normal, text_halign = text.align_left)
+
+    // Row 2 — score + gauge + label
+    table.cell(dash, 0, 2, " SCORE ",
+         text_color = #3a3a3a, bgcolor = D_LBL,
+         text_size = size.tiny, text_halign = text.align_left)
+    table.cell(dash, 1, 2, "  " + score_str + "   " + f_gauge(tscore) + "   " + score_lbl + " ",
+         text_color = score_c, bgcolor = D_BG,
+         text_size = size.tiny, text_halign = text.align_left)
+
+    // Row 3 — signal quality (HC conviction + tier)
+    table.cell(dash, 0, 3, " SIGNAL ",
+         text_color = #3a3a3a, bgcolor = D_LBL,
+         text_size = size.tiny, text_halign = text.align_left)
+    table.cell(dash, 1, 3, "  " + hc_str + tier_s + " ",
+         text_color = hc_c, bgcolor = D_BG,
+         text_size = size.tiny, text_halign = text.align_left)
+
+    // Row 4 — why / context
+    table.cell(dash, 0, 4, " WHY ",
+         text_color = #3a3a3a, bgcolor = D_LBL,
+         text_size = size.tiny, text_halign = text.align_left)
+    table.cell(dash, 1, 4, "  " + ctx_str + " ",
+         text_color = ctx_c, bgcolor = D_BG,
+         text_size = size.tiny, text_halign = text.align_left)
+
+    // Row 5 — total P/L performance
+    table.cell(dash, 0, 5, " P/L ",
+         text_color = #3a3a3a, bgcolor = D_LBL,
+         text_size = size.tiny, text_halign = text.align_left)
+    table.cell(dash, 1, 5, "  " + perf_str + " ",
+         text_color = perf_c, bgcolor = D_BG,
+         text_size = size.tiny, text_halign = text.align_left)
+
+    // Row 6 — footer
+    table.cell(dash, 0, 6, " @tydeflowapp ",
+         text_color = #2a2a2a, bgcolor = D_LBL,
+         text_size = size.tiny, text_halign = text.align_left)
+    table.cell(dash, 1, 6, "  " + recent_s + " ",
+         text_color = pnl_color, bgcolor = D_BG,
+         text_size = size.tiny, text_halign = text.align_right)
+
+// --- CONNECT TRACKED ENTRIES ---─────────────────────────────────────────────
+if i_connect and barstate.islast
+    while array.size(connect_lines) > 0
+        line.delete(array.shift(connect_lines))
+    if array.size(entry_bar_index) >= 2
+        start_t = math.max(0, array.size(entry_bar_index) - i_lookback)
+        for i = start_t to array.size(entry_bar_index) - 2
+            x1 = array.get(entry_bar_index, i)
+            y1 = array.get(entry_prices,    i)
+            x2 = array.get(entry_bar_index, i + 1)
+            y2 = array.get(entry_prices,    i + 1)
+            new_line = line.new(x1 = x1, y1 = y1, x2 = x2, y2 = y2,
+                 color = color.new(#5ec896, 80), style = line.style_dotted,
+                 width = 1, force_overlay = true)
+            array.push(connect_lines, new_line)
+
+// --- P/L DEBUG TABLE ---─────────────────────────────────────────────────────
+var table dbg_tbl = table.new(position.bottom_left, 5, 22,
+     bgcolor = color.new(#0a0a0a, 10), frame_color = #2a2a2a, frame_width = 1,
+     border_color = #1a1a1a, border_width = 1)
+
+if i_debug and barstate.islast
+    table.cell(dbg_tbl, 0, 0, "#",       text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
+    table.cell(dbg_tbl, 1, 0, "entry $", text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
+    table.cell(dbg_tbl, 2, 0, "hrs",     text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
+    table.cell(dbg_tbl, 3, 0, "P/L%",    text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
+    table.cell(dbg_tbl, 4, 0, "status",  text_color = #6b6b6b, bgcolor = #111111, text_size = size.small, text_halign = text.align_center)
+    n_ent = array.size(entry_prices)
+    for dbg_row = 1 to 21
+        dbg_idx = n_ent - 22 + dbg_row
+        if dbg_idx >= 0 and dbg_idx < n_ent
+            dbg_ep   = array.get(entry_prices, dbg_idx)
+            dbg_pnl  = array.get(trade_pnl,    dbg_idx)
+            dbg_clsd = array.get(trade_closed,  dbg_idx)
+            dbg_et   = array.get(entry_times,   dbg_idx)
+            dbg_ct   = dbg_clsd ? array.get(close_times, dbg_idx) : time
+            dbg_bh   = (dbg_ct - dbg_et) / 3600000.0
+            dbg_pc   = dbg_pnl > 0 ? #5ec896 : dbg_pnl < 0 ? #e05555 : #9b9b9b
+            dbg_sc   = dbg_clsd ? #6b6b6b : #5ec896
+            dbg_ps   = dbg_pnl >= 0 ? "+" + str.tostring(dbg_pnl, "0.0") + "%" : str.tostring(dbg_pnl, "0.0") + "%"
+            table.cell(dbg_tbl, 0, dbg_row, str.tostring(dbg_idx + 1),      text_color = #6b6b6b, bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
+            table.cell(dbg_tbl, 1, dbg_row, str.tostring(dbg_ep, "0.00"),   text_color = #9b9b9b, bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
+            table.cell(dbg_tbl, 2, dbg_row, str.tostring(dbg_bh, "0.0"),    text_color = #9b9b9b, bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
+            table.cell(dbg_tbl, 3, dbg_row, dbg_ps,                       text_color = dbg_pc,  bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
+            table.cell(dbg_tbl, 4, dbg_row, dbg_clsd ? "closed" : "open", text_color = dbg_sc,  bgcolor = #0a0a0a, text_size = size.small, text_halign = text.align_center)
+        else
+            table.cell(dbg_tbl, 0, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.small)
+            table.cell(dbg_tbl, 1, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.small)
+            table.cell(dbg_tbl, 2, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.small)
+            table.cell(dbg_tbl, 3, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.small)
+            table.cell(dbg_tbl, 4, dbg_row, "", text_color = #0a0a0a, bgcolor = #0a0a0a, text_size = size.small)
+
+// --- ALERTS ---───────────────────────────────────────────────────────────────
+alertcondition(jent and i_alent, title = "TF Flow - ENTRY",
+     message = "Tydeflow ENTRY {{ticker}} ({{interval}}) {{plot_0}}")
+alertcondition(jex  and i_alex,  title = "TF Flow - OVERHEATED",
+     message = "Tydeflow OVERHEATED {{ticker}} ({{interval}}) {{plot_0}}")
+alertcondition(schg and i_alst,  title = "TF Flow - State",
+     message = "Tydeflow state change {{ticker}} ({{interval}}) {{plot_0}}")
