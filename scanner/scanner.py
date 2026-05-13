@@ -25,20 +25,28 @@ SENSITIVITY = "balanced"
 STATE_FILE = Path(__file__).parent / "last_signals.json"
 
 
+_WIKI_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; Tydeflow-Scanner/1.0; +https://tydeflow.app)"}
+
+
+def _wiki_tables(url: str) -> list:
+    import requests as req
+    resp = req.get(url, headers=_WIKI_HEADERS, timeout=20)
+    resp.raise_for_status()
+    return pd.read_html(resp.text, flavor="lxml")
+
+
 def get_universe() -> list[str]:
     """Return deduplicated list of S&P 500 + Nasdaq 100 tickers."""
     symbols: set[str] = set()
     try:
-        sp500 = pd.read_html(
-            "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies", flavor="lxml"
-        )[0]["Symbol"].str.replace(".", "-", regex=False).tolist()
-        symbols.update(sp500)
+        sp500 = _wiki_tables("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
+        symbols.update(
+            sp500[0]["Symbol"].str.replace(".", "-", regex=False).tolist()
+        )
     except Exception as e:
         print(f"[warn] S&P 500 fetch failed: {e}")
     try:
-        # Table index may vary; try a few
-        tables = pd.read_html("https://en.wikipedia.org/wiki/Nasdaq-100", flavor="lxml")
-        for t in tables:
+        for t in _wiki_tables("https://en.wikipedia.org/wiki/Nasdaq-100"):
             if "Ticker" in t.columns:
                 symbols.update(t["Ticker"].dropna().tolist())
                 break
