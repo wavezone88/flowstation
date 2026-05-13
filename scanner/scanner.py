@@ -4,6 +4,7 @@ Fetches S&P 500 + Nasdaq 100, filters to $8-$999, scores each symbol,
 writes signals to Google Sheets, emails HC hits via Resend.
 """
 from __future__ import annotations
+import io
 import json
 import os
 import sys
@@ -25,33 +26,37 @@ SENSITIVITY = "balanced"
 STATE_FILE = Path(__file__).parent / "last_signals.json"
 
 
-_WIKI_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; Tydeflow-Scanner/1.0; +https://tydeflow.app)"}
+_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; Tydeflow-Scanner/1.0)"}
 
-
-def _wiki_tables(url: str) -> list:
-    import requests as req
-    resp = req.get(url, headers=_WIKI_HEADERS, timeout=20)
-    resp.raise_for_status()
-    return pd.read_html(resp.text, flavor="lxml")
+# Nasdaq 100 hardcoded — changes only a few times per year
+_NDX100 = [
+    "AAPL","MSFT","NVDA","AMZN","META","GOOGL","GOOG","TSLA","AVGO","COST",
+    "NFLX","ASML","AMD","PEP","LIN","QCOM","ADBE","ARM","AMAT","CSCO","TXN",
+    "INTU","AMGN","CMCSA","ISRG","BKNG","HON","VRTX","SBUX","REGN","MU",
+    "PANW","LRCX","MDLZ","GILD","ADI","ADP","KLAC","SNPS","CDNS","MELI",
+    "ABNB","FTNT","MAR","KDP","CTAS","PYPL","ORLY","DDOG","CRWD","MRVL",
+    "IDXX","MNST","PAYX","CEG","WDAY","NXPI","FAST","PCAR","MCHP","EA",
+    "VRSK","CPRT","ROST","KHC","BIIB","DLTR","ON","XEL","ODFL","EXC","ZS",
+    "ANSS","TEAM","FANG","CTSH","TTD","DXCM","CCEP","WBD","GEHC","CDW",
+    "DASH","BKR","ROP","ILMN","ALGN","SMCI","CHTR","EBAY","ZM","OKTA",
+]
 
 
 def get_universe() -> list[str]:
-    """Return deduplicated list of S&P 500 + Nasdaq 100 tickers."""
-    symbols: set[str] = set()
+    """S&P 500 via GitHub-hosted CSV + hardcoded Nasdaq 100."""
+    import requests as req
+    symbols: set[str] = set(_NDX100)
     try:
-        sp500 = _wiki_tables("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
-        symbols.update(
-            sp500[0]["Symbol"].str.replace(".", "-", regex=False).tolist()
+        resp = req.get(
+            "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv",
+            headers=_HEADERS, timeout=20,
         )
+        resp.raise_for_status()
+        df = pd.read_csv(io.StringIO(resp.text))
+        symbols.update(df["Symbol"].str.replace(".", "-", regex=False).tolist())
+        print(f"[info] Universe: {len(symbols)} symbols")
     except Exception as e:
-        print(f"[warn] S&P 500 fetch failed: {e}")
-    try:
-        for t in _wiki_tables("https://en.wikipedia.org/wiki/Nasdaq-100"):
-            if "Ticker" in t.columns:
-                symbols.update(t["Ticker"].dropna().tolist())
-                break
-    except Exception as e:
-        print(f"[warn] Nasdaq 100 fetch failed: {e}")
+        print(f"[warn] S&P 500 CSV fetch failed: {e} — using Nasdaq 100 only")
     return sorted(symbols)
 
 
