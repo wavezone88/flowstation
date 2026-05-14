@@ -163,6 +163,13 @@ def main() -> None:
             if result.state != "ENTRY":
                 continue
 
+            # Only emit on the FIRST day entering ENTRY state (matches Pine's transition logic).
+            # Score yesterday's bar — if it was already ENTRY, skip to avoid repeats.
+            spy_prev = spy_close.iloc[:-1] if spy_close is not None else None
+            prev = score_daily(df.iloc[:-1], spy_close=spy_prev, sensitivity=SENSITIVITY)
+            if prev is not None and prev.state == "ENTRY":
+                continue  # signal already fired yesterday
+
             entry_count += 1
             signal_type = "HC_ENTRY" if result.high_conviction else "ENTRY"
             if result.high_conviction:
