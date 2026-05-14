@@ -81,26 +81,32 @@ def within_cooldown(symbol: str, state: dict) -> bool:
     return (datetime.now(timezone.utc) - last_dt) < timedelta(hours=COOLDOWN_HOURS)
 
 
+def _fetch_one(sym: str, period: str) -> tuple[str, pd.DataFrame | None]:
+    try:
+        df = yf.download(sym, period=period, interval="1d",
+                         auto_adjust=True, progress=False)
+        # yfinance 1.x may return MultiIndex columns — flatten to single level
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        df = df.dropna(how="all")
+        if len(df) >= 55:
+            return sym, df
+    except Exception:
+        pass
+    return sym, None
+
+
 def download_batch(symbols: list[str], period: str = "2y") -> dict[str, pd.DataFrame]:
-    """Download daily OHLCV for all symbols in one yfinance call."""
+    """Download daily OHLCV for each symbol individually using a thread pool."""
+    import concurrent.futures
     print(f"[info] Downloading {len(symbols)} symbols …")
-    raw = yf.download(
-        symbols,
-        period=period,
-        interval="1d",
-        group_by="ticker",
-        auto_adjust=True,
-        progress=False,
-        threads=True,
-    )
     result: dict[str, pd.DataFrame] = {}
-    for sym in symbols:
-        try:
-            df = raw[sym].dropna(how="all")
-            if len(df) >= 55:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as pool:
+        futures = {pool.submit(_fetch_one, sym, period): sym for sym in symbols}
+        for future in concurrent.futures.as_completed(futures):
+            sym, df = future.result()
+            if df is not None:
                 result[sym] = df
-        except Exception:
-            pass
     print(f"[info] Usable data for {len(result)} symbols")
     return result
 
