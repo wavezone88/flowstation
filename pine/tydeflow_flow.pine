@@ -566,7 +566,7 @@ if i_shdsh and barstate.islast
          text_size = size.tiny, text_halign = text.align_left)
 
     // Row 6 — footer
-    table.cell(dash, 0, 6, " @tydeflowapp ",
+    table.cell(dash, 0, 6, " tydeflow ",
          text_color = #2a2a2a, bgcolor = D_LBL,
          text_size = size.tiny, text_halign = text.align_left)
     table.cell(dash, 1, 6, "  " + recent_s + " ",
