@@ -477,21 +477,10 @@ var table dash = table.new(dpos, 2, 7,
 
 if i_shdsh and barstate.islast
     // Timeframe label
-    tf_str   = timeframe.isdaily   ? "1D" : timeframe.isweekly ? "1W" : timeframe.ismonthly ? "1M" :
-               timeframe.multiplier >= 60 ? str.tostring(int(timeframe.multiplier / 60)) + "H" :
-               str.tostring(timeframe.multiplier) + "m"
-    bar_time = str.format_time(time, "HH:mm", syminfo.timezone)
-
-    // Score descriptive label
-    score_lbl = tscore >= 80 ? "Very Strong" : tscore >= 60 ? "Strong"    : tscore >= 40 ? "Moderate" :
-                tscore >= 20 ? "Building"    : tscore >= -20 ? "Neutral"  : tscore >= -40 ? "Weakening" : "Weak"
-
-    // State row — accent background tinted to state color
-    state_bg   = state == "ENTRY"      ? color.new(#5ec896, 78) :
-                 state == "WATCH"      ? color.new(#5ec896, 91) :
-                 state == "OVERHEATED" ? color.new(#c0392b, 78) :
-                 state == "CAUTION"    ? color.new(#e67e22, 84) :
-                                        color.new(#1a1a1a, 5)
+    tf_str    = timeframe.isdaily ? "1D" : timeframe.isweekly ? "1W" : timeframe.ismonthly ? "1M" : timeframe.multiplier >= 60 ? str.tostring(int(timeframe.multiplier / 60)) + "H" : str.tostring(timeframe.multiplier) + "m"
+    bar_time  = str.format_time(time, "HH:mm", syminfo.timezone)
+    score_lbl = tscore >= 80 ? "Very Strong" : tscore >= 60 ? "Strong" : tscore >= 40 ? "Moderate" : tscore >= 20 ? "Building" : tscore >= -20 ? "Neutral" : tscore >= -40 ? "Weakening" : "Weak"
+    state_bg  = state == "ENTRY" ? color.new(#5ec896, 78) : state == "WATCH" ? color.new(#5ec896, 91) : state == "OVERHEATED" ? color.new(#c0392b, 78) : state == "CAUTION" ? color.new(#e67e22, 84) : color.new(#1a1a1a, 5)
     state_icon = state == "ENTRY" ? "▲" : state == "OVERHEATED" ? "▼" : state == "WATCH" ? "◐" : state == "CAUTION" ? "◈" : "○"
 
     // Signal quality
