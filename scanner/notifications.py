@@ -262,7 +262,7 @@ def _email_html(signal: dict) -> str:
 </html>"""
 
 
-def send_hc_email(signal: dict, api_key: str, to: str = "tyler@tydeflow.app") -> None:
+def send_hc_email(signal: dict, api_key: str, to: str = "rtlong24@gmail.com") -> None:
     resend.api_key = api_key
     score = signal["score"]
     score_str = f"+{score}" if score >= 0 else str(score)
